@@ -62,12 +62,10 @@ class StatsRepository {
     // 1. Total Teams
     final teamsCount = await _db.customSelect('SELECT COUNT(*) AS c FROM teams').getSingle();
     final totalTeams = teamsCount.read<int?>('c') ?? 0;
-    print('Stats: Total Teams = $totalTeams');
 
     // 2. Total Tournaments
     final tourneysCount = await _db.customSelect('SELECT COUNT(*) AS c FROM tournaments').getSingle();
     final totalTournaments = tourneysCount.read<int?>('c') ?? 0;
-    print('Stats: Total Tournaments = $totalTournaments');
 
     // 3. Active Tournaments
     final activeCount = await _db.customSelect('''
@@ -85,22 +83,18 @@ class StatsRepository {
       )
     ''').getSingle();
     final activeTournaments = activeCount.read<int?>('c') ?? 0;
-    print('Stats: Active Tournaments = $activeTournaments');
 
     // 4. Total Points Scored
     final pointsResult = await _db.customSelect('SELECT SUM(IFNULL(home_score, 0) + IFNULL(away_score, 0)) AS c FROM matches WHERE is_completed = 1').getSingle();
     final totalPoints = pointsResult.read<int?>('c') ?? 0;
-    print('Stats: Total Points = $totalPoints');
 
     // 5. Total Courts
     final courtsCount = await _db.customSelect('SELECT COUNT(*) AS c FROM courts').getSingle();
     final totalCourts = courtsCount.read<int?>('c') ?? 0;
-    print('Stats: Total Courts = $totalCourts');
 
     // M. Total Matches Played
     final totalMatchesCount = await _db.customSelect('SELECT COUNT(*) AS c FROM matches WHERE is_completed = 1').getSingle();
     final totalMatches = totalMatchesCount.read<int?>('c') ?? 0;
-    print('Stats: Total Matches = $totalMatches');
 
     // 6. Hall of Fame
     final tournaments = await _db.select(_db.tournaments).get();
@@ -131,7 +125,7 @@ class StatsRepository {
           AND (m.phase = 'final' OR m.phase = 'group') 
           AND m.is_completed = 1
         ORDER BY m.phase ASC, m.id DESC
-        ''', // 'final' comes before 'group' asciibetically? No, 'final' < 'group'. So final is first.
+        ''', 
         variables: [Variable.withInt(t.id)]
       ).get();
 
@@ -152,7 +146,10 @@ class StatsRepository {
           } else {
             winnerName = 'Pareggio/Sconosciuto';
           }
-        } else if (!t.isActive) {
+        } 
+        
+        // Se non abbiamo ancora un vincitore dalla finale, cercatelo dalla classifica (Gironi)
+        if (winnerId == null) {
            // Trova il vincitore dai punti (girone)
            final bestTeamRows = await _db.customSelect('''
               SELECT team_id, SUM(pts) as classification_points FROM (
@@ -179,7 +176,7 @@ class StatsRepository {
              final teamRow = await _db.customSelect('SELECT name FROM teams WHERE id = ?', variables: [Variable.withInt(winnerId)]).getSingleOrNull();
              winnerName = teamRow?.read<String>('name') ?? 'Sconosciuta';
            } else {
-             winnerName = "Nessun Vincitore";
+             winnerName = t.isActive ? "In corso..." : "Nessun Vincitore";
            }
         }
 
@@ -206,10 +203,10 @@ class StatsRepository {
           ).get();
 
           if (statsRows.isNotEmpty) {
-             winnerWins = statsRows.first.read<num?>('wins')?.toInt();
-             winnerLosses = statsRows.first.read<num?>('losses')?.toInt();
-             winnerPointsFor = statsRows.first.read<num?>('points_for')?.toInt();
-             winnerPointsAgainst = statsRows.first.read<num?>('points_against')?.toInt();
+             winnerWins = statsRows.first.read<double?>('wins')?.toInt();
+             winnerLosses = statsRows.first.read<double?>('losses')?.toInt();
+             winnerPointsFor = statsRows.first.read<double?>('points_for')?.toInt();
+             winnerPointsAgainst = statsRows.first.read<double?>('points_against')?.toInt();
           }
         }
 

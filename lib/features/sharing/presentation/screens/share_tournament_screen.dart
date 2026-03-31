@@ -29,11 +29,19 @@ class _ShareTournamentScreenState extends ConsumerState<ShareTournamentScreen> {
   String? _error;
   bool _isPublishing = false;
   String? _webUrl;
+  final _twitchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _setupServer();
+  }
+
+  @override
+  void dispose() {
+    ref.read(shareRepositoryProvider).stopServer();
+    _twitchController.dispose();
+    super.dispose();
   }
 
   Future<void> _setupServer() async {
@@ -47,7 +55,6 @@ class _ShareTournamentScreenState extends ConsumerState<ShareTournamentScreen> {
         });
         return;
       }
-
       await repo.startServer();
       setState(() {
         _ip = ip;
@@ -59,12 +66,6 @@ class _ShareTournamentScreenState extends ConsumerState<ShareTournamentScreen> {
         _isLoading = false;
       });
     }
-  }
-
-  @override
-  void dispose() {
-    ref.read(shareRepositoryProvider).stopServer();
-    super.dispose();
   }
 
   Future<void> _openWebUrl(String url) async {
@@ -84,7 +85,15 @@ class _ShareTournamentScreenState extends ConsumerState<ShareTournamentScreen> {
       final repo = ref.read(shareRepositoryProvider);
       final apiConfig = ref.read(apiConfigProvider);
       final bundle = await repo.getTournamentExport(widget.tournamentId);
-      
+
+      // Inject twitchChannel into tournament data if provided
+      final twitchChannel = _twitchController.text.trim();
+      if (twitchChannel.isNotEmpty && bundle != null) {
+        final tournament = Map<String, dynamic>.from(bundle['tournament'] as Map);
+        tournament['twitchChannel'] = twitchChannel;
+        bundle['tournament'] = tournament;
+      }
+
       final response = await http.post(
         Uri.parse('${apiConfig.baseUrl}/api/publish'),
         headers: {'Content-Type': 'application/json'},
@@ -93,9 +102,8 @@ class _ShareTournamentScreenState extends ConsumerState<ShareTournamentScreen> {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        final relativeUrl = data['url'];
-        final fullRelativeUrl = relativeUrl.startsWith('/') ? relativeUrl : '/$relativeUrl';
-        final fullUrl = apiConfig.baseUrl + fullRelativeUrl;
+        final relativeUrl = data['url'] as String;
+        final fullUrl = apiConfig.baseUrl + (relativeUrl.startsWith('/') ? relativeUrl : '/$relativeUrl');
 
         setState(() {
           _webUrl = fullUrl;
@@ -103,7 +111,7 @@ class _ShareTournamentScreenState extends ConsumerState<ShareTournamentScreen> {
         });
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Successfully published to Next.js!'), backgroundColor: Colors.blue),
+            const SnackBar(content: Text('Pubblicato con successo! 🏀'), backgroundColor: Colors.blue),
           );
         }
       } else {
@@ -113,7 +121,7 @@ class _ShareTournamentScreenState extends ConsumerState<ShareTournamentScreen> {
       if (mounted) {
         setState(() => _isPublishing = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Publishing failed: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text('Pubblicazione fallita: $e'), backgroundColor: Colors.red),
         );
       }
     }
@@ -123,7 +131,6 @@ class _ShareTournamentScreenState extends ConsumerState<ShareTournamentScreen> {
   Widget build(BuildContext context) {
     final repo = ref.watch(shareRepositoryProvider);
     final apiConfig = ref.watch(apiConfigProvider);
-    
     final qrData = _webUrl ?? (_ip != null ? repo.getShareUrl(widget.tournamentId) : '');
     final isWebLink = _webUrl != null;
 
@@ -145,15 +152,77 @@ class _ShareTournamentScreenState extends ConsumerState<ShareTournamentScreen> {
       bodyContent = Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
+          // ── Twitch channel input ──────────────────────────────────
+          Container(
+            margin: const EdgeInsets.only(bottom: 20),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.purple.withOpacity(0.08),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.purple.withOpacity(0.25)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Row(
+                  children: [
+                    Icon(Icons.live_tv, color: Colors.purpleAccent, size: 18),
+                    SizedBox(width: 8),
+                    Text(
+                      'Diretta Twitch (opzionale)',
+                      style: TextStyle(
+                        color: Colors.purpleAccent,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: _twitchController,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    hintText: 'es. venicestreetball',
+                    hintStyle: TextStyle(color: Colors.white.withOpacity(0.3), fontSize: 13),
+                    prefixText: 'twitch.tv/',
+                    prefixStyle: TextStyle(color: Colors.purple.shade300, fontWeight: FontWeight.bold, fontSize: 13),
+                    filled: true,
+                    fillColor: Colors.black26,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(color: Colors.purple.withOpacity(0.3)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(color: Colors.purple.withOpacity(0.3)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(color: Colors.purpleAccent),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Se attivo, verrà mostrato il player video nella pagina web del torneo.',
+                  style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 11),
+                ),
+              ],
+            ),
+          ),
+
+          // ── QR Code ───────────────────────────────────────────────
           Text(
             isWebLink ? 'Web Board QR Code' : 'Scan to Import (Local P2P)',
             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
           Text(
-            isWebLink 
-              ? 'Scan to view results on the web browser' 
-              : 'Make sure the receiver is on the same network.',
+            isWebLink
+                ? 'Scansiona per vedere i risultati nel browser'
+                : 'Assicurati che il ricevente sia sulla stessa rete.',
             style: const TextStyle(color: Colors.grey, fontSize: 13),
           ),
           const SizedBox(height: 32),
@@ -163,14 +232,11 @@ class _ShareTournamentScreenState extends ConsumerState<ShareTournamentScreen> {
               color: Colors.white,
               borderRadius: BorderRadius.circular(24),
               boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 20,
-                ),
+                BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 20),
               ],
             ),
             child: QrImageView(
-              data: qrData,
+              data: qrData.isNotEmpty ? qrData : 'https://vesb.vercel.app',
               version: QrVersions.auto,
               size: 250.0,
               backgroundColor: Colors.white,
@@ -178,7 +244,10 @@ class _ShareTournamentScreenState extends ConsumerState<ShareTournamentScreen> {
               dataModuleStyle: const QrDataModuleStyle(dataModuleShape: QrDataModuleShape.square, color: Colors.black),
             ),
           ).animate(key: ValueKey(isWebLink)).scale(duration: 500.ms, curve: Curves.easeOutBack).fadeIn(),
+
           const SizedBox(height: 40),
+
+          // ── IP badge (local only) ─────────────────────────────────
           if (!isWebLink)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -196,43 +265,42 @@ class _ShareTournamentScreenState extends ConsumerState<ShareTournamentScreen> {
                 ],
               ),
             ),
+
           const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              OutlinedButton.icon(
-                onPressed: _isPublishing ? null : _publishToWeb,
-                icon: _isPublishing 
-                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                    : const Icon(Icons.public),
-                label: Text(AppLocalizations.of(context)!.publishToWeb),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.blueAccent,
-                  side: const BorderSide(color: Colors.blueAccent),
-                ),
-              ),
-            ],
+
+          // ── Publish button ────────────────────────────────────────
+          OutlinedButton.icon(
+            onPressed: _isPublishing ? null : _publishToWeb,
+            icon: _isPublishing
+                ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                : const Icon(Icons.public),
+            label: Text(AppLocalizations.of(context)!.publishToWeb),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.blueAccent,
+              side: const BorderSide(color: Colors.blueAccent),
+            ),
           ),
+
+          // ── URL display ───────────────────────────────────────────
           if (_webUrl != null) ...[
             const SizedBox(height: 8),
-            Text(
-              'URL: $_webUrl',
+            SelectableText(
+              _webUrl!,
               style: const TextStyle(color: Colors.blue, fontSize: 11, decoration: TextDecoration.underline),
             ),
           ],
+
+          // ── Open in browser ───────────────────────────────────────
           if (isWebLink) ...[
             const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                  ElevatedButton.icon(
-                    onPressed: () => _openWebUrl(_webUrl!),
-                    icon: const Icon(Icons.open_in_browser),
-                    label: Text(AppLocalizations.of(context)!.openInBrowser),
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, foregroundColor: Colors.white),
-                  ),
-                
-              ],
+            ElevatedButton.icon(
+              onPressed: () => _openWebUrl(_webUrl!),
+              icon: const Icon(Icons.open_in_browser),
+              label: Text(AppLocalizations.of(context)!.openInBrowser),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange,
+                foregroundColor: Colors.white,
+              ),
             ),
           ],
         ],

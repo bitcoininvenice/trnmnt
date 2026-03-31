@@ -6,6 +6,7 @@ import 'package:path/path.dart' as p;
 import 'package:sqlcipher_flutter_libs/sqlcipher_flutter_libs.dart';
 import 'package:sqlite3/sqlite3.dart';
 import 'package:sqlite3/open.dart';
+import 'package:flutter/foundation.dart';
 import '../security/encryption_service.dart';
 
 part 'app_database.g.dart';
@@ -111,13 +112,14 @@ class AppDatabase extends _$AppDatabase {
   static AppDatabase? _instance;
   static bool _sqlCipherInitialized = false;
 
-  /// Initialize SQLCipher for Android - must be called before database access
+  /// Initialize SQLCipher - must be called before database access
   static Future<void> initializeSqlCipher() async {
     if (Platform.isAndroid && !_sqlCipherInitialized) {
       await applyWorkaroundToOpenSqlCipherOnOldAndroidVersions();
-      
-      // Override the default sqlite3 open to use sqlcipher
       open.overrideFor(OperatingSystem.android, openCipherOnAndroid);
+      _sqlCipherInitialized = true;
+    } else if (Platform.isIOS && !_sqlCipherInitialized) {
+      // On iOS, the framework handles symbol resolution automatically.
       _sqlCipherInitialized = true;
     }
   }
@@ -134,13 +136,18 @@ class AppDatabase extends _$AppDatabase {
     final dbFolder = await getApplicationDocumentsDirectory();
     final file = File(p.join(dbFolder.path, 'trnmnt_encrypted.db'));
 
+
     final database = NativeDatabase(
       file,
       setup: (rawDb) {
-        // Set the encryption key
-        rawDb.execute("PRAGMA key = '$password';");
-        // Verify the database is accessible
-        rawDb.execute('SELECT 1;');
+        try {
+          // Set the encryption key
+          rawDb.execute("PRAGMA key = '$password';");
+          // Verify the database is accessible
+          final res = rawDb.select('SELECT 1;');
+        } catch (e) {
+          rethrow;
+        }
       },
     );
 

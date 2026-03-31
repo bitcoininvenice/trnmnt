@@ -5,6 +5,8 @@ import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart' as io;
 import 'package:shelf_router/shelf_router.dart';
 import 'package:network_info_plus/network_info_plus.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../../../core/providers/database_provider.dart';
 import '../../../core/database/app_database.dart';
 import '../../tournaments/data/tournaments_repository.dart';
@@ -48,7 +50,6 @@ class ShareRepository {
     });
 
     _server = await io.serve(app, InternetAddress.anyIPv4, _port);
-    print('Sharing Server listening on port ${_server?.port}');
   }
 
   Future<void> stopServer() async {
@@ -79,6 +80,28 @@ class ShareRepository {
   String getShareUrl(int tournamentId) {
     if (_localIp == null) return '';
     return 'trnmnt://share?ip=$_localIp&port=$_port&id=$tournamentId';
+  }
+
+  /// Publishes tournament data to Supabase for global/realtime access
+  Future<String?> publishToSupabase(int tournamentId) async {
+    final export = await getTournamentExport(tournamentId);
+    if (export == null) return null;
+
+    final supabase = Supabase.instance.client;
+    
+    try {
+      await supabase.from('published_tournaments').upsert({
+        'id': tournamentId.toString(),
+        'data': export,
+        'last_updated': DateTime.now().toIso8601String(),
+      });
+      
+      // Return the public URL
+      final baseUrl = dotenv.env['VESB_BASE_URL'] ?? 'https://vesb.vercel.app';
+      return '$baseUrl/tournaments/$tournamentId';
+    } catch (e) {
+      return null;
+    }
   }
 }
 

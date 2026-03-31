@@ -4,6 +4,7 @@ import '../../../../core/database/app_database.dart';
 import '../../../../core/providers/database_provider.dart';
 import '../../data/matches_repository.dart';
 import '../../../../core/widgets/vintage_score_column.dart';
+import '../../../sharing/data/share_repository.dart';
 
 /// Provider for a single match by ID
 final matchByIdProvider = FutureProvider.family<MatchWithTeams?, int>((ref, matchId) async {
@@ -51,13 +52,28 @@ class _MatchScreenState extends ConsumerState<MatchScreen> {
     setState(() => _isLoading = true);
 
     try {
-      await ref.read(matchesRepositoryProvider).updateMatchScore(
+      final repo = ref.read(matchesRepositoryProvider);
+      final shareRepo = ref.read(shareRepositoryProvider);
+      
+      await repo.updateMatchScore(
         widget.matchId,
         _homeScore!,
         _awayScore!,
       );
+
+      // 1. Get tournament ID for sync (BEFORE pop)
+      final matchData = await ref.read(matchByIdProvider(widget.matchId).future);
+      final tournamentId = matchData?.match.tournamentId;
+
       if (mounted) {
         Navigator.pop(context);
+        
+        // 2. Start sync in background (NOW SAFE because we don't use 'ref' inside an async block of a dead widget)
+        if (tournamentId != null) {
+          shareRepo.publishToSupabase(tournamentId).catchError((e) {
+             return null;
+          });
+        }
       }
     } catch (e) {
       if (mounted) {

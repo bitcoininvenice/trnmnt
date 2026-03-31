@@ -105,18 +105,15 @@ class HomeScreen extends ConsumerWidget {
           SliverToBoxAdapter(
             child: statsAsync.when(
               data: (stats) {
-                print('Home: Stats loaded successfully');
                 return StatsOverviewWidget(stats: stats);
               },
               loading: () {
-                print('Home: Stats still loading...');
                 return const Padding(
                   padding: EdgeInsets.all(32.0),
                   child: Center(child: CircularProgressIndicator()),
                 );
               },
               error: (e, s) {
-                print('Home: Stats error = $e');
                 return const SizedBox.shrink();
               },
             ),
