@@ -1027,6 +1027,84 @@ abstract class AppLocalizations {
   /// In it, this message translates to:
   /// **'Ripristina icona predefinita'**
   String get resetIcon;
+
+  /// No description provided for @viewWinners.
+  ///
+  /// In it, this message translates to:
+  /// **'Vedi i vincitori'**
+  String get viewWinners;
+
+  /// No description provided for @share.
+  ///
+  /// In it, this message translates to:
+  /// **'Condividi'**
+  String get share;
+
+  /// No description provided for @scanTournament.
+  ///
+  /// In it, this message translates to:
+  /// **'Scansiona Torneo'**
+  String get scanTournament;
+
+  /// No description provided for @syncFromScout.
+  ///
+  /// In it, this message translates to:
+  /// **'Sincronizza da Scout'**
+  String get syncFromScout;
+
+  /// No description provided for @readOnlyTournament.
+  ///
+  /// In it, this message translates to:
+  /// **'Questo torneo è in sola lettura perché è stato importato.'**
+  String get readOnlyTournament;
+
+  /// No description provided for @apiSettings.
+  ///
+  /// In it, this message translates to:
+  /// **'Impostazioni API'**
+  String get apiSettings;
+
+  /// No description provided for @apiUrl.
+  ///
+  /// In it, this message translates to:
+  /// **'URL Server API'**
+  String get apiUrl;
+
+  /// No description provided for @apiUrlHint.
+  ///
+  /// In it, this message translates to:
+  /// **'Esempio: https://vesb.vercel.app'**
+  String get apiUrlHint;
+
+  /// No description provided for @testConnection.
+  ///
+  /// In it, this message translates to:
+  /// **'Testa Connessione'**
+  String get testConnection;
+
+  /// No description provided for @connectionWorking.
+  ///
+  /// In it, this message translates to:
+  /// **'Connessione funzionante!'**
+  String get connectionWorking;
+
+  /// No description provided for @connectionError.
+  ///
+  /// In it, this message translates to:
+  /// **'Errore di connessione'**
+  String get connectionError;
+
+  /// No description provided for @publishToWeb.
+  ///
+  /// In it, this message translates to:
+  /// **'Pubblica sul Web'**
+  String get publishToWeb;
+
+  /// No description provided for @openInBrowser.
+  ///
+  /// In it, this message translates to:
+  /// **'Apri nel Browser'**
+  String get openInBrowser;
 }
 
 class _AppLocalizationsDelegate

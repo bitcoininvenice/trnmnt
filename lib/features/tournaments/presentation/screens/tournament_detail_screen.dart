@@ -59,6 +59,11 @@ class TournamentDetailScreen extends ConsumerWidget {
                 ),
                 actions: [
                   IconButton(
+                    icon: const Icon(Icons.share),
+                    tooltip: AppLocalizations.of(context)!.share,
+                    onPressed: () => context.push('/share/$tournamentId?name=${tournament.name}'),
+                  ),
+                  IconButton(
                     icon: const Icon(Icons.edit),
                     tooltip: AppLocalizations.of(context)!.edit,
                     onPressed: () => context.go('/tournaments/$tournamentId/edit'),
@@ -73,10 +78,11 @@ class TournamentDetailScreen extends ConsumerWidget {
                     children: [
                       // Location
                       Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Row(
                         children: [
-                          const Icon(Icons.location_on, size: 20),
+                          const Icon(Icons.stadium, size: 20, color: Colors.orange),
                           const SizedBox(width: 8),
                           Text(tournament.location),
                         ],),

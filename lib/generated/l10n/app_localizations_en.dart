@@ -500,4 +500,44 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get resetIcon => 'Reset to default icon';
+
+  @override
+  String get viewWinners => 'View winners';
+
+  @override
+  String get share => 'Share';
+
+  @override
+  String get scanTournament => 'Scan Tournament';
+
+  @override
+  String get syncFromScout => 'Sync from Scout';
+
+  @override
+  String get readOnlyTournament =>
+      'This tournament is read-only because it was imported.';
+
+  @override
+  String get apiSettings => 'API Settings';
+
+  @override
+  String get apiUrl => 'API Server URL';
+
+  @override
+  String get apiUrlHint => 'Example: https://vesb.vercel.app';
+
+  @override
+  String get testConnection => 'Test Connection';
+
+  @override
+  String get connectionWorking => 'Connection working!';
+
+  @override
+  String get connectionError => 'Connection error';
+
+  @override
+  String get publishToWeb => 'Publish to Web';
+
+  @override
+  String get openInBrowser => 'Open in Browser';
 }

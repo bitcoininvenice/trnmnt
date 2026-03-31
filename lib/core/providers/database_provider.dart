@@ -12,6 +12,10 @@ final dbProvider = Provider<AppDatabase>((ref) {
   return asyncDb.when(
     data: (db) => db,
     loading: () => throw Exception('Database not initialized yet'),
-    error: (error, stack) => throw error,
+    error: (error, stack) {
+      print('DB Provider Error: $error');
+      print(stack);
+      throw error;
+    },
   );
 });

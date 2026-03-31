@@ -502,4 +502,44 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get resetIcon => 'Ripristina icona predefinita';
+
+  @override
+  String get viewWinners => 'Vedi i vincitori';
+
+  @override
+  String get share => 'Condividi';
+
+  @override
+  String get scanTournament => 'Scansiona Torneo';
+
+  @override
+  String get syncFromScout => 'Sincronizza da Scout';
+
+  @override
+  String get readOnlyTournament =>
+      'Questo torneo è in sola lettura perché è stato importato.';
+
+  @override
+  String get apiSettings => 'Impostazioni API';
+
+  @override
+  String get apiUrl => 'URL Server API';
+
+  @override
+  String get apiUrlHint => 'Esempio: https://vesb.vercel.app';
+
+  @override
+  String get testConnection => 'Testa Connessione';
+
+  @override
+  String get connectionWorking => 'Connessione funzionante!';
+
+  @override
+  String get connectionError => 'Errore di connessione';
+
+  @override
+  String get publishToWeb => 'Pubblica sul Web';
+
+  @override
+  String get openInBrowser => 'Apri nel Browser';
 }

@@ -17,7 +17,9 @@ import '../../features/single_match/presentation/screens/single_match_setup_scre
 import '../../features/single_match/presentation/screens/single_match_screen.dart';
 import '../../features/map/presentation/screens/map_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
-import '../../features/stats/presentation/screens/stats_screen.dart';
+import '../../features/stats/presentation/screens/hall_of_fame_screen.dart';
+import '../../features/sharing/presentation/screens/share_tournament_screen.dart';
+import '../../features/sharing/presentation/screens/scan_tournament_screen.dart';
 import '../shell/main_shell.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -161,10 +163,24 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: '/stats',
-            name: 'stats',
+            name: 'hall-of-fame',
             pageBuilder: (context, state) => const NoTransitionPage(
-              child: StatsScreen(),
+              child: HallOfFameScreen(),
             ),
+          ),
+          GoRoute(
+            path: '/share/:tournamentId',
+            name: 'tournament-share',
+            builder: (context, state) {
+              final id = int.parse(state.pathParameters['tournamentId']!);
+              final name = state.uri.queryParameters['name'] ?? 'Tournament';
+              return ShareTournamentScreen(tournamentId: id, tournamentName: name);
+            },
+          ),
+          GoRoute(
+            path: '/scan',
+            name: 'tournament-scan',
+            builder: (context, state) => const ScanTournamentScreen(),
           ),
         ],
       ),

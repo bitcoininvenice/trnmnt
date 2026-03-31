@@ -225,5 +225,18 @@
   "appIcon": "App Icon",
   "changeAppIcon": "Change App Icon",
   "pickImageIcon": "Pick Image",
-  "resetIcon": "Reset to default icon"
+  "resetIcon": "Reset to default icon",
+  "viewWinners": "View winners",
+  "share": "Share",
+  "scanTournament": "Scan Tournament",
+  "syncFromScout": "Sync from Scout",
+  "readOnlyTournament": "This tournament is read-only because it was imported.",
+  "apiSettings": "API Settings",
+  "apiUrl": "API Server URL",
+  "apiUrlHint": "Example: https://vesb.vercel.app",
+  "testConnection": "Test Connection",
+  "connectionWorking": "Connection working!",
+  "connectionError": "Connection error",
+  "publishToWeb": "Publish to Web",
+  "openInBrowser": "Open in Browser"
 }

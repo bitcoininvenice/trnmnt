@@ -39,6 +39,7 @@ class Tournaments extends Table {
   BoolColumn get includeConsolationFinals => boolean().withDefault(const Constant(false))();
   IntColumn get timerMinutes => integer().withDefault(const Constant(10))();
   BoolColumn get isActive => boolean().withDefault(const Constant(true))();
+  BoolColumn get isReadOnly => boolean().withDefault(const Constant(false))();
   DateTimeColumn get startDate => dateTime().nullable()();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 }
@@ -148,7 +149,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration {
@@ -157,11 +158,35 @@ class AppDatabase extends _$AppDatabase {
         await m.createAll();
       },
       onUpgrade: (Migrator m, int from, int to) async {
-        if (from < 2) {
+        // Ultra-safe migration: ensure all expected elements exist regardless of 'from' version
+        
+        // 1. Ensure Courts table exists (from v2)
+        final tableRes = await customSelect("SELECT name FROM sqlite_master WHERE type='table' AND name='courts'").get();
+        if (tableRes.isEmpty) {
           await m.createTable(courts);
         }
-        if (from < 3) {
-          await m.addColumn(tournaments, tournaments.startDate);
+
+        // 2. Ensure all columns in tournaments exist (from v3 and v4)
+        final columnRes = await customSelect('PRAGMA table_info(tournaments)').get();
+        final existingCols = columnRes.map((r) => r.read<String>('name')).toList();
+
+        final expectedCols = {
+          'start_date': tournaments.startDate,
+          'mode': tournaments.mode,
+          'scoring_system': tournaments.scoringSystem,
+          'win_points': tournaments.winPoints,
+          'draw_points': tournaments.drawPoints,
+          'loss_points': tournaments.lossPoints,
+          'include_consolation_finals': tournaments.includeConsolationFinals,
+          'timer_minutes': tournaments.timerMinutes,
+          'is_active': tournaments.isActive,
+          'is_read_only': tournaments.isReadOnly,
+        };
+
+        for (final entry in expectedCols.entries) {
+          if (!existingCols.contains(entry.key)) {
+            await m.addColumn(tournaments, entry.value);
+          }
         }
       },
     );

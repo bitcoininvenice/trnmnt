@@ -99,11 +99,14 @@ class _TournamentEditScreenState extends ConsumerState<TournamentEditScreen> {
       }
     });
 
+    final tournamentAsync = ref.watch(tournamentByIdProvider(widget.tournamentId));
+    final isReadOnly = tournamentAsync.value?.isReadOnly ?? false;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(AppLocalizations.of(context)!.edit), // Use translation for "Edit"
         actions: [
-          if (!_isLoading)
+          if (!_isLoading && !isReadOnly)
             IconButton(
               icon: const Icon(Icons.check),
               onPressed: _updateTournament,
@@ -119,8 +122,26 @@ class _TournamentEditScreenState extends ConsumerState<TournamentEditScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    if (isReadOnly)
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        margin: const EdgeInsets.only(bottom: 24),
+                        decoration: BoxDecoration(
+                          color: Colors.amber.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.lock_outline, color: Colors.amber),
+                            const SizedBox(width: 12),
+                            Expanded(child: Text(AppLocalizations.of(context)!.readOnlyTournament)),
+                          ],
+                        ),
+                      ),
                     TextFormField(
                       controller: _nameController,
+                      enabled: !isReadOnly,
                       decoration: InputDecoration(
                         labelText: AppLocalizations.of(context)!.tournamentName,
                         prefixIcon: const Icon(Icons.emoji_events),
@@ -130,6 +151,7 @@ class _TournamentEditScreenState extends ConsumerState<TournamentEditScreen> {
                     const SizedBox(height: 16),
                     TextFormField(
                       controller: _locationController,
+                      enabled: !isReadOnly,
                       decoration: InputDecoration(
                         labelText: AppLocalizations.of(context)!.tournamentLocation,
                         prefixIcon: const Icon(Icons.location_on),
@@ -137,14 +159,14 @@ class _TournamentEditScreenState extends ConsumerState<TournamentEditScreen> {
                       validator: (value) => (value == null || value.trim().isEmpty) ? AppLocalizations.of(context)!.enterTournamentLocation : null,
                     ),
                     const SizedBox(height: 24),
-                    _buildDateField(),
+                    _buildDateField(isReadOnly),
                     const SizedBox(height: 32),
                     Text(
                       AppLocalizations.of(context)!.participatingTeams,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 12),
-                    _buildTeamsSelection(allTeamsAsync),
+                    _buildTeamsSelection(allTeamsAsync, isReadOnly),
                     const SizedBox(height: 80), // Spacer for fab if needed
                   ],
                 ),
@@ -153,10 +175,10 @@ class _TournamentEditScreenState extends ConsumerState<TournamentEditScreen> {
     );
   }
 
-  Widget _buildDateField() {
+  Widget _buildDateField(bool isReadOnly) {
     final dateStr = "${_startDate.day}/${_startDate.month}/${_startDate.year}";
     return InkWell(
-      onTap: () async {
+      onTap: isReadOnly ? null : () async {
         final picked = await showDatePicker(
           context: context,
           initialDate: _startDate,
@@ -175,13 +197,15 @@ class _TournamentEditScreenState extends ConsumerState<TournamentEditScreen> {
         ),
         child: Text(
           dateStr,
-          style: Theme.of(context).textTheme.bodyLarge,
+          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+            color: isReadOnly ? Colors.grey : null,
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildTeamsSelection(AsyncValue<List<Team>> allTeamsAsync) {
+  Widget _buildTeamsSelection(AsyncValue<List<Team>> allTeamsAsync, bool isReadOnly) {
     return allTeamsAsync.when(
       loading: () => const CircularProgressIndicator(),
       error: (e, s) => Text('Error: $e'),
@@ -191,25 +215,30 @@ class _TournamentEditScreenState extends ConsumerState<TournamentEditScreen> {
 
         return Column(
           children: [
-            TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                labelText: AppLocalizations.of(context)!.searchTeam,
-                prefixIcon: const Icon(Icons.search),
-                suffixIcon: _searchController.text.isNotEmpty 
-                    ? IconButton(icon: const Icon(Icons.clear), onPressed: () => setState(() => _searchController.clear())) 
-                    : null,
+            if (!isReadOnly) ...[
+              TextField(
+                controller: _searchController,
+                decoration: InputDecoration(
+                  labelText: AppLocalizations.of(context)!.searchTeam,
+                  prefixIcon: const Icon(Icons.search),
+                  suffixIcon: _searchController.text.isNotEmpty 
+                      ? IconButton(icon: const Icon(Icons.clear), onPressed: () => setState(() => _searchController.clear())) 
+                      : null,
+                ),
+                onChanged: (v) => setState(() {}),
               ),
-              onChanged: (v) => setState(() {}),
-            ),
-            const SizedBox(height: 12),
+              const SizedBox(height: 12),
+            ],
             ...filteredTeams
               .where((t) => t.name.toLowerCase().contains(searchText))
               .map((team) {
                 final isSelected = _selectedTeamIds.contains(team.id);
+                if (isReadOnly && !isSelected) return const SizedBox.shrink();
+
                 return CheckboxListTile(
                   title: Text(team.name),
                   value: isSelected,
+                  enabled: !isReadOnly,
                   onChanged: (val) {
                     setState(() {
                       if (val == true) {

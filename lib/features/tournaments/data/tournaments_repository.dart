@@ -4,9 +4,9 @@ import '../../../../core/database/app_database.dart';
 import '../../../../core/providers/database_provider.dart';
 
 /// Provider for all tournaments
-final tournamentsProvider = StreamProvider<List<Tournament>>((ref) {
-  final db = ref.watch(dbProvider);
-  return (db.select(db.tournaments)
+final tournamentsProvider = StreamProvider<List<Tournament>>((ref) async* {
+  final db = await ref.watch(databaseProvider.future);
+  yield* (db.select(db.tournaments)
     ..orderBy([(t) => OrderingTerm.desc(t.startDate), (t) => OrderingTerm.desc(t.createdAt)]))
     .watch();
 });

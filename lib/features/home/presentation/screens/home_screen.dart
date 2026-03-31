@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:trnmnt/generated/l10n/app_localizations.dart';
 import 'package:trnmnt/core/providers/icon_provider.dart';
+import 'package:trnmnt/features/stats/presentation/widgets/stats_overview.dart';
+import 'package:trnmnt/features/stats/data/stats_repository.dart';
 import 'dart:io';
 
 class HomeScreen extends ConsumerWidget {
@@ -12,122 +14,185 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final customIconPath = ref.watch(customIconProvider);
+    final statsAsync = ref.watch(appStatsProvider);
     
     return Scaffold(
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 20),
-              Row(
-                children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(10),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.1),
-                          blurRadius: 8,
-                          spreadRadius: 1,
-                        ),
-                      ],
-                    ),
-                    clipBehavior: Clip.antiAlias,
-                    child: customIconPath != null
-                      ? Image.file(File(customIconPath), fit: BoxFit.cover)
-                      : Image.asset('assets/icon/app_icon.png', fit: BoxFit.cover, errorBuilder: (c, e, s) => const Icon(Icons.apps)),
+      body: CustomScrollView(
+        slivers: [
+          // Header Section (Concept 3 Hero style)
+          SliverAppBar(
+            expandedHeight: 150,
+            pinned: true,
+            flexibleSpace: FlexibleSpaceBar(
+              background: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Theme.of(context).colorScheme.primary,
+                      Theme.of(context).colorScheme.secondary,
+                    ],
                   ),
-                  const SizedBox(width: 16),
-                  Text(
-                    'TRNMNT',
-                    style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 4,
-                    ),
-                  ),
-                ],
-              ).animate().fadeIn(duration: 500.ms).slideX(begin: -0.2),
-              const SizedBox(height: 8),
-              Text(
-                AppLocalizations.of(context)!.appSubtitle,
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                 ),
-              ).animate().fadeIn(delay: 200.ms, duration: 500.ms),
-              const SizedBox(height: 40),
-              Expanded(
-                child: GridView.count(
-                  crossAxisCount: 2,
-                  childAspectRatio: 1.3,
-                  mainAxisSpacing: 12,
-                  crossAxisSpacing: 12,
+                child: Stack(
                   children: [
-                    _buildQuickAction(
-                      context,
-                      icon: Icons.groups,
-                      title: AppLocalizations.of(context)!.teams,
-                      subtitle: AppLocalizations.of(context)!.manageTeams,
-                      color: Colors.blue,
-                      onTap: () => context.go('/teams'),
-                    ).animate().fadeIn(delay: 300.ms).scale(begin: const Offset(0.8, 0.8)),
-                    _buildQuickAction(
-                      context,
-                      icon: Icons.sports_basketball,
-                      title: AppLocalizations.of(context)!.singleMatch,
-                      subtitle: AppLocalizations.of(context)!.manageSingleMatch,
-                      color: Colors.purple,
-                      onTap: () => context.go('/single-match-setup'),
-                    ).animate().fadeIn(delay: 400.ms).scale(begin: const Offset(0.8, 0.8)),
-                    _buildQuickAction(
-                      context,
-                      icon: Icons.emoji_events,
-                      title: AppLocalizations.of(context)!.tournaments,
-                      subtitle: AppLocalizations.of(context)!.createAndManage,
-                      color: Colors.orange,
-                      onTap: () => context.go('/tournaments'),
-                    ).animate().fadeIn(delay: 500.ms).scale(begin: const Offset(0.8, 0.8)),
-                    _buildQuickAction(
-                      context,
-                      icon: Icons.add_circle,
-                      title: AppLocalizations.of(context)!.newTournament,
-                      subtitle: AppLocalizations.of(context)!.startNow,
-                      color: Colors.green,
-                      onTap: () => context.go('/tournaments/new'),
-                    ).animate().fadeIn(delay: 600.ms).scale(begin: const Offset(0.8, 0.8)),
-                    _buildQuickAction(
-                      context,
-                      icon: Icons.map,
-                      title: AppLocalizations.of(context)!.map,
-                      subtitle: AppLocalizations.of(context)!.courtsMap,
-                      color: Colors.teal,
-                      onTap: () => context.go('/map'),
-                    ).animate().fadeIn(delay: 700.ms).scale(begin: const Offset(0.8, 0.8)),
-                    _buildQuickAction(
-                      context,
-                      icon: Icons.bar_chart,
-                      title: AppLocalizations.of(context)!.statistics,
-                      subtitle: AppLocalizations.of(context)!.dataAndNumbers,
-                      color: Colors.deepPurple,
-                      onTap: () => context.go('/stats'),
-                    ).animate().fadeIn(delay: 800.ms).scale(begin: const Offset(0.8, 0.8)),
-                    _buildQuickAction(
-                      context,
-                      icon: Icons.settings,
-                      title: AppLocalizations.of(context)!.settings,
-                      subtitle: AppLocalizations.of(context)!.appOptions,
-                      color: Colors.grey,
-                      onTap: () => context.go('/settings'),
-                    ).animate().fadeIn(delay: 900.ms).scale(begin: const Offset(0.8, 0.8)),
+                    Positioned(
+                      right: -30,
+                      top: -30,
+                      child: Icon(
+                        Icons.sports_basketball,
+                        size: 200,
+                        color: Colors.white.withValues(alpha: 0.1),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(24.0),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                width: 50,
+                                height: 50,
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(12),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: 0.2),
+                                      blurRadius: 10,
+                                    ),
+                                  ],
+                                ),
+                                clipBehavior: Clip.antiAlias,
+                                child: customIconPath != null
+                                  ? Image.file(File(customIconPath), fit: BoxFit.cover)
+                                  : Image.asset('assets/icon/app_icon.png', fit: BoxFit.cover, errorBuilder: (c, e, s) => const Icon(Icons.apps, color: Colors.orange)),
+                              ),
+                              const SizedBox(width: 16),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'TRNMNT',
+                                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 2,
+                                    ),
+                                  ),
+                                  Text(
+                                    AppLocalizations.of(context)!.appSubtitle,
+                                    style: const TextStyle(color: Colors.white70, fontSize: 13),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
               ),
-            ],
+            ),
           ),
-        ),
+
+          // Stats Section (Concept 2 integration)
+          SliverToBoxAdapter(
+            child: statsAsync.when(
+              data: (stats) {
+                print('Home: Stats loaded successfully');
+                return StatsOverviewWidget(stats: stats);
+              },
+              loading: () {
+                print('Home: Stats still loading...');
+                return const Padding(
+                  padding: EdgeInsets.all(32.0),
+                  child: Center(child: CircularProgressIndicator()),
+                );
+              },
+              error: (e, s) {
+                print('Home: Stats error = $e');
+                return const SizedBox.shrink();
+              },
+            ),
+          ),
+
+          // Quick Actions Grid
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+            sliver: SliverGrid.count(
+              crossAxisCount: 2,
+              childAspectRatio: 1.4,
+              mainAxisSpacing: 12,
+              crossAxisSpacing: 12,
+              children: [
+                _buildQuickAction(
+                  context,
+                  icon: Icons.sports_basketball,
+                  title: AppLocalizations.of(context)!.singleMatch,
+                  subtitle: AppLocalizations.of(context)!.manageSingleMatch,
+                  color: Colors.purple,
+                  onTap: () => context.go('/single-match-setup'),
+                ).animate().fadeIn(delay: 500.ms).scale(),
+                _buildQuickAction(
+                  context,
+                  icon: Icons.emoji_events,
+                  title: AppLocalizations.of(context)!.tournaments,
+                  subtitle: AppLocalizations.of(context)!.createAndManage,
+                  color: Colors.orange,
+                  onTap: () => context.go('/tournaments'),
+                ).animate().fadeIn(delay: 550.ms).scale(),
+                _buildQuickAction(
+                  context,
+                  icon: Icons.groups,
+                  title: AppLocalizations.of(context)!.teams,
+                  subtitle: AppLocalizations.of(context)!.manageTeams,
+                  color: Colors.blue,
+                  onTap: () => context.go('/teams'),
+                ).animate().fadeIn(delay: 600.ms).scale(),
+                _buildQuickAction(
+                  context,
+                  icon: Icons.emoji_events,
+                  title: AppLocalizations.of(context)!.hallOfFame,
+                  subtitle: AppLocalizations.of(context)!.viewWinners,
+                  color: Colors.amber,
+                  onTap: () => context.go('/stats'),
+                ).animate().fadeIn(delay: 650.ms).scale(),
+                _buildQuickAction(
+                  context,
+                  icon: Icons.map,
+                  title: AppLocalizations.of(context)!.map,
+                  subtitle: AppLocalizations.of(context)!.courtsMap,
+                  color: Colors.teal,
+                  onTap: () => context.go('/map'),
+                ).animate().fadeIn(delay: 700.ms).scale(),
+                _buildQuickAction(
+                  context,
+                  icon: Icons.settings,
+                  title: AppLocalizations.of(context)!.settings,
+                  subtitle: AppLocalizations.of(context)!.appOptions,
+                  color: Colors.grey,
+                  onTap: () => context.go('/settings'),
+                ).animate().fadeIn(delay: 750.ms).scale(),
+                _buildQuickAction(
+                  context,
+                  icon: Icons.qr_code_scanner,
+                  title: AppLocalizations.of(context)!.scanTournament,
+                  subtitle: AppLocalizations.of(context)!.syncFromScout,
+                  color: Colors.indigo,
+                  onTap: () => context.push('/scan'),
+                ).animate().fadeIn(delay: 800.ms).scale(),
+              ],
+            ),
+          ),
+
+          const SliverToBoxAdapter(child: SizedBox(height: 32)),
+        ],
       ),
     );
   }
@@ -141,7 +206,12 @@ class HomeScreen extends ConsumerWidget {
     required VoidCallback onTap,
   }) {
     return Card(
+      elevation: 0,
       clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(color: color.withValues(alpha: 0.1), width: 1),
+      ),
       child: InkWell(
         onTap: onTap,
         child: Container(
@@ -150,38 +220,32 @@ class HomeScreen extends ConsumerWidget {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                color.withValues(alpha: 0.3),
-                color.withValues(alpha: 0.1),
+                color.withValues(alpha: 0.15),
+                color.withValues(alpha: 0.05),
               ],
             ),
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(icon, color: color, size: 24),
-              ),
+              Icon(icon, color: color, size: 28),
               const Spacer(),
               Text(
                 title,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                style: const TextStyle(
                   fontWeight: FontWeight.bold,
-                  fontSize: 14,
+                  fontSize: 15,
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
+              const SizedBox(height: 2),
               Text(
                 subtitle,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
                   fontSize: 11,
                 ),
                 maxLines: 1,

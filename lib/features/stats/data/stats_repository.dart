@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:drift/drift.dart';
 import '../../../../core/database/app_database.dart';
+import '../../../../core/providers/database_provider.dart';
 
 class HallOfFameEntry {
   final int tournamentId;
@@ -61,26 +62,45 @@ class StatsRepository {
     // 1. Total Teams
     final teamsCount = await _db.customSelect('SELECT COUNT(*) AS c FROM teams').getSingle();
     final totalTeams = teamsCount.read<int?>('c') ?? 0;
+    print('Stats: Total Teams = $totalTeams');
 
     // 2. Total Tournaments
     final tourneysCount = await _db.customSelect('SELECT COUNT(*) AS c FROM tournaments').getSingle();
     final totalTournaments = tourneysCount.read<int?>('c') ?? 0;
+    print('Stats: Total Tournaments = $totalTournaments');
 
     // 3. Active Tournaments
-    final activeCount = await _db.customSelect('SELECT COUNT(*) AS c FROM tournaments WHERE is_active = 1').getSingle();
+    final activeCount = await _db.customSelect('''
+      SELECT COUNT(*) AS c FROM tournaments t
+      WHERE t.is_active = 1
+      AND t.id NOT IN (
+        -- Exclude those with a completed final
+        SELECT tournament_id FROM matches WHERE phase = 'final' AND is_completed = 1
+      )
+      AND (
+        -- For group_only, must have at least one uncompleted match
+        t.mode != 'group_only' 
+        OR EXISTS (SELECT 1 FROM matches m WHERE m.tournament_id = t.id AND m.is_completed = 0)
+        OR NOT EXISTS (SELECT 1 FROM matches m WHERE m.tournament_id = t.id)
+      )
+    ''').getSingle();
     final activeTournaments = activeCount.read<int?>('c') ?? 0;
+    print('Stats: Active Tournaments = $activeTournaments');
 
     // 4. Total Points Scored
     final pointsResult = await _db.customSelect('SELECT SUM(IFNULL(home_score, 0) + IFNULL(away_score, 0)) AS c FROM matches WHERE is_completed = 1').getSingle();
     final totalPoints = pointsResult.read<int?>('c') ?? 0;
+    print('Stats: Total Points = $totalPoints');
 
     // 5. Total Courts
     final courtsCount = await _db.customSelect('SELECT COUNT(*) AS c FROM courts').getSingle();
     final totalCourts = courtsCount.read<int?>('c') ?? 0;
+    print('Stats: Total Courts = $totalCourts');
 
     // M. Total Matches Played
     final totalMatchesCount = await _db.customSelect('SELECT COUNT(*) AS c FROM matches WHERE is_completed = 1').getSingle();
     final totalMatches = totalMatchesCount.read<int?>('c') ?? 0;
+    print('Stats: Total Matches = $totalMatches');
 
     // 6. Hall of Fame
     final tournaments = await _db.select(_db.tournaments).get();
@@ -186,10 +206,10 @@ class StatsRepository {
           ).get();
 
           if (statsRows.isNotEmpty) {
-             winnerWins = statsRows.first.read<int?>('wins');
-             winnerLosses = statsRows.first.read<int?>('losses');
-             winnerPointsFor = statsRows.first.read<int?>('points_for');
-             winnerPointsAgainst = statsRows.first.read<int?>('points_against');
+             winnerWins = statsRows.first.read<num?>('wins')?.toInt();
+             winnerLosses = statsRows.first.read<num?>('losses')?.toInt();
+             winnerPointsFor = statsRows.first.read<num?>('points_for')?.toInt();
+             winnerPointsAgainst = statsRows.first.read<num?>('points_against')?.toInt();
           }
         }
 
@@ -226,14 +246,8 @@ class StatsRepository {
   }
 }
 
-final statsRepositoryProvider = Provider<StatsRepository>((ref) {
-  final dbFuture = AppDatabase.getInstance();
-  // We use a small hack to pass the future DB down, or better await it asynchronously
-  throw UnimplementedError('Should be overridden or async');
-});
-
 final appStatsProvider = FutureProvider<AppStats>((ref) async {
-  final db = await AppDatabase.getInstance();
+  final db = await ref.watch(databaseProvider.future);
   final repo = StatsRepository(db);
   return repo.getAppStats();
 });

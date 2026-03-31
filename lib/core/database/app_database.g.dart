@@ -450,6 +450,21 @@ class $TournamentsTable extends Tournaments
     ),
     defaultValue: const Constant(true),
   );
+  static const VerificationMeta _isReadOnlyMeta = const VerificationMeta(
+    'isReadOnly',
+  );
+  @override
+  late final GeneratedColumn<bool> isReadOnly = GeneratedColumn<bool>(
+    'is_read_only',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_read_only" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   static const VerificationMeta _startDateMeta = const VerificationMeta(
     'startDate',
   );
@@ -486,6 +501,7 @@ class $TournamentsTable extends Tournaments
     includeConsolationFinals,
     timerMinutes,
     isActive,
+    isReadOnly,
     startDate,
     createdAt,
   ];
@@ -577,6 +593,15 @@ class $TournamentsTable extends Tournaments
         isActive.isAcceptableOrUnknown(data['is_active']!, _isActiveMeta),
       );
     }
+    if (data.containsKey('is_read_only')) {
+      context.handle(
+        _isReadOnlyMeta,
+        isReadOnly.isAcceptableOrUnknown(
+          data['is_read_only']!,
+          _isReadOnlyMeta,
+        ),
+      );
+    }
     if (data.containsKey('start_date')) {
       context.handle(
         _startDateMeta,
@@ -642,6 +667,10 @@ class $TournamentsTable extends Tournaments
         DriftSqlType.bool,
         data['${effectivePrefix}is_active'],
       )!,
+      isReadOnly: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_read_only'],
+      )!,
       startDate: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}start_date'],
@@ -675,6 +704,7 @@ class Tournament extends DataClass implements Insertable<Tournament> {
   final bool includeConsolationFinals;
   final int timerMinutes;
   final bool isActive;
+  final bool isReadOnly;
   final DateTime? startDate;
   final DateTime createdAt;
   const Tournament({
@@ -689,6 +719,7 @@ class Tournament extends DataClass implements Insertable<Tournament> {
     required this.includeConsolationFinals,
     required this.timerMinutes,
     required this.isActive,
+    required this.isReadOnly,
     this.startDate,
     required this.createdAt,
   });
@@ -708,6 +739,7 @@ class Tournament extends DataClass implements Insertable<Tournament> {
     );
     map['timer_minutes'] = Variable<int>(timerMinutes);
     map['is_active'] = Variable<bool>(isActive);
+    map['is_read_only'] = Variable<bool>(isReadOnly);
     if (!nullToAbsent || startDate != null) {
       map['start_date'] = Variable<DateTime>(startDate);
     }
@@ -728,6 +760,7 @@ class Tournament extends DataClass implements Insertable<Tournament> {
       includeConsolationFinals: Value(includeConsolationFinals),
       timerMinutes: Value(timerMinutes),
       isActive: Value(isActive),
+      isReadOnly: Value(isReadOnly),
       startDate: startDate == null && nullToAbsent
           ? const Value.absent()
           : Value(startDate),
@@ -754,6 +787,7 @@ class Tournament extends DataClass implements Insertable<Tournament> {
       ),
       timerMinutes: serializer.fromJson<int>(json['timerMinutes']),
       isActive: serializer.fromJson<bool>(json['isActive']),
+      isReadOnly: serializer.fromJson<bool>(json['isReadOnly']),
       startDate: serializer.fromJson<DateTime?>(json['startDate']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
     );
@@ -775,6 +809,7 @@ class Tournament extends DataClass implements Insertable<Tournament> {
       ),
       'timerMinutes': serializer.toJson<int>(timerMinutes),
       'isActive': serializer.toJson<bool>(isActive),
+      'isReadOnly': serializer.toJson<bool>(isReadOnly),
       'startDate': serializer.toJson<DateTime?>(startDate),
       'createdAt': serializer.toJson<DateTime>(createdAt),
     };
@@ -792,6 +827,7 @@ class Tournament extends DataClass implements Insertable<Tournament> {
     bool? includeConsolationFinals,
     int? timerMinutes,
     bool? isActive,
+    bool? isReadOnly,
     Value<DateTime?> startDate = const Value.absent(),
     DateTime? createdAt,
   }) => Tournament(
@@ -807,6 +843,7 @@ class Tournament extends DataClass implements Insertable<Tournament> {
         includeConsolationFinals ?? this.includeConsolationFinals,
     timerMinutes: timerMinutes ?? this.timerMinutes,
     isActive: isActive ?? this.isActive,
+    isReadOnly: isReadOnly ?? this.isReadOnly,
     startDate: startDate.present ? startDate.value : this.startDate,
     createdAt: createdAt ?? this.createdAt,
   );
@@ -833,6 +870,9 @@ class Tournament extends DataClass implements Insertable<Tournament> {
           ? data.timerMinutes.value
           : this.timerMinutes,
       isActive: data.isActive.present ? data.isActive.value : this.isActive,
+      isReadOnly: data.isReadOnly.present
+          ? data.isReadOnly.value
+          : this.isReadOnly,
       startDate: data.startDate.present ? data.startDate.value : this.startDate,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
     );
@@ -852,6 +892,7 @@ class Tournament extends DataClass implements Insertable<Tournament> {
           ..write('includeConsolationFinals: $includeConsolationFinals, ')
           ..write('timerMinutes: $timerMinutes, ')
           ..write('isActive: $isActive, ')
+          ..write('isReadOnly: $isReadOnly, ')
           ..write('startDate: $startDate, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
@@ -871,6 +912,7 @@ class Tournament extends DataClass implements Insertable<Tournament> {
     includeConsolationFinals,
     timerMinutes,
     isActive,
+    isReadOnly,
     startDate,
     createdAt,
   );
@@ -889,6 +931,7 @@ class Tournament extends DataClass implements Insertable<Tournament> {
           other.includeConsolationFinals == this.includeConsolationFinals &&
           other.timerMinutes == this.timerMinutes &&
           other.isActive == this.isActive &&
+          other.isReadOnly == this.isReadOnly &&
           other.startDate == this.startDate &&
           other.createdAt == this.createdAt);
 }
@@ -905,6 +948,7 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
   final Value<bool> includeConsolationFinals;
   final Value<int> timerMinutes;
   final Value<bool> isActive;
+  final Value<bool> isReadOnly;
   final Value<DateTime?> startDate;
   final Value<DateTime> createdAt;
   const TournamentsCompanion({
@@ -919,6 +963,7 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
     this.includeConsolationFinals = const Value.absent(),
     this.timerMinutes = const Value.absent(),
     this.isActive = const Value.absent(),
+    this.isReadOnly = const Value.absent(),
     this.startDate = const Value.absent(),
     this.createdAt = const Value.absent(),
   });
@@ -934,6 +979,7 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
     this.includeConsolationFinals = const Value.absent(),
     this.timerMinutes = const Value.absent(),
     this.isActive = const Value.absent(),
+    this.isReadOnly = const Value.absent(),
     this.startDate = const Value.absent(),
     this.createdAt = const Value.absent(),
   }) : name = Value(name),
@@ -950,6 +996,7 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
     Expression<bool>? includeConsolationFinals,
     Expression<int>? timerMinutes,
     Expression<bool>? isActive,
+    Expression<bool>? isReadOnly,
     Expression<DateTime>? startDate,
     Expression<DateTime>? createdAt,
   }) {
@@ -966,6 +1013,7 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
         'include_consolation_finals': includeConsolationFinals,
       if (timerMinutes != null) 'timer_minutes': timerMinutes,
       if (isActive != null) 'is_active': isActive,
+      if (isReadOnly != null) 'is_read_only': isReadOnly,
       if (startDate != null) 'start_date': startDate,
       if (createdAt != null) 'created_at': createdAt,
     });
@@ -983,6 +1031,7 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
     Value<bool>? includeConsolationFinals,
     Value<int>? timerMinutes,
     Value<bool>? isActive,
+    Value<bool>? isReadOnly,
     Value<DateTime?>? startDate,
     Value<DateTime>? createdAt,
   }) {
@@ -999,6 +1048,7 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
           includeConsolationFinals ?? this.includeConsolationFinals,
       timerMinutes: timerMinutes ?? this.timerMinutes,
       isActive: isActive ?? this.isActive,
+      isReadOnly: isReadOnly ?? this.isReadOnly,
       startDate: startDate ?? this.startDate,
       createdAt: createdAt ?? this.createdAt,
     );
@@ -1042,6 +1092,9 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
     if (isActive.present) {
       map['is_active'] = Variable<bool>(isActive.value);
     }
+    if (isReadOnly.present) {
+      map['is_read_only'] = Variable<bool>(isReadOnly.value);
+    }
     if (startDate.present) {
       map['start_date'] = Variable<DateTime>(startDate.value);
     }
@@ -1065,6 +1118,7 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
           ..write('includeConsolationFinals: $includeConsolationFinals, ')
           ..write('timerMinutes: $timerMinutes, ')
           ..write('isActive: $isActive, ')
+          ..write('isReadOnly: $isReadOnly, ')
           ..write('startDate: $startDate, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
@@ -3229,6 +3283,7 @@ typedef $$TournamentsTableCreateCompanionBuilder =
       Value<bool> includeConsolationFinals,
       Value<int> timerMinutes,
       Value<bool> isActive,
+      Value<bool> isReadOnly,
       Value<DateTime?> startDate,
       Value<DateTime> createdAt,
     });
@@ -3245,6 +3300,7 @@ typedef $$TournamentsTableUpdateCompanionBuilder =
       Value<bool> includeConsolationFinals,
       Value<int> timerMinutes,
       Value<bool> isActive,
+      Value<bool> isReadOnly,
       Value<DateTime?> startDate,
       Value<DateTime> createdAt,
     });
@@ -3357,6 +3413,11 @@ class $$TournamentsTableFilterComposer
 
   ColumnFilters<bool> get isActive => $composableBuilder(
     column: $table.isActive,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isReadOnly => $composableBuilder(
+    column: $table.isReadOnly,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3485,6 +3546,11 @@ class $$TournamentsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get isReadOnly => $composableBuilder(
+    column: $table.isReadOnly,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get startDate => $composableBuilder(
     column: $table.startDate,
     builder: (column) => ColumnOrderings(column),
@@ -3547,6 +3613,11 @@ class $$TournamentsTableAnnotationComposer
 
   GeneratedColumn<bool> get isActive =>
       $composableBuilder(column: $table.isActive, builder: (column) => column);
+
+  GeneratedColumn<bool> get isReadOnly => $composableBuilder(
+    column: $table.isReadOnly,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<DateTime> get startDate =>
       $composableBuilder(column: $table.startDate, builder: (column) => column);
@@ -3644,6 +3715,7 @@ class $$TournamentsTableTableManager
                 Value<bool> includeConsolationFinals = const Value.absent(),
                 Value<int> timerMinutes = const Value.absent(),
                 Value<bool> isActive = const Value.absent(),
+                Value<bool> isReadOnly = const Value.absent(),
                 Value<DateTime?> startDate = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => TournamentsCompanion(
@@ -3658,6 +3730,7 @@ class $$TournamentsTableTableManager
                 includeConsolationFinals: includeConsolationFinals,
                 timerMinutes: timerMinutes,
                 isActive: isActive,
+                isReadOnly: isReadOnly,
                 startDate: startDate,
                 createdAt: createdAt,
               ),
@@ -3674,6 +3747,7 @@ class $$TournamentsTableTableManager
                 Value<bool> includeConsolationFinals = const Value.absent(),
                 Value<int> timerMinutes = const Value.absent(),
                 Value<bool> isActive = const Value.absent(),
+                Value<bool> isReadOnly = const Value.absent(),
                 Value<DateTime?> startDate = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => TournamentsCompanion.insert(
@@ -3688,6 +3762,7 @@ class $$TournamentsTableTableManager
                 includeConsolationFinals: includeConsolationFinals,
                 timerMinutes: timerMinutes,
                 isActive: isActive,
+                isReadOnly: isReadOnly,
                 startDate: startDate,
                 createdAt: createdAt,
               ),
