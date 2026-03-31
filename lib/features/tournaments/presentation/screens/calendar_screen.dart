@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../data/matches_repository.dart';
+import '../../data/tournaments_repository.dart';
 
 class CalendarScreen extends ConsumerWidget {
   final int tournamentId;
@@ -17,6 +18,20 @@ class CalendarScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Calendario'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.add),
+            tooltip: 'Aggiungi partita',
+            onPressed: () async {
+              final result = await showDialog<bool>(
+                context: context,
+                builder: (context) => AddMatchDialog(tournamentId: tournamentId),
+              );
+              if (result == true) {
+                // ignore: unused_result
+                ref.refresh(groupMatchesProvider(tournamentId));
+              }
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.shuffle),
             tooltip: 'Genera casuale',
@@ -117,14 +132,34 @@ class CalendarScreen extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 24),
-          ElevatedButton.icon(
-            onPressed: () async {
-              await ref.read(matchesRepositoryProvider).generateGroupCalendar(tournamentId);
-              // ignore: unused_result
-              ref.refresh(groupMatchesProvider(tournamentId));
-            },
-            icon: const Icon(Icons.shuffle),
-            label: const Text('Genera Calendario'),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              ElevatedButton.icon(
+                onPressed: () async {
+                  final result = await showDialog<bool>(
+                    context: context,
+                    builder: (context) => AddMatchDialog(tournamentId: tournamentId),
+                  );
+                  if (result == true) {
+                    // ignore: unused_result
+                    ref.refresh(groupMatchesProvider(tournamentId));
+                  }
+                },
+                icon: const Icon(Icons.add),
+                label: const Text('Aggiungi'),
+              ),
+              const SizedBox(width: 16),
+              ElevatedButton.icon(
+                onPressed: () async {
+                  await ref.read(matchesRepositoryProvider).generateGroupCalendar(tournamentId);
+                  // ignore: unused_result
+                  ref.refresh(groupMatchesProvider(tournamentId));
+                },
+                icon: const Icon(Icons.shuffle),
+                label: const Text('Genera automatico'),
+              ),
+            ],
           ),
         ],
       ),
@@ -219,3 +254,99 @@ class CalendarScreen extends ConsumerWidget {
     ).animate().fadeIn(delay: Duration(milliseconds: 50 * index)).slideX(begin: 0.1);
   }
 }
+
+class AddMatchDialog extends ConsumerStatefulWidget {
+  final int tournamentId;
+  const AddMatchDialog({super.key, required this.tournamentId});
+
+  @override
+  ConsumerState<AddMatchDialog> createState() => _AddMatchDialogState();
+}
+
+class _AddMatchDialogState extends ConsumerState<AddMatchDialog> {
+  final _formKey = GlobalKey<FormState>();
+  int _selectedRound = 1;
+  int? _homeTeamId;
+  int? _awayTeamId;
+
+  @override
+  Widget build(BuildContext context) {
+    final teamsAsync = ref.watch(tournamentTeamsProvider(widget.tournamentId));
+
+    return AlertDialog(
+      title: const Text('Aggiungi Partita'),
+      content: teamsAsync.when(
+        loading: () => const SizedBox(height: 100, child: Center(child: CircularProgressIndicator())),
+        error: (err, stack) => Text('Errore: $err'),
+        data: (teamsWithTournamentTeams) {
+          final teams = teamsWithTournamentTeams.map((tt) => tt.team).toList();
+          return Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  initialValue: '1',
+                  decoration: const InputDecoration(labelText: 'Giornata (Round)'),
+                  keyboardType: TextInputType.number,
+                  validator: (value) {
+                    if (value == null || int.tryParse(value) == null) {
+                      return 'Inserisci un numero valido';
+                    }
+                    return null;
+                  },
+                  onSaved: (value) => _selectedRound = int.parse(value!),
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<int>(
+                  decoration: const InputDecoration(labelText: 'Squadra di casa'),
+                  value: _homeTeamId,
+                  items: teams.map((t) => DropdownMenuItem(value: t.id, child: Text(t.name))).toList(),
+                  onChanged: (val) => setState(() => _homeTeamId = val),
+                  validator: (value) => value == null ? 'Seleziona una squadra' : null,
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<int>(
+                  decoration: const InputDecoration(labelText: 'Squadra in trasferta'),
+                  value: _awayTeamId,
+                  items: teams.map((t) => DropdownMenuItem(value: t.id, child: Text(t.name))).toList(),
+                  onChanged: (val) => setState(() => _awayTeamId = val),
+                  validator: (value) {
+                    if (value == null) return 'Seleziona una squadra';
+                    if (value == _homeTeamId) return 'Le due squadre devono essere diverse';
+                    return null;
+                  },
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context), 
+          child: const Text('Annulla')
+        ),
+        ElevatedButton(
+          onPressed: teamsAsync.hasValue ? () async {
+            if (_formKey.currentState?.validate() ?? false) {
+              _formKey.currentState!.save();
+              await ref.read(matchesRepositoryProvider).createMatch(
+                tournamentId: widget.tournamentId,
+                homeTeamId: _homeTeamId,
+                awayTeamId: _awayTeamId,
+                round: _selectedRound,
+                phase: 'group',
+              );
+              ref.invalidate(tournamentMatchesProvider(widget.tournamentId));
+              if (!context.mounted) return;
+              Navigator.pop(context, true);
+            }
+          } : null,
+          child: const Text('Salva'),
+        ),
+      ],
+    );
+  }
+}
+

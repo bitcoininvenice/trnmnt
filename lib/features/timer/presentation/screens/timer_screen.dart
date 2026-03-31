@@ -137,11 +137,12 @@ class _TimerScreenState extends ConsumerState<TimerScreen> {
     final timerColor = _getTimerColor(timerState);
 
     return Scaffold(
-      backgroundColor: _isFullscreen ? Colors.black : null,
+      backgroundColor: _isFullscreen ? Colors.black : const Color(0xFF121212),
       appBar: _isFullscreen
           ? null
           : AppBar(
-              title: const Text('Timer'),
+              backgroundColor: Colors.black,
+              title: const Text('Timer', style: TextStyle(fontFamily: 'monospace')),
               actions: [
                 IconButton(
                   icon: const Icon(Icons.fullscreen),
@@ -155,9 +156,9 @@ class _TimerScreenState extends ConsumerState<TimerScreen> {
           child: Column(
             children: [
               if (!_isFullscreen) ...[
-                const SizedBox(height: 24),
+                const SizedBox(height: 12),
                 _buildDurationSelector(timerNotifier, timerState),
-                const SizedBox(height: 24),
+                const SizedBox(height: 12),
               ],
               
               Expanded(
@@ -167,34 +168,32 @@ class _TimerScreenState extends ConsumerState<TimerScreen> {
                     children: [
                       // Timer display
                       Container(
-                        padding: EdgeInsets.all(_isFullscreen ? 48 : 32),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: _isFullscreen ? 32 : 24,
+                          vertical: _isFullscreen ? 24 : 12,
+                        ),
                         decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: RadialGradient(
-                            colors: [
-                              timerColor.withValues(alpha: 0.3),
-                              timerColor.withValues(alpha: 0.1),
-                            ],
-                          ),
-                          border: Border.all(
-                            color: timerColor,
-                            width: 4,
-                          ),
+                          color: Colors.black,
+                          borderRadius: BorderRadius.circular(_isFullscreen ? 24 : 16),
+                          border: Border.all(color: Colors.grey.shade900, width: 4),
                           boxShadow: [
                             BoxShadow(
-                              color: timerColor.withValues(alpha: 0.3),
-                              blurRadius: 30,
-                              spreadRadius: 5,
+                              color: timerColor.withValues(alpha: 0.2),
+                              blurRadius: 15,
+                              spreadRadius: 2,
                             ),
                           ],
                         ),
                         child: Text(
                           timerState.formattedTime,
                           style: TextStyle(
-                            fontSize: _isFullscreen ? 120 : 72,
+                            fontSize: _isFullscreen ? 96 : 56,
                             fontWeight: FontWeight.bold,
                             fontFamily: 'monospace',
                             color: timerColor,
+                            shadows: [
+                              Shadow(color: timerColor, blurRadius: 15),
+                            ],
                           ),
                         ),
                       )
@@ -205,7 +204,7 @@ class _TimerScreenState extends ConsumerState<TimerScreen> {
                           .then()
                           .shimmer(duration: 1000.ms, color: Colors.red),
 
-                      const SizedBox(height: 48),
+                      const SizedBox(height: 24),
 
                       // Progress bar
                       if (!_isFullscreen)
@@ -222,7 +221,7 @@ class _TimerScreenState extends ConsumerState<TimerScreen> {
                           ),
                         ),
 
-                      SizedBox(height: _isFullscreen ? 64 : 48),
+                      SizedBox(height: _isFullscreen ? 32 : 24),
 
                       // Controls
                       Row(
@@ -233,28 +232,28 @@ class _TimerScreenState extends ConsumerState<TimerScreen> {
                             icon: Icons.replay,
                             onPressed: timerNotifier.reset,
                             color: Colors.grey,
-                            size: _isFullscreen ? 80 : 60,
+                            size: _isFullscreen ? 64 : 48,
                           ),
 
-                          SizedBox(width: _isFullscreen ? 48 : 32),
+                          SizedBox(width: _isFullscreen ? 32 : 24),
 
                           // Play/Pause button
                           _buildControlButton(
                             icon: timerState.isRunning ? Icons.pause : Icons.play_arrow,
                             onPressed: timerNotifier.toggle,
                             color: timerState.isRunning ? Colors.orange : Colors.green,
-                            size: _isFullscreen ? 100 : 80,
+                            size: _isFullscreen ? 80 : 64,
                             isPrimary: true,
                           ),
 
-                          SizedBox(width: _isFullscreen ? 48 : 32),
+                          SizedBox(width: _isFullscreen ? 32 : 24),
 
                           // Stop button
                           _buildControlButton(
                             icon: Icons.stop,
                             onPressed: timerNotifier.stop,
                             color: Colors.red,
-                            size: _isFullscreen ? 80 : 60,
+                            size: _isFullscreen ? 64 : 48,
                           ),
                         ],
                       ),
@@ -288,7 +287,7 @@ class _TimerScreenState extends ConsumerState<TimerScreen> {
           'Durata (minuti)',
           style: Theme.of(context).textTheme.titleSmall,
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           padding: const EdgeInsets.symmetric(horizontal: 16),

@@ -77,9 +77,32 @@ class Matches extends Table {
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 }
 
+/// Courts table
+class Courts extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get name => text().withLength(min: 1, max: 100)();
+  TextColumn get description => text().nullable().withLength(max: 500)();
+  RealColumn get latitude => real()();
+  RealColumn get longitude => real()();
+  IntColumn get hoops => integer().withDefault(const Constant(2))();
+  
+  /// Nets status: 'ferro', 'stoffa', 'rotte', 'non presenti'
+  TextColumn get netsStatus => text().withDefault(const Constant('stoffa'))();
+  
+  /// Court status: 'ben mantenuto', 'giocabile', 'preso male'
+  TextColumn get courtStatus => text().withDefault(const Constant('giocabile'))();
+  
+  /// Lines status: 'ben definite', 'visibili', 'rovinate'
+  TextColumn get linesStatus => text().withDefault(const Constant('visibili'))();
+  
+  BoolColumn get hasLights => boolean().withDefault(const Constant(true))();
+  IntColumn get stars => integer().withDefault(const Constant(3))();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+}
+
 // ==================== DATABASE ====================
 
-@DriftDatabase(tables: [Teams, Tournaments, TournamentTeams, Matches])
+@DriftDatabase(tables: [Teams, Tournaments, TournamentTeams, Matches, Courts])
 class AppDatabase extends _$AppDatabase {
   AppDatabase._internal(super.e);
 
@@ -124,7 +147,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration {
@@ -133,7 +156,9 @@ class AppDatabase extends _$AppDatabase {
         await m.createAll();
       },
       onUpgrade: (Migrator m, int from, int to) async {
-        // Handle future migrations here
+        if (from < 2) {
+          await m.createTable(courts);
+        }
       },
     );
   }

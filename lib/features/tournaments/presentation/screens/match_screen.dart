@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/database/app_database.dart';
 import '../../../../core/providers/database_provider.dart';
 import '../../data/matches_repository.dart';
+import '../../../../core/widgets/vintage_score_column.dart';
 
 /// Provider for a single match by ID
 final matchByIdProvider = FutureProvider.family<MatchWithTeams?, int>((ref, matchId) async {
@@ -34,22 +35,13 @@ class MatchScreen extends ConsumerStatefulWidget {
 }
 
 class _MatchScreenState extends ConsumerState<MatchScreen> {
-  final _homeScoreController = TextEditingController();
-  final _awayScoreController = TextEditingController();
+  int? _homeScore;
+  int? _awayScore;
   bool _isLoading = false;
-
-  @override
-  void dispose() {
-    _homeScoreController.dispose();
-    _awayScoreController.dispose();
-    super.dispose();
-  }
+  bool _initialized = false;
 
   Future<void> _saveScore() async {
-    final homeScore = int.tryParse(_homeScoreController.text);
-    final awayScore = int.tryParse(_awayScoreController.text);
-
-    if (homeScore == null || awayScore == null) {
+    if (_homeScore == null || _awayScore == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Inserisci punteggi validi'), backgroundColor: Colors.orange),
       );
@@ -61,8 +53,8 @@ class _MatchScreenState extends ConsumerState<MatchScreen> {
     try {
       await ref.read(matchesRepositoryProvider).updateMatchScore(
         widget.matchId,
-        homeScore,
-        awayScore,
+        _homeScore!,
+        _awayScore!,
       );
       if (mounted) {
         Navigator.pop(context);
@@ -102,141 +94,103 @@ class _MatchScreenState extends ConsumerState<MatchScreen> {
         final homeTeam = matchWithTeams.homeTeam;
         final awayTeam = matchWithTeams.awayTeam;
 
-        // Initialize controllers with existing scores
-        if (_homeScoreController.text.isEmpty && match.homeScore != null) {
-          _homeScoreController.text = match.homeScore.toString();
-        }
-        if (_awayScoreController.text.isEmpty && match.awayScore != null) {
-          _awayScoreController.text = match.awayScore.toString();
+        // Initialize state with existing scores
+        if (!_initialized) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              setState(() {
+                _homeScore = match.homeScore ?? 0;
+                _awayScore = match.awayScore ?? 0;
+                _initialized = true;
+              });
+            }
+          });
         }
 
         return Scaffold(
+          backgroundColor: const Color(0xFF121212),
           appBar: AppBar(
-            title: const Text('Inserisci Risultato'),
+            backgroundColor: Colors.black,
+            title: const Text('Inserisci Risultato', style: TextStyle(fontFamily: 'monospace')),
           ),
-          body: Padding(
-            padding: const EdgeInsets.all(24),
+          body: SafeArea(
             child: Column(
               children: [
                 const SizedBox(height: 32),
                 
                 // Match card
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Row(
-                      children: [
-                        // Home team
-                        Expanded(
-                          child: Column(
-                            children: [
-                              CircleAvatar(
-                                radius: 30,
-                                backgroundColor: Colors.blue.withValues(alpha: 0.2),
-                                child: Text(
-                                  homeTeam?.name.substring(0, 1).toUpperCase() ?? '?',
-                                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                homeTeam?.name ?? 'Casa',
-                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                              const SizedBox(height: 16),
-                              SizedBox(
-                                width: 80,
-                                child: TextField(
-                                  controller: _homeScoreController,
-                                  keyboardType: TextInputType.number,
-                                  textAlign: TextAlign.center,
-                                  style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
-                                  decoration: const InputDecoration(
-                                    hintText: '0',
-                                    border: OutlineInputBorder(),
-                                  ),
-                                ),
-                              ),
-                            ],
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
+                    children: [
+                      // Home team
+                      Expanded(
+                        child: VintageScoreColumn(
+                          teamName: homeTeam?.name ?? 'Casa'.toUpperCase(),
+                          score: _homeScore ?? 0,
+                          onScoreChanged: (val) {
+                            setState(() {
+                              if (val >= 0) _homeScore = val;
+                            });
+                          },
+                        ),
+                      ),
+                      
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 16),
+                        child: Text(
+                          'VS',
+                          style: TextStyle(
+                            fontSize: 24, 
+                            fontWeight: FontWeight.bold, 
+                            color: Colors.white54,
+                            fontFamily: 'monospace'
                           ),
                         ),
-
-                        // VS
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          child: Column(
-                            children: [
-                              Text(
-                                'VS',
-                                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                  color: Colors.white.withValues(alpha: 0.5),
-                                ),
-                              ),
-                              const SizedBox(height: 60),
-                            ],
-                          ),
+                      ),
+                      
+                      // Away team
+                      Expanded(
+                        child: VintageScoreColumn(
+                          teamName: awayTeam?.name ?? 'Ospiti'.toUpperCase(),
+                          score: _awayScore ?? 0,
+                          onScoreChanged: (val) {
+                            setState(() {
+                              if (val >= 0) _awayScore = val;
+                            });
+                          },
                         ),
-
-                        // Away team
-                        Expanded(
-                          child: Column(
-                            children: [
-                              CircleAvatar(
-                                radius: 30,
-                                backgroundColor: Colors.orange.withValues(alpha: 0.2),
-                                child: Text(
-                                  awayTeam?.name.substring(0, 1).toUpperCase() ?? '?',
-                                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                awayTeam?.name ?? 'Ospiti',
-                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                              const SizedBox(height: 16),
-                              SizedBox(
-                                width: 80,
-                                child: TextField(
-                                  controller: _awayScoreController,
-                                  keyboardType: TextInputType.number,
-                                  textAlign: TextAlign.center,
-                                  style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
-                                  decoration: const InputDecoration(
-                                    hintText: '0',
-                                    border: OutlineInputBorder(),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
 
                 const Spacer(),
 
                 // Save button
-                SizedBox(
-                  width: double.infinity,
-                  height: 56,
-                  child: ElevatedButton(
-                    onPressed: _isLoading ? null : _saveScore,
-                    child: _isLoading
-                        ? const SizedBox(
-                            height: 24,
-                            width: 24,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Text('Salva Risultato'),
+                Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.grey.shade900,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          side: BorderSide(color: Colors.grey.shade800, width: 2),
+                        ),
+                      ),
+                      onPressed: _isLoading ? null : _saveScore,
+                      child: _isLoading
+                          ? const SizedBox(
+                              height: 24,
+                              width: 24,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Text('SALVA RISULTATO', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1.5, fontFamily: 'monospace')),
+                    ),
                   ),
                 ),
               ],

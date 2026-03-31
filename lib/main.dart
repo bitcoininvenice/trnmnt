@@ -6,6 +6,8 @@ import 'core/database/app_database.dart';
 import 'core/theme/app_theme.dart';
 import 'core/router/app_router.dart';
 import 'core/providers/database_provider.dart';
+import 'core/providers/theme_provider.dart';
+import 'core/providers/database_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -47,11 +49,24 @@ class TrnmntApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final dbAsync = ref.watch(databaseProvider);
     final router = ref.watch(routerProvider);
+    final themeMode = ref.watch(themeProvider);
+
+    ThemeData getTheme() {
+      switch (themeMode) {
+        case AppThemeMode.light:
+          return AppTheme.lightTheme;
+        case AppThemeMode.dark:
+          return AppTheme.trueDarkTheme;
+        case AppThemeMode.base:
+        default:
+          return AppTheme.baseTheme;
+      }
+    }
 
     return dbAsync.when(
       loading: () => MaterialApp(
         debugShowCheckedModeBanner: false,
-        theme: AppTheme.darkTheme,
+        theme: getTheme(),
         home: const Scaffold(
           body: Center(
             child: Column(
@@ -67,7 +82,7 @@ class TrnmntApp extends ConsumerWidget {
       ),
       error: (error, stack) => MaterialApp(
         debugShowCheckedModeBanner: false,
-        theme: AppTheme.darkTheme,
+        theme: getTheme(),
         home: Scaffold(
           body: Center(
             child: Padding(
@@ -95,7 +110,7 @@ class TrnmntApp extends ConsumerWidget {
       data: (_) => MaterialApp.router(
         debugShowCheckedModeBanner: false,
         title: 'TRNMNT',
-        theme: AppTheme.darkTheme,
+        theme: getTheme(),
         routerConfig: router,
       ),
     );

@@ -12,6 +12,11 @@ import '../../features/tournaments/presentation/screens/standings_screen.dart';
 import '../../features/tournaments/presentation/screens/bracket_screen.dart';
 import '../../features/tournaments/presentation/screens/match_screen.dart';
 import '../../features/timer/presentation/screens/timer_screen.dart';
+import '../../features/single_match/presentation/screens/single_match_setup_screen.dart';
+import '../../features/single_match/presentation/screens/single_match_screen.dart';
+import '../../features/map/presentation/screens/map_screen.dart';
+import '../../features/settings/presentation/screens/settings_screen.dart';
+import '../../features/stats/presentation/screens/stats_screen.dart';
 import '../shell/main_shell.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -111,6 +116,45 @@ final routerProvider = Provider<GoRouter>((ref) {
             name: 'timer',
             pageBuilder: (context, state) => const NoTransitionPage(
               child: TimerScreen(),
+            ),
+          ),
+          GoRoute(
+            path: '/single-match-setup',
+            name: 'single-match-setup',
+            pageBuilder: (context, state) => const NoTransitionPage(
+              child: SingleMatchSetupScreen(),
+            ),
+          ),
+          GoRoute(
+            path: '/single-match-board',
+            name: 'single-match-board',
+            builder: (context, state) {
+              final extra = state.extra as Map<String, String>;
+              return SingleMatchScreen(
+                homeTeamName: extra['homeTeamName']!,
+                awayTeamName: extra['awayTeamName']!,
+              );
+            },
+          ),
+          GoRoute(
+            path: '/settings',
+            name: 'settings',
+            pageBuilder: (context, state) => const NoTransitionPage(
+              child: SettingsScreen(),
+            ),
+          ),
+          GoRoute(
+            path: '/map',
+            name: 'map',
+            pageBuilder: (context, state) => const NoTransitionPage(
+              child: MapScreen(),
+            ),
+          ),
+          GoRoute(
+            path: '/stats',
+            name: 'stats',
+            pageBuilder: (context, state) => const NoTransitionPage(
+              child: StatsScreen(),
             ),
           ),
         ],

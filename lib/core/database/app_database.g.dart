@@ -2163,6 +2163,711 @@ class MatchesCompanion extends UpdateCompanion<Matche> {
   }
 }
 
+class $CourtsTable extends Courts with TableInfo<$CourtsTable, Court> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CourtsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(
+      minTextLength: 1,
+      maxTextLength: 100,
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _descriptionMeta = const VerificationMeta(
+    'description',
+  );
+  @override
+  late final GeneratedColumn<String> description = GeneratedColumn<String>(
+    'description',
+    aliasedName,
+    true,
+    additionalChecks: GeneratedColumn.checkTextLength(maxTextLength: 500),
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _latitudeMeta = const VerificationMeta(
+    'latitude',
+  );
+  @override
+  late final GeneratedColumn<double> latitude = GeneratedColumn<double>(
+    'latitude',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _longitudeMeta = const VerificationMeta(
+    'longitude',
+  );
+  @override
+  late final GeneratedColumn<double> longitude = GeneratedColumn<double>(
+    'longitude',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _hoopsMeta = const VerificationMeta('hoops');
+  @override
+  late final GeneratedColumn<int> hoops = GeneratedColumn<int>(
+    'hoops',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(2),
+  );
+  static const VerificationMeta _netsStatusMeta = const VerificationMeta(
+    'netsStatus',
+  );
+  @override
+  late final GeneratedColumn<String> netsStatus = GeneratedColumn<String>(
+    'nets_status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('stoffa'),
+  );
+  static const VerificationMeta _courtStatusMeta = const VerificationMeta(
+    'courtStatus',
+  );
+  @override
+  late final GeneratedColumn<String> courtStatus = GeneratedColumn<String>(
+    'court_status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('giocabile'),
+  );
+  static const VerificationMeta _linesStatusMeta = const VerificationMeta(
+    'linesStatus',
+  );
+  @override
+  late final GeneratedColumn<String> linesStatus = GeneratedColumn<String>(
+    'lines_status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('visibili'),
+  );
+  static const VerificationMeta _hasLightsMeta = const VerificationMeta(
+    'hasLights',
+  );
+  @override
+  late final GeneratedColumn<bool> hasLights = GeneratedColumn<bool>(
+    'has_lights',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("has_lights" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _starsMeta = const VerificationMeta('stars');
+  @override
+  late final GeneratedColumn<int> stars = GeneratedColumn<int>(
+    'stars',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(3),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    name,
+    description,
+    latitude,
+    longitude,
+    hoops,
+    netsStatus,
+    courtStatus,
+    linesStatus,
+    hasLights,
+    stars,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'courts';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<Court> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('description')) {
+      context.handle(
+        _descriptionMeta,
+        description.isAcceptableOrUnknown(
+          data['description']!,
+          _descriptionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('latitude')) {
+      context.handle(
+        _latitudeMeta,
+        latitude.isAcceptableOrUnknown(data['latitude']!, _latitudeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_latitudeMeta);
+    }
+    if (data.containsKey('longitude')) {
+      context.handle(
+        _longitudeMeta,
+        longitude.isAcceptableOrUnknown(data['longitude']!, _longitudeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_longitudeMeta);
+    }
+    if (data.containsKey('hoops')) {
+      context.handle(
+        _hoopsMeta,
+        hoops.isAcceptableOrUnknown(data['hoops']!, _hoopsMeta),
+      );
+    }
+    if (data.containsKey('nets_status')) {
+      context.handle(
+        _netsStatusMeta,
+        netsStatus.isAcceptableOrUnknown(data['nets_status']!, _netsStatusMeta),
+      );
+    }
+    if (data.containsKey('court_status')) {
+      context.handle(
+        _courtStatusMeta,
+        courtStatus.isAcceptableOrUnknown(
+          data['court_status']!,
+          _courtStatusMeta,
+        ),
+      );
+    }
+    if (data.containsKey('lines_status')) {
+      context.handle(
+        _linesStatusMeta,
+        linesStatus.isAcceptableOrUnknown(
+          data['lines_status']!,
+          _linesStatusMeta,
+        ),
+      );
+    }
+    if (data.containsKey('has_lights')) {
+      context.handle(
+        _hasLightsMeta,
+        hasLights.isAcceptableOrUnknown(data['has_lights']!, _hasLightsMeta),
+      );
+    }
+    if (data.containsKey('stars')) {
+      context.handle(
+        _starsMeta,
+        stars.isAcceptableOrUnknown(data['stars']!, _starsMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  Court map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Court(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      description: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}description'],
+      ),
+      latitude: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}latitude'],
+      )!,
+      longitude: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}longitude'],
+      )!,
+      hoops: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}hoops'],
+      )!,
+      netsStatus: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}nets_status'],
+      )!,
+      courtStatus: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}court_status'],
+      )!,
+      linesStatus: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}lines_status'],
+      )!,
+      hasLights: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}has_lights'],
+      )!,
+      stars: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}stars'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $CourtsTable createAlias(String alias) {
+    return $CourtsTable(attachedDatabase, alias);
+  }
+}
+
+class Court extends DataClass implements Insertable<Court> {
+  final int id;
+  final String name;
+  final String? description;
+  final double latitude;
+  final double longitude;
+  final int hoops;
+
+  /// Nets status: 'ferro', 'stoffa', 'rotte', 'non presenti'
+  final String netsStatus;
+
+  /// Court status: 'ben mantenuto', 'giocabile', 'preso male'
+  final String courtStatus;
+
+  /// Lines status: 'ben definite', 'visibili', 'rovinate'
+  final String linesStatus;
+  final bool hasLights;
+  final int stars;
+  final DateTime createdAt;
+  const Court({
+    required this.id,
+    required this.name,
+    this.description,
+    required this.latitude,
+    required this.longitude,
+    required this.hoops,
+    required this.netsStatus,
+    required this.courtStatus,
+    required this.linesStatus,
+    required this.hasLights,
+    required this.stars,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['name'] = Variable<String>(name);
+    if (!nullToAbsent || description != null) {
+      map['description'] = Variable<String>(description);
+    }
+    map['latitude'] = Variable<double>(latitude);
+    map['longitude'] = Variable<double>(longitude);
+    map['hoops'] = Variable<int>(hoops);
+    map['nets_status'] = Variable<String>(netsStatus);
+    map['court_status'] = Variable<String>(courtStatus);
+    map['lines_status'] = Variable<String>(linesStatus);
+    map['has_lights'] = Variable<bool>(hasLights);
+    map['stars'] = Variable<int>(stars);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  CourtsCompanion toCompanion(bool nullToAbsent) {
+    return CourtsCompanion(
+      id: Value(id),
+      name: Value(name),
+      description: description == null && nullToAbsent
+          ? const Value.absent()
+          : Value(description),
+      latitude: Value(latitude),
+      longitude: Value(longitude),
+      hoops: Value(hoops),
+      netsStatus: Value(netsStatus),
+      courtStatus: Value(courtStatus),
+      linesStatus: Value(linesStatus),
+      hasLights: Value(hasLights),
+      stars: Value(stars),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory Court.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Court(
+      id: serializer.fromJson<int>(json['id']),
+      name: serializer.fromJson<String>(json['name']),
+      description: serializer.fromJson<String?>(json['description']),
+      latitude: serializer.fromJson<double>(json['latitude']),
+      longitude: serializer.fromJson<double>(json['longitude']),
+      hoops: serializer.fromJson<int>(json['hoops']),
+      netsStatus: serializer.fromJson<String>(json['netsStatus']),
+      courtStatus: serializer.fromJson<String>(json['courtStatus']),
+      linesStatus: serializer.fromJson<String>(json['linesStatus']),
+      hasLights: serializer.fromJson<bool>(json['hasLights']),
+      stars: serializer.fromJson<int>(json['stars']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'name': serializer.toJson<String>(name),
+      'description': serializer.toJson<String?>(description),
+      'latitude': serializer.toJson<double>(latitude),
+      'longitude': serializer.toJson<double>(longitude),
+      'hoops': serializer.toJson<int>(hoops),
+      'netsStatus': serializer.toJson<String>(netsStatus),
+      'courtStatus': serializer.toJson<String>(courtStatus),
+      'linesStatus': serializer.toJson<String>(linesStatus),
+      'hasLights': serializer.toJson<bool>(hasLights),
+      'stars': serializer.toJson<int>(stars),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  Court copyWith({
+    int? id,
+    String? name,
+    Value<String?> description = const Value.absent(),
+    double? latitude,
+    double? longitude,
+    int? hoops,
+    String? netsStatus,
+    String? courtStatus,
+    String? linesStatus,
+    bool? hasLights,
+    int? stars,
+    DateTime? createdAt,
+  }) => Court(
+    id: id ?? this.id,
+    name: name ?? this.name,
+    description: description.present ? description.value : this.description,
+    latitude: latitude ?? this.latitude,
+    longitude: longitude ?? this.longitude,
+    hoops: hoops ?? this.hoops,
+    netsStatus: netsStatus ?? this.netsStatus,
+    courtStatus: courtStatus ?? this.courtStatus,
+    linesStatus: linesStatus ?? this.linesStatus,
+    hasLights: hasLights ?? this.hasLights,
+    stars: stars ?? this.stars,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  Court copyWithCompanion(CourtsCompanion data) {
+    return Court(
+      id: data.id.present ? data.id.value : this.id,
+      name: data.name.present ? data.name.value : this.name,
+      description: data.description.present
+          ? data.description.value
+          : this.description,
+      latitude: data.latitude.present ? data.latitude.value : this.latitude,
+      longitude: data.longitude.present ? data.longitude.value : this.longitude,
+      hoops: data.hoops.present ? data.hoops.value : this.hoops,
+      netsStatus: data.netsStatus.present
+          ? data.netsStatus.value
+          : this.netsStatus,
+      courtStatus: data.courtStatus.present
+          ? data.courtStatus.value
+          : this.courtStatus,
+      linesStatus: data.linesStatus.present
+          ? data.linesStatus.value
+          : this.linesStatus,
+      hasLights: data.hasLights.present ? data.hasLights.value : this.hasLights,
+      stars: data.stars.present ? data.stars.value : this.stars,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Court(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('description: $description, ')
+          ..write('latitude: $latitude, ')
+          ..write('longitude: $longitude, ')
+          ..write('hoops: $hoops, ')
+          ..write('netsStatus: $netsStatus, ')
+          ..write('courtStatus: $courtStatus, ')
+          ..write('linesStatus: $linesStatus, ')
+          ..write('hasLights: $hasLights, ')
+          ..write('stars: $stars, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    name,
+    description,
+    latitude,
+    longitude,
+    hoops,
+    netsStatus,
+    courtStatus,
+    linesStatus,
+    hasLights,
+    stars,
+    createdAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Court &&
+          other.id == this.id &&
+          other.name == this.name &&
+          other.description == this.description &&
+          other.latitude == this.latitude &&
+          other.longitude == this.longitude &&
+          other.hoops == this.hoops &&
+          other.netsStatus == this.netsStatus &&
+          other.courtStatus == this.courtStatus &&
+          other.linesStatus == this.linesStatus &&
+          other.hasLights == this.hasLights &&
+          other.stars == this.stars &&
+          other.createdAt == this.createdAt);
+}
+
+class CourtsCompanion extends UpdateCompanion<Court> {
+  final Value<int> id;
+  final Value<String> name;
+  final Value<String?> description;
+  final Value<double> latitude;
+  final Value<double> longitude;
+  final Value<int> hoops;
+  final Value<String> netsStatus;
+  final Value<String> courtStatus;
+  final Value<String> linesStatus;
+  final Value<bool> hasLights;
+  final Value<int> stars;
+  final Value<DateTime> createdAt;
+  const CourtsCompanion({
+    this.id = const Value.absent(),
+    this.name = const Value.absent(),
+    this.description = const Value.absent(),
+    this.latitude = const Value.absent(),
+    this.longitude = const Value.absent(),
+    this.hoops = const Value.absent(),
+    this.netsStatus = const Value.absent(),
+    this.courtStatus = const Value.absent(),
+    this.linesStatus = const Value.absent(),
+    this.hasLights = const Value.absent(),
+    this.stars = const Value.absent(),
+    this.createdAt = const Value.absent(),
+  });
+  CourtsCompanion.insert({
+    this.id = const Value.absent(),
+    required String name,
+    this.description = const Value.absent(),
+    required double latitude,
+    required double longitude,
+    this.hoops = const Value.absent(),
+    this.netsStatus = const Value.absent(),
+    this.courtStatus = const Value.absent(),
+    this.linesStatus = const Value.absent(),
+    this.hasLights = const Value.absent(),
+    this.stars = const Value.absent(),
+    this.createdAt = const Value.absent(),
+  }) : name = Value(name),
+       latitude = Value(latitude),
+       longitude = Value(longitude);
+  static Insertable<Court> custom({
+    Expression<int>? id,
+    Expression<String>? name,
+    Expression<String>? description,
+    Expression<double>? latitude,
+    Expression<double>? longitude,
+    Expression<int>? hoops,
+    Expression<String>? netsStatus,
+    Expression<String>? courtStatus,
+    Expression<String>? linesStatus,
+    Expression<bool>? hasLights,
+    Expression<int>? stars,
+    Expression<DateTime>? createdAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (name != null) 'name': name,
+      if (description != null) 'description': description,
+      if (latitude != null) 'latitude': latitude,
+      if (longitude != null) 'longitude': longitude,
+      if (hoops != null) 'hoops': hoops,
+      if (netsStatus != null) 'nets_status': netsStatus,
+      if (courtStatus != null) 'court_status': courtStatus,
+      if (linesStatus != null) 'lines_status': linesStatus,
+      if (hasLights != null) 'has_lights': hasLights,
+      if (stars != null) 'stars': stars,
+      if (createdAt != null) 'created_at': createdAt,
+    });
+  }
+
+  CourtsCompanion copyWith({
+    Value<int>? id,
+    Value<String>? name,
+    Value<String?>? description,
+    Value<double>? latitude,
+    Value<double>? longitude,
+    Value<int>? hoops,
+    Value<String>? netsStatus,
+    Value<String>? courtStatus,
+    Value<String>? linesStatus,
+    Value<bool>? hasLights,
+    Value<int>? stars,
+    Value<DateTime>? createdAt,
+  }) {
+    return CourtsCompanion(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      description: description ?? this.description,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
+      hoops: hoops ?? this.hoops,
+      netsStatus: netsStatus ?? this.netsStatus,
+      courtStatus: courtStatus ?? this.courtStatus,
+      linesStatus: linesStatus ?? this.linesStatus,
+      hasLights: hasLights ?? this.hasLights,
+      stars: stars ?? this.stars,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (description.present) {
+      map['description'] = Variable<String>(description.value);
+    }
+    if (latitude.present) {
+      map['latitude'] = Variable<double>(latitude.value);
+    }
+    if (longitude.present) {
+      map['longitude'] = Variable<double>(longitude.value);
+    }
+    if (hoops.present) {
+      map['hoops'] = Variable<int>(hoops.value);
+    }
+    if (netsStatus.present) {
+      map['nets_status'] = Variable<String>(netsStatus.value);
+    }
+    if (courtStatus.present) {
+      map['court_status'] = Variable<String>(courtStatus.value);
+    }
+    if (linesStatus.present) {
+      map['lines_status'] = Variable<String>(linesStatus.value);
+    }
+    if (hasLights.present) {
+      map['has_lights'] = Variable<bool>(hasLights.value);
+    }
+    if (stars.present) {
+      map['stars'] = Variable<int>(stars.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CourtsCompanion(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('description: $description, ')
+          ..write('latitude: $latitude, ')
+          ..write('longitude: $longitude, ')
+          ..write('hoops: $hoops, ')
+          ..write('netsStatus: $netsStatus, ')
+          ..write('courtStatus: $courtStatus, ')
+          ..write('linesStatus: $linesStatus, ')
+          ..write('hasLights: $hasLights, ')
+          ..write('stars: $stars, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -2172,6 +2877,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     this,
   );
   late final $MatchesTable matches = $MatchesTable(this);
+  late final $CourtsTable courts = $CourtsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -2181,6 +2887,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     tournaments,
     tournamentTeams,
     matches,
+    courts,
   ];
 }
 
@@ -4069,6 +4776,335 @@ typedef $$MatchesTableProcessedTableManager =
         bool awayTeamId,
       })
     >;
+typedef $$CourtsTableCreateCompanionBuilder =
+    CourtsCompanion Function({
+      Value<int> id,
+      required String name,
+      Value<String?> description,
+      required double latitude,
+      required double longitude,
+      Value<int> hoops,
+      Value<String> netsStatus,
+      Value<String> courtStatus,
+      Value<String> linesStatus,
+      Value<bool> hasLights,
+      Value<int> stars,
+      Value<DateTime> createdAt,
+    });
+typedef $$CourtsTableUpdateCompanionBuilder =
+    CourtsCompanion Function({
+      Value<int> id,
+      Value<String> name,
+      Value<String?> description,
+      Value<double> latitude,
+      Value<double> longitude,
+      Value<int> hoops,
+      Value<String> netsStatus,
+      Value<String> courtStatus,
+      Value<String> linesStatus,
+      Value<bool> hasLights,
+      Value<int> stars,
+      Value<DateTime> createdAt,
+    });
+
+class $$CourtsTableFilterComposer
+    extends Composer<_$AppDatabase, $CourtsTable> {
+  $$CourtsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get latitude => $composableBuilder(
+    column: $table.latitude,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get longitude => $composableBuilder(
+    column: $table.longitude,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get hoops => $composableBuilder(
+    column: $table.hoops,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get netsStatus => $composableBuilder(
+    column: $table.netsStatus,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get courtStatus => $composableBuilder(
+    column: $table.courtStatus,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get linesStatus => $composableBuilder(
+    column: $table.linesStatus,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get hasLights => $composableBuilder(
+    column: $table.hasLights,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get stars => $composableBuilder(
+    column: $table.stars,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$CourtsTableOrderingComposer
+    extends Composer<_$AppDatabase, $CourtsTable> {
+  $$CourtsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get latitude => $composableBuilder(
+    column: $table.latitude,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get longitude => $composableBuilder(
+    column: $table.longitude,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get hoops => $composableBuilder(
+    column: $table.hoops,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get netsStatus => $composableBuilder(
+    column: $table.netsStatus,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get courtStatus => $composableBuilder(
+    column: $table.courtStatus,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get linesStatus => $composableBuilder(
+    column: $table.linesStatus,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get hasLights => $composableBuilder(
+    column: $table.hasLights,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get stars => $composableBuilder(
+    column: $table.stars,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$CourtsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CourtsTable> {
+  $$CourtsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get latitude =>
+      $composableBuilder(column: $table.latitude, builder: (column) => column);
+
+  GeneratedColumn<double> get longitude =>
+      $composableBuilder(column: $table.longitude, builder: (column) => column);
+
+  GeneratedColumn<int> get hoops =>
+      $composableBuilder(column: $table.hoops, builder: (column) => column);
+
+  GeneratedColumn<String> get netsStatus => $composableBuilder(
+    column: $table.netsStatus,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get courtStatus => $composableBuilder(
+    column: $table.courtStatus,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get linesStatus => $composableBuilder(
+    column: $table.linesStatus,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get hasLights =>
+      $composableBuilder(column: $table.hasLights, builder: (column) => column);
+
+  GeneratedColumn<int> get stars =>
+      $composableBuilder(column: $table.stars, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+}
+
+class $$CourtsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CourtsTable,
+          Court,
+          $$CourtsTableFilterComposer,
+          $$CourtsTableOrderingComposer,
+          $$CourtsTableAnnotationComposer,
+          $$CourtsTableCreateCompanionBuilder,
+          $$CourtsTableUpdateCompanionBuilder,
+          (Court, BaseReferences<_$AppDatabase, $CourtsTable, Court>),
+          Court,
+          PrefetchHooks Function()
+        > {
+  $$CourtsTableTableManager(_$AppDatabase db, $CourtsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CourtsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CourtsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CourtsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<String?> description = const Value.absent(),
+                Value<double> latitude = const Value.absent(),
+                Value<double> longitude = const Value.absent(),
+                Value<int> hoops = const Value.absent(),
+                Value<String> netsStatus = const Value.absent(),
+                Value<String> courtStatus = const Value.absent(),
+                Value<String> linesStatus = const Value.absent(),
+                Value<bool> hasLights = const Value.absent(),
+                Value<int> stars = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+              }) => CourtsCompanion(
+                id: id,
+                name: name,
+                description: description,
+                latitude: latitude,
+                longitude: longitude,
+                hoops: hoops,
+                netsStatus: netsStatus,
+                courtStatus: courtStatus,
+                linesStatus: linesStatus,
+                hasLights: hasLights,
+                stars: stars,
+                createdAt: createdAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String name,
+                Value<String?> description = const Value.absent(),
+                required double latitude,
+                required double longitude,
+                Value<int> hoops = const Value.absent(),
+                Value<String> netsStatus = const Value.absent(),
+                Value<String> courtStatus = const Value.absent(),
+                Value<String> linesStatus = const Value.absent(),
+                Value<bool> hasLights = const Value.absent(),
+                Value<int> stars = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+              }) => CourtsCompanion.insert(
+                id: id,
+                name: name,
+                description: description,
+                latitude: latitude,
+                longitude: longitude,
+                hoops: hoops,
+                netsStatus: netsStatus,
+                courtStatus: courtStatus,
+                linesStatus: linesStatus,
+                hasLights: hasLights,
+                stars: stars,
+                createdAt: createdAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$CourtsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CourtsTable,
+      Court,
+      $$CourtsTableFilterComposer,
+      $$CourtsTableOrderingComposer,
+      $$CourtsTableAnnotationComposer,
+      $$CourtsTableCreateCompanionBuilder,
+      $$CourtsTableUpdateCompanionBuilder,
+      (Court, BaseReferences<_$AppDatabase, $CourtsTable, Court>),
+      Court,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -4081,4 +5117,6 @@ class $AppDatabaseManager {
       $$TournamentTeamsTableTableManager(_db, _db.tournamentTeams);
   $$MatchesTableTableManager get matches =>
       $$MatchesTableTableManager(_db, _db.matches);
+  $$CourtsTableTableManager get courts =>
+      $$CourtsTableTableManager(_db, _db.courts);
 }
