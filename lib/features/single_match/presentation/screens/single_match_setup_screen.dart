@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:trnmnt/generated/l10n/app_localizations.dart';
 import '../../../teams/data/teams_repository.dart';
 
 class SingleMatchSetupScreen extends ConsumerStatefulWidget {
@@ -23,22 +24,22 @@ class _SingleMatchSetupScreenState extends ConsumerState<SingleMatchSetupScreen>
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Setup Partita Singola'),
+        title: Text(AppLocalizations.of(context)!.singleMatchSetup),
       ),
       body: teamsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, stack) => Center(child: Text('Errore: $err')),
+        error: (err, stack) => Center(child: Text('Error: $err')),
         data: (teams) {
           if (teams.isEmpty) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text('Nessuna squadra presente nel database.'),
+                  Text(AppLocalizations.of(context)!.noTeamsInDatabase),
                   const SizedBox(height: 16),
                   ElevatedButton(
                     onPressed: () => context.go('/teams/new'),
-                    child: const Text('Crea Squadra'),
+                    child: Text(AppLocalizations.of(context)!.createTeam),
                   ),
                 ],
               ),
@@ -51,13 +52,13 @@ class _SingleMatchSetupScreenState extends ConsumerState<SingleMatchSetupScreen>
               key: _formKey,
               child: ListView(
                 children: [
-                  const Text(
-                    'Seleziona le squadre per la partita singola',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  Text(
+                    AppLocalizations.of(context)!.selectTeamsForMatch,
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 24),
                   DropdownButtonFormField<int>(
-                    decoration: const InputDecoration(labelText: 'Squadra in casa'),
+                    decoration: InputDecoration(labelText: AppLocalizations.of(context)!.homeTeam),
                     value: _homeTeamId,
                     items: teams.map((t) => DropdownMenuItem(value: t.id, child: Text(t.name))).toList(),
                     onChanged: (val) {
@@ -66,11 +67,11 @@ class _SingleMatchSetupScreenState extends ConsumerState<SingleMatchSetupScreen>
                         _homeTeamName = teams.firstWhere((t) => t.id == val).name;
                       });
                     },
-                    validator: (value) => value == null ? 'Seleziona una squadra' : null,
+                    validator: (value) => value == null ? AppLocalizations.of(context)!.selectATeam : null,
                   ),
                   const SizedBox(height: 16),
                   DropdownButtonFormField<int>(
-                    decoration: const InputDecoration(labelText: 'Squadra in trasferta'),
+                    decoration: InputDecoration(labelText: AppLocalizations.of(context)!.awayTeam),
                     value: _awayTeamId,
                     items: teams.map((t) => DropdownMenuItem(value: t.id, child: Text(t.name))).toList(),
                     onChanged: (val) {
@@ -80,8 +81,8 @@ class _SingleMatchSetupScreenState extends ConsumerState<SingleMatchSetupScreen>
                       });
                     },
                     validator: (value) {
-                      if (value == null) return 'Seleziona una squadra';
-                      if (value == _homeTeamId) return 'Scegli due squadre diverse';
+                      if (value == null) return AppLocalizations.of(context)!.selectATeam;
+                      if (value == _homeTeamId) return AppLocalizations.of(context)!.selectDifferentTeams;
                       return null;
                     },
                   ),
@@ -101,7 +102,7 @@ class _SingleMatchSetupScreenState extends ConsumerState<SingleMatchSetupScreen>
                         );
                       }
                     },
-                    child: const Text('Inizia Partita', style: TextStyle(fontSize: 18)),
+                    child: Text(AppLocalizations.of(context)!.startMatch, style: const TextStyle(fontSize: 18)),
                   ),
                   const SizedBox(height: 32),
                 ],

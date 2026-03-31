@@ -1,0 +1,229 @@
+{
+  "@@locale": "it",
+  "appTitle": "TRNMNT",
+  "teams": "Squadre",
+  "singleMatch": "Partita Singola",
+  "tournaments": "Tornei",
+  "newTournament": "Nuovo Torneo",
+  "map": "Mappa",
+  "settings": "Impostazioni",
+  "statistics": "Statistiche",
+  "appStatistics": "Statistiche App",
+  "totalTeams": "Squadre Totali",
+  "courts": "Campetti",
+  "tournamentsCreated": "Tornei Creati",
+  "inProgress": "In Corso",
+  "matchesPlayed": "Partite Giocate",
+  "pointsScored": "Punti Segnati",
+  "hallOfFame": "Albo d'Oro",
+  "noTournamentsRecorded": "Nessun torneo registrato al momento.",
+  "winner": "🏆 Vincitore: {team}",
+  "@winner": {
+    "placeholders": {
+      "team": {"type": "String"}
+    }
+  },
+  "inProgressOrToBeDecided": "⏳ In Corso / Da decidere",
+  "teamRecord": "Record squadra: {wins} V - {losses} S",
+  "@teamRecord": {
+    "placeholders": {
+      "wins": {"type": "int"},
+      "losses": {"type": "int"}
+    }
+  },
+  "points": "Punti: PF {pf} / PS {ps}",
+  "@points": {
+    "placeholders": {
+      "pf": {"type": "int"},
+      "ps": {"type": "int"}
+    }
+  },
+  "appLanguage": "Lingua App",
+  "selectLanguage": "Seleziona la lingua",
+  "developedBy": "Sviluppato da",
+  "tapToVisitLinks": "Tocca per visitare i link",
+  "appVersion": "Versione App",
+  "followUsOnSocial": "Seguici sui social",
+  "timer": "Cronometro",
+  "manageTeams": "Gestisci le squadre",
+  "manageSingleMatch": "Gestisci una partita singola",
+  "createAndManage": "Crea e gestisci",
+  "startNow": "Inizia subito",
+  "courtsMap": "La mappa dei campetti",
+  "appOptions": "Opzioni app",
+  "dataAndNumbers": "Dati e numeri",
+  "appSubtitle": "Gestione Tornei di Basket",
+  "courtStatus": "Stato campo: {status}",
+  "@courtStatus": {
+    "placeholders": {
+      "status": {"type": "String"}
+    }
+  },
+  "starsCount": "Livello: {count}/5",
+  "@starsCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "wellMaintained": "Ben mantenuto",
+  "playable": "Giocabile",
+  "poorCondition": "Preso male",
+  "cloth": "Stoffa",
+  "metal": "Ferro",
+  "broken": "Rotte",
+  "notPresent": "Non presenti",
+  "wellDefined": "Ben definite",
+  "visible": "Visibili",
+  "damaged": "Rovinate",
+  "yes": "Sì",
+  "no": "No",
+  "hoopsCount": "Canestri: {count}",
+  "@hoopsCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "netsTitle": "Retine",
+  "courtTitle": "Campo",
+  "linesTitle": "Linee",
+  "lightsTitle": "Luci",
+  "saveAction": "SALVA",
+  "newCourtTitle": "Nuovo Campetto",
+  "nameLabel": "Nome",
+  "descLabel": "Descrizione",
+  "tapMapInstruction": "Tocca la mappa per aggiungere",
+  "positionSaved": "Posizione mappa salvata!",
+  "addAction": "Aggiungi",
+  "hoops": "Canestri",
+  "rating": "Valutazione",
+  "edit": "Modifica",
+  "myTournaments": "I Miei Tornei",
+  "deleteTournament": "Elimina torneo",
+  "confirmDeleteTournament": "Sei sicuro di voler eliminare \"{name}\"?",
+  "@confirmDeleteTournament": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "cancel": "Annulla",
+  "delete": "Elimina",
+  "noTournaments": "Nessun torneo",
+  "createFirstTournament": "Crea il tuo primo torneo di basket",
+  "createTournament": "Crea Torneo",
+  "groupOnly": "Solo Girone",
+  "eliminationOnly": "Solo Eliminatoria",
+  "groupAndElimination": "Girone + Playoff",
+  "consolationFinals": "Finali consolazione",
+  "location": "📍 {loc}",
+  "@location": {
+    "placeholders": {
+      "loc": {"type": "String"}
+    }
+  },
+  "teamsAndMode": "🏀 {count} squadre - {mode}",
+  "@teamsAndMode": {
+    "placeholders": {
+      "count": {"type": "int"},
+      "mode": {"type": "String"}
+    }
+  },
+  "singleMatchSetup": "Setup Partita Singola",
+  "noTeamsInDatabase": "Nessuna squadra presente nel database.",
+  "createTeam": "Crea Squadra",
+  "selectTeamsForMatch": "Seleziona le squadre per la partita singola",
+  "homeTeam": "Squadra in casa",
+  "awayTeam": "Squadra in trasferta",
+  "selectATeam": "Seleziona una squadra",
+  "selectDifferentTeams": "Scegli due squadre diverse",
+  "startMatch": "Inizia Partita",
+  "theme": "Tema",
+  "baseTheme": "Tema Base (Vibrante)",
+  "darkTheme": "Tema Scuro (Puro)",
+  "lightTheme": "Tema Chiaro",
+  "developers": "Sviluppatori",
+  "officialWebsite": "Sito Ufficiale",
+  "unableToOpenUrl": "Impossibile aprire {url}",
+  "@unableToOpenUrl": {
+    "placeholders": {
+      "url": {"type": "String"}
+    }
+  },
+  "matchInProgress": "Partita in corso",
+  "resetMatch": "Azzera partita",
+  "confirmResetMatch": "Sei sicuro di voler riportare il punteggio e il periodo a 0?",
+  "durationMinutes": "Durata (minuti)",
+  "periodLabel": "PERIODO",
+  "selectAtLeastTwoTeams": "Seleziona almeno 2 squadre",
+  "infoStep": "Informazioni",
+  "infoSubtitle": "Nome e luogo",
+  "configStep": "Configurazione",
+  "configSubtitle": "Modalità e punteggio",
+  "teamsStep": "Squadre",
+  "teamsSelected": "{count} selezionate",
+  "@teamsSelected": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "tournamentName": "Nome Torneo",
+  "tournamentLocation": "Luogo",
+  "enterTournamentName": "Inserisci il nome del torneo",
+  "enterTournamentLocation": "Inserisci il luogo del torneo",
+  "tournamentMode": "Modalità Torneo",
+  "scoringSystem": "Sistema Punteggio",
+  "win": "Vittoria",
+  "draw": "Pareggio",
+  "loss": "Sconfitta",
+  "classicBasketball": "Basket Classico",
+  "standardFootball": "Calcio Standard",
+  "custom": "Personalizzato",
+  "setYourScores": "Imposta i tuoi punteggi",
+  "consolationFinalsSubtitle": "3°/4° posto, 5°/6°, etc.",
+  "matchTimer": "Timer Partita: {min} minuti",
+  "@matchTimer": {
+    "placeholders": {
+      "min": {"type": "int"}
+    }
+  },
+  "searchTeam": "Cerca Squadra",
+  "selectParticipatingTeams": "Seleziona le squadre partecipanti (min. 2)",
+  "oddTeamsBye": "Squadre dispari: verrà gestito automaticamente il riposo (BYE)",
+  "selectAll": "Seleziona tutti",
+  "deselectAll": "Deseleziona tutti",
+  "noTeamsFound": "Nessuna squadra trovata",
+  "continueAction": "Continua",
+  "backAction": "Indietro",
+  "groupOnlySubtitle": "Round-robin, classifica finale",
+  "eliminationOnlySubtitle": "Vinci o vai a casa",
+  "groupAndEliminationSubtitle": "Fase a gironi poi eliminatoria",
+  "error": "Errore",
+  "notFound": "Non trovato",
+  "tournamentNotFound": "Torneo non trovato",
+  "participatingTeams": "Squadre Partecipanti",
+  "tournamentManagement": "Gestione Torneo",
+  "calendar": "Calendario",
+  "groupPhase": "Fase a gironi",
+  "standings": "Classifica",
+  "pointsAndStats": "Punti e statistiche",
+  "elimination": "Eliminatoria",
+  "playoffBracket": "Bracket playoff",
+  "timerLabel": "Timer",
+  "minutesX": "{count} minuti",
+  "@minutesX": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "tournamentDate": "Data Torneo",
+  "edit": "Modifica",
+  "newTournament": "Nuovo Torneo",
+  "createTournament": "Crea Torneo",
+  "navHome": "Home",
+  "navTeams": "Squadre",
+  "navTournaments": "Tornei",
+  "navTimer": "Timer",
+  "appIcon": "Icona App",
+  "changeAppIcon": "Cambia Icona App",
+  "pickImageIcon": "Seleziona immagine",
+  "resetIcon": "Ripristina icona predefinita"
+}

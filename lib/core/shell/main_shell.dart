@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:trnmnt/generated/l10n/app_localizations.dart';
 
 /// Main shell with bottom navigation
 class MainShell extends StatelessWidget {
@@ -37,26 +38,26 @@ class MainShell extends StatelessWidget {
               break;
           }
         },
-        destinations: const [
+        destinations: [
           NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
-            label: 'Home',
+            icon: const Icon(Icons.home_outlined),
+            selectedIcon: const Icon(Icons.home),
+            label: AppLocalizations.of(context)!.navHome,
           ),
           NavigationDestination(
-            icon: Icon(Icons.groups_outlined),
-            selectedIcon: Icon(Icons.groups),
-            label: 'Squadre',
+            icon: const Icon(Icons.groups_outlined),
+            selectedIcon: const Icon(Icons.groups),
+            label: AppLocalizations.of(context)!.navTeams,
           ),
           NavigationDestination(
-            icon: Icon(Icons.emoji_events_outlined),
-            selectedIcon: Icon(Icons.emoji_events),
-            label: 'Tornei',
+            icon: const Icon(Icons.emoji_events_outlined),
+            selectedIcon: const Icon(Icons.emoji_events),
+            label: AppLocalizations.of(context)!.navTournaments,
           ),
           NavigationDestination(
-            icon: Icon(Icons.timer_outlined),
-            selectedIcon: Icon(Icons.timer),
-            label: 'Timer',
+            icon: const Icon(Icons.timer_outlined),
+            selectedIcon: const Icon(Icons.timer),
+            label: AppLocalizations.of(context)!.navTimer,
           ),
         ],
       ),

@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../../core/widgets/vintage_score_column.dart';
+import 'package:trnmnt/generated/l10n/app_localizations.dart';
 
 class SingleMatchScreen extends StatefulWidget {
   final String homeTeamName;
@@ -123,21 +124,21 @@ class _SingleMatchScreenState extends State<SingleMatchScreen> {
       resizeToAvoidBottomInset: false,
       appBar: AppBar(
         backgroundColor: Colors.black,
-        title: const Text('Partita in corso', style: TextStyle(fontFamily: 'monospace')),
+        title: Text(AppLocalizations.of(context)!.matchInProgress, style: const TextStyle(fontFamily: 'monospace')),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            tooltip: 'Azzera partita',
+            tooltip: AppLocalizations.of(context)!.resetMatch,
             onPressed: () {
               showDialog(
                 context: context,
                 builder: (context) => AlertDialog(
-                  title: const Text('Azzera partita?'),
-                  content: const Text('Sei sicuro di voler riportare il punteggio e il periodo a 0?'),
+                  title: Text(AppLocalizations.of(context)!.resetMatch),
+                  content: Text(AppLocalizations.of(context)!.confirmResetMatch),
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.of(context).pop(),
-                      child: const Text('Annulla'),
+                      child: Text(AppLocalizations.of(context)!.cancel),
                     ),
                     TextButton(
                       onPressed: () {
@@ -149,7 +150,7 @@ class _SingleMatchScreenState extends State<SingleMatchScreen> {
                         Navigator.of(context).pop();
                       },
                       style: TextButton.styleFrom(foregroundColor: Colors.red),
-                      child: const Text('Azzera'),
+                      child: Text(AppLocalizations.of(context)!.delete), // Using delete as 'Azzera' here
                     ),
                   ],
                 ),
@@ -285,9 +286,9 @@ class _SingleMatchScreenState extends State<SingleMatchScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 8.0),
       child: Column(
         children: [
-          const Text(
-            'PERIOD',
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 2, color: Colors.white70),
+          Text(
+            AppLocalizations.of(context)!.periodLabel,
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 2, color: Colors.white70),
           ),
           const SizedBox(height: 8),
           Container(
@@ -337,7 +338,7 @@ class _SingleMatchScreenState extends State<SingleMatchScreen> {
 
     return Column(
       children: [
-        const Text('Durata (minuti)', style: TextStyle(fontSize: 14)),
+        Text(AppLocalizations.of(context)!.durationMinutes, style: const TextStyle(fontSize: 14)),
         const SizedBox(height: 8),
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,

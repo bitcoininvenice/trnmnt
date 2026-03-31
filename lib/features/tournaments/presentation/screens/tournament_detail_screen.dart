@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../data/tournaments_repository.dart';
+import 'package:trnmnt/generated/l10n/app_localizations.dart';
 
 class TournamentDetailScreen extends ConsumerWidget {
   final int tournamentId;
@@ -17,14 +18,14 @@ class TournamentDetailScreen extends ConsumerWidget {
     return tournamentAsync.when(
       loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
       error: (error, stack) => Scaffold(
-        appBar: AppBar(title: const Text('Errore')),
-        body: Center(child: Text('Errore: $error')),
+        appBar: AppBar(title: Text(AppLocalizations.of(context)!.error)),
+        body: Center(child: Text('${AppLocalizations.of(context)!.error}: $error')),
       ),
       data: (tournament) {
         if (tournament == null) {
           return Scaffold(
-            appBar: AppBar(title: const Text('Non trovato')),
-            body: const Center(child: Text('Torneo non trovato')),
+            appBar: AppBar(title: Text(AppLocalizations.of(context)!.notFound)),
+            body: Center(child: Text(AppLocalizations.of(context)!.tournamentNotFound)),
           );
         }
 
@@ -32,7 +33,7 @@ class TournamentDetailScreen extends ConsumerWidget {
           body: CustomScrollView(
             slivers: [
               SliverAppBar(
-                expandedHeight: 200,
+                expandedHeight: 150,
                 pinned: true,
                 flexibleSpace: FlexibleSpaceBar(
                   title: Text(tournament.name),
@@ -50,12 +51,19 @@ class TournamentDetailScreen extends ConsumerWidget {
                     child: Center(
                       child: Icon(
                         Icons.emoji_events,
-                        size: 80,
+                        size: 55,
                         color: Colors.white.withValues(alpha: 0.3),
                       ),
                     ),
                   ),
                 ),
+                actions: [
+                  IconButton(
+                    icon: const Icon(Icons.edit),
+                    tooltip: AppLocalizations.of(context)!.edit,
+                    onPressed: () => context.go('/tournaments/$tournamentId/edit'),
+                  ),
+                ],
               ),
               SliverToBoxAdapter(
                 child: Padding(
@@ -66,9 +74,27 @@ class TournamentDetailScreen extends ConsumerWidget {
                       // Location
                       Row(
                         children: [
+                          Row(
+                        children: [
                           const Icon(Icons.location_on, size: 20),
                           const SizedBox(width: 8),
                           Text(tournament.location),
+                        ],),
+                          // Actions
+                      Row(
+                        children: [
+                          const Icon(Icons.calendar_today, size: 20, color: Colors.blue),
+                          const SizedBox(width: 8),
+                          Text(
+                            tournament.startDate != null 
+                              ? "${tournament.startDate!.day}/${tournament.startDate!.month}/${tournament.startDate!.year}"
+                              : "${tournament.createdAt.day}/${tournament.createdAt.month}/${tournament.createdAt.year}",
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ).animate().fadeIn(delay: 200.ms),
                         ],
                       ).animate().fadeIn(),
                       
@@ -76,40 +102,37 @@ class TournamentDetailScreen extends ConsumerWidget {
                       
                       // Teams section
                       Text(
-                        'Squadre Partecipanti',
+                        AppLocalizations.of(context)!.participatingTeams,
                         style: Theme.of(context).textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       const SizedBox(height: 12),
-                      teamsAsync.when(
-                        loading: () => const CircularProgressIndicator(),
-                        error: (e, s) => Text('Errore: $e'),
-                        data: (teams) => Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: teams.map((tt) => Chip(
-                            avatar: CircleAvatar(
-                              backgroundColor: Theme.of(context).colorScheme.primary,
-                              child: Text(
-                                tt.team.name.substring(0, 1).toUpperCase(),
-                                style: const TextStyle(color: Colors.white, fontSize: 12),
+                       teamsAsync.when(
+                        loading: () => const Center(child: CircularProgressIndicator()),
+                        error: (e, s) => Text('${AppLocalizations.of(context)!.error}: $e'),
+                        data: (teams) => SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children: teams.map((tt) => Padding(
+                              padding: const EdgeInsets.only(right: 8),
+                              child: Chip(
+                                avatar: CircleAvatar(
+                                  backgroundColor: Theme.of(context).colorScheme.primary,
+                                  child: Text(
+                                    tt.team.name.substring(0, 1).toUpperCase(),
+                                    style: const TextStyle(color: Colors.white, fontSize: 12),
+                                  ),
+                                ),
+                                label: Text(tt.team.name),
                               ),
-                            ),
-                            label: Text(tt.team.name),
-                          )).toList(),
+                            )).toList(),
+                          ),
                         ),
                       ),
                       
-                      const SizedBox(height: 32),
                       
-                      // Actions
-                      Text(
-                        'Gestione Torneo',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      
                       const SizedBox(height: 16),
                       
                       _buildActionCards(context, tournament),
@@ -133,8 +156,8 @@ class TournamentDetailScreen extends ConsumerWidget {
       actions.add(_buildActionCard(
         context,
         icon: Icons.calendar_month,
-        title: 'Calendario',
-        subtitle: 'Fase a gironi',
+        title: AppLocalizations.of(context)!.calendar,
+        subtitle: AppLocalizations.of(context)!.groupPhase,
         color: Colors.blue,
         onTap: () => context.go('/tournaments/$tournamentId/calendar'),
       ));
@@ -145,8 +168,8 @@ class TournamentDetailScreen extends ConsumerWidget {
       actions.add(_buildActionCard(
         context,
         icon: Icons.leaderboard,
-        title: 'Classifica',
-        subtitle: 'Punti e statistiche',
+        title: AppLocalizations.of(context)!.standings,
+        subtitle: AppLocalizations.of(context)!.pointsAndStats,
         color: Colors.green,
         onTap: () => context.go('/tournaments/$tournamentId/standings'),
       ));
@@ -157,8 +180,8 @@ class TournamentDetailScreen extends ConsumerWidget {
       actions.add(_buildActionCard(
         context,
         icon: Icons.account_tree,
-        title: 'Eliminatoria',
-        subtitle: 'Bracket playoff',
+        title: AppLocalizations.of(context)!.elimination,
+        subtitle: AppLocalizations.of(context)!.playoffBracket,
         color: Colors.orange,
         onTap: () => context.go('/tournaments/$tournamentId/bracket'),
       ));
@@ -168,8 +191,8 @@ class TournamentDetailScreen extends ConsumerWidget {
     actions.add(_buildActionCard(
       context,
       icon: Icons.timer,
-      title: 'Timer',
-      subtitle: '${tournament.timerMinutes} minuti',
+      title: AppLocalizations.of(context)!.timerLabel,
+      subtitle: AppLocalizations.of(context)!.minutesX(tournament.timerMinutes),
       color: Colors.red,
       onTap: () => context.go('/timer'),
     ));

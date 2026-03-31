@@ -6,6 +6,7 @@ import '../../features/teams/presentation/screens/teams_screen.dart';
 import '../../features/teams/presentation/screens/team_form_screen.dart';
 import '../../features/tournaments/presentation/screens/tournaments_screen.dart';
 import '../../features/tournaments/presentation/screens/tournament_setup_screen.dart';
+import '../../features/tournaments/presentation/screens/tournament_edit_screen.dart';
 import '../../features/tournaments/presentation/screens/tournament_detail_screen.dart';
 import '../../features/tournaments/presentation/screens/calendar_screen.dart';
 import '../../features/tournaments/presentation/screens/standings_screen.dart';
@@ -105,6 +106,14 @@ final routerProvider = Provider<GoRouter>((ref) {
                     builder: (context, state) {
                       final matchId = int.parse(state.pathParameters['matchId']!);
                       return MatchScreen(matchId: matchId);
+                    },
+                  ),
+                  GoRoute(
+                    path: 'edit',
+                    name: 'tournament-edit',
+                    builder: (context, state) {
+                      final id = int.parse(state.pathParameters['tournamentId']!);
+                      return TournamentEditScreen(tournamentId: id);
                     },
                   ),
                 ],

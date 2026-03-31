@@ -7,7 +7,7 @@ import '../../../../core/providers/database_provider.dart';
 final tournamentsProvider = StreamProvider<List<Tournament>>((ref) {
   final db = ref.watch(dbProvider);
   return (db.select(db.tournaments)
-    ..orderBy([(t) => OrderingTerm.desc(t.createdAt)]))
+    ..orderBy([(t) => OrderingTerm.desc(t.startDate), (t) => OrderingTerm.desc(t.createdAt)]))
     .watch();
 });
 
@@ -52,6 +52,7 @@ class TournamentsRepository {
     required String location,
     required String mode,
     required String scoringSystem,
+    DateTime? startDate,
     int winPoints = 2,
     int drawPoints = 0,
     int lossPoints = 1,
@@ -69,6 +70,7 @@ class TournamentsRepository {
         lossPoints: Value(lossPoints),
         includeConsolationFinals: Value(includeConsolationFinals),
         timerMinutes: Value(timerMinutes),
+        startDate: Value(startDate ?? DateTime.now()),
       ),
     );
   }
@@ -85,6 +87,7 @@ class TournamentsRepository {
     bool? includeConsolationFinals,
     int? timerMinutes,
     bool? isActive,
+    DateTime? startDate,
   }) async {
     return await (_db.update(_db.tournaments)..where((t) => t.id.equals(id))).write(
       TournamentsCompanion(
@@ -98,6 +101,7 @@ class TournamentsRepository {
         includeConsolationFinals: includeConsolationFinals != null ? Value(includeConsolationFinals) : const Value.absent(),
         timerMinutes: timerMinutes != null ? Value(timerMinutes) : const Value.absent(),
         isActive: isActive != null ? Value(isActive) : const Value.absent(),
+        startDate: startDate != null ? Value(startDate) : const Value.absent(),
       ),
     ) > 0;
   }

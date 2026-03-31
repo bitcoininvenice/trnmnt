@@ -3,7 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import '../../../../core/providers/theme_provider.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
+import 'package:trnmnt/generated/l10n/app_localizations.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:trnmnt/core/providers/theme_provider.dart';
+import 'package:trnmnt/core/providers/locale_provider.dart';
+import 'package:trnmnt/core/providers/icon_provider.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -15,6 +21,7 @@ class SettingsScreen extends ConsumerStatefulWidget {
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   String _version = '...';
   String _baseVersion = '1.0.0';
+  final String _assetIconPath = 'assets/icon/app_icon.png';
 
   @override
   void initState() {
@@ -41,7 +48,26 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Impossibile aprire $url')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.unableToOpenUrl(url))),
+        );
+      }
+    }
+  }
+
+  Future<void> _pickAppIcon() async {
+    try {
+      final picker = ImagePicker();
+      final image = await picker.pickImage(source: ImageSource.gallery);
+      if (image != null && mounted) {
+        await ref.read(customIconProvider.notifier).setIcon(image.path);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppLocalizations.of(context)!.changeAppIcon), backgroundColor: Colors.green),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Errore: $e')),
         );
       }
     }
@@ -50,14 +76,42 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final themeMode = ref.watch(themeProvider);
+    final customIconPath = ref.watch(customIconProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Impostazioni'),
+        title: Text(AppLocalizations.of(context)!.settings),
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          // Language Section
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(AppLocalizations.of(context)!.appLanguage, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 16),
+                  RadioListTile<String>(
+                    title: const Text('Italiano'),
+                    value: 'it',
+                    groupValue: ref.watch(localeProvider).languageCode,
+                    onChanged: (lang) => ref.read(localeProvider.notifier).setLocale(Locale(lang!)),
+                  ),
+                  RadioListTile<String>(
+                    title: const Text('English'),
+                    value: 'en',
+                    groupValue: ref.watch(localeProvider).languageCode,
+                    onChanged: (lang) => ref.read(localeProvider.notifier).setLocale(Locale(lang!)),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+
           // Theme Section
           Card(
             child: Padding(
@@ -65,25 +119,81 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Tema', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  Text(AppLocalizations.of(context)!.theme, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 16),
                   RadioListTile<AppThemeMode>(
-                    title: const Text('Tema Base (Vibrante)'),
+                    title: Text(AppLocalizations.of(context)!.baseTheme),
                     value: AppThemeMode.base,
                     groupValue: themeMode,
                     onChanged: (mode) => ref.read(themeProvider.notifier).setTheme(mode!),
                   ),
                   RadioListTile<AppThemeMode>(
-                    title: const Text('Tema Scuro (Puro)'),
+                    title: Text(AppLocalizations.of(context)!.darkTheme),
                     value: AppThemeMode.dark,
                     groupValue: themeMode,
                     onChanged: (mode) => ref.read(themeProvider.notifier).setTheme(mode!),
                   ),
                   RadioListTile<AppThemeMode>(
-                    title: const Text('Tema Chiaro'),
+                    title: Text(AppLocalizations.of(context)!.lightTheme),
                     value: AppThemeMode.light,
                     groupValue: themeMode,
                     onChanged: (mode) => ref.read(themeProvider.notifier).setTheme(mode!),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // App Icon Section
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(AppLocalizations.of(context)!.appIcon, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 16),
+                  Center(
+                    child: Column(
+                      children: [
+                        Container(
+                          width: 100,
+                          height: 100,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(20),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.1),
+                                blurRadius: 10,
+                                spreadRadius: 2,
+                              ),
+                            ],
+                          ),
+                          clipBehavior: Clip.antiAlias,
+                          child: customIconPath != null
+                            ? Image.file(File(customIconPath), fit: BoxFit.cover)
+                            : Image.asset(_assetIconPath, fit: BoxFit.cover, errorBuilder: (c, o, s) => const Icon(Icons.apps, size: 50)),
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton.icon(
+                          onPressed: _pickAppIcon,
+                          icon: const Icon(Icons.photo_library),
+                          label: Text(AppLocalizations.of(context)!.pickImageIcon),
+                        ),
+                        if (customIconPath != null)
+                          TextButton.icon(
+                            onPressed: () async {
+                              await ref.read(customIconProvider.notifier).reset();
+                            },
+                            icon: const Icon(Icons.restore, color: Colors.orange),
+                            label: Text(
+                              AppLocalizations.of(context)!.resetIcon,
+                              style: const TextStyle(color: Colors.orange),
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -98,13 +208,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Sviluppatori', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  Text(AppLocalizations.of(context)!.developers, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 8),
                   const Text('Venice Streetball Community'),
                   const SizedBox(height: 16),
                   ListTile(
                     leading: const FaIcon(FontAwesomeIcons.globe),
-                    title: const Text('Sito Ufficiale'),
+                    title: Text(AppLocalizations.of(context)!.officialWebsite),
                     subtitle: const Text('vesb.vercel.app'),
                     onTap: () => _launchUrl('https://vesb.vercel.app'),
                   ),
@@ -132,7 +242,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           // Version Info
           Center(
             child: Text(
-              'Versione $_version',
+              '${AppLocalizations.of(context)!.appVersion} $_version',
               textAlign: TextAlign.center,
               style: TextStyle(color: Colors.grey.shade500),
             ),

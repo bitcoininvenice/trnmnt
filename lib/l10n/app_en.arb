@@ -1,0 +1,229 @@
+{
+  "@@locale": "en",
+  "appTitle": "TRNMNT",
+  "teams": "Teams",
+  "singleMatch": "Single Match",
+  "tournaments": "Tournaments",
+  "newTournament": "New Tournament",
+  "map": "Map",
+  "settings": "Settings",
+  "statistics": "Statistics",
+  "appStatistics": "App Statistics",
+  "totalTeams": "Total Teams",
+  "courts": "Courts",
+  "tournamentsCreated": "Created Tournaments",
+  "inProgress": "In Progress",
+  "matchesPlayed": "Matches Played",
+  "pointsScored": "Points Scored",
+  "hallOfFame": "Hall of Fame",
+  "noTournamentsRecorded": "No tournaments recorded at the moment.",
+  "winner": "🏆 Winner: {team}",
+  "@winner": {
+    "placeholders": {
+      "team": {"type": "String"}
+    }
+  },
+  "inProgressOrToBeDecided": "⏳ In Progress / To be decided",
+  "teamRecord": "Team Record: {wins} W - {losses} L",
+  "@teamRecord": {
+    "placeholders": {
+      "wins": {"type": "int"},
+      "losses": {"type": "int"}
+    }
+  },
+  "points": "Points: PF {pf} / PA {ps}",
+  "@points": {
+    "placeholders": {
+      "pf": {"type": "int"},
+      "ps": {"type": "int"}
+    }
+  },
+  "appLanguage": "App Language",
+  "selectLanguage": "Select language",
+  "developedBy": "Developed by",
+  "tapToVisitLinks": "Tap to visit links",
+  "appVersion": "App Version",
+  "followUsOnSocial": "Follow us on social media",
+  "timer": "Timer",
+  "manageTeams": "Manage teams",
+  "manageSingleMatch": "Manage a single match",
+  "createAndManage": "Create and manage",
+  "startNow": "Start now",
+  "courtsMap": "Courts map",
+  "appOptions": "App options",
+  "dataAndNumbers": "Data and numbers",
+  "appSubtitle": "Basketball Tournament Manager",
+  "courtStatus": "Court status: {status}",
+  "@courtStatus": {
+    "placeholders": {
+      "status": {"type": "String"}
+    }
+  },
+  "starsCount": "Level: {count}/5",
+  "@starsCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "wellMaintained": "Well maintained",
+  "playable": "Playable",
+  "poorCondition": "Poor condition",
+  "cloth": "Cloth",
+  "metal": "Metal",
+  "broken": "Broken",
+  "notPresent": "Not present",
+  "wellDefined": "Well defined",
+  "visible": "Visible",
+  "damaged": "Damaged",
+  "yes": "Yes",
+  "no": "No",
+  "hoopsCount": "Hoops: {count}",
+  "@hoopsCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "netsTitle": "Nets",
+  "courtTitle": "Court",
+  "linesTitle": "Lines",
+  "lightsTitle": "Lights",
+  "saveAction": "SAVE",
+  "newCourtTitle": "New Court",
+  "nameLabel": "Name",
+  "descLabel": "Description",
+  "tapMapInstruction": "Tap map to add a court",
+  "positionSaved": "Map position saved!",
+  "addAction": "Add",
+  "hoops": "Hoops",
+  "rating": "Rating",
+  "edit": "Edit",
+  "myTournaments": "My Tournaments",
+  "deleteTournament": "Delete Tournament",
+  "confirmDeleteTournament": "Are you sure you want to delete \"{name}\"?",
+  "@confirmDeleteTournament": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "cancel": "Cancel",
+  "delete": "Delete",
+  "noTournaments": "No Tournaments",
+  "createFirstTournament": "Create your first basketball tournament",
+  "createTournament": "Create Tournament",
+  "groupOnly": "Group Only",
+  "eliminationOnly": "Elimination Only",
+  "groupAndElimination": "Group & Playoff",
+  "consolationFinals": "Consolation Finals",
+  "location": "📍 {loc}",
+  "@location": {
+    "placeholders": {
+      "loc": {"type": "String"}
+    }
+  },
+  "teamsAndMode": "🏀 {count} teams - {mode}",
+  "@teamsAndMode": {
+    "placeholders": {
+      "count": {"type": "int"},
+      "mode": {"type": "String"}
+    }
+  },
+  "singleMatchSetup": "Single Match Setup",
+  "noTeamsInDatabase": "No teams in the database.",
+  "createTeam": "Create Team",
+  "selectTeamsForMatch": "Select teams for the single match",
+  "homeTeam": "Home Team",
+  "awayTeam": "Away Team",
+  "selectATeam": "Select a team",
+  "selectDifferentTeams": "Select two different teams",
+  "startMatch": "Start Match",
+  "theme": "Theme",
+  "baseTheme": "Base Theme (Vibrant)",
+  "darkTheme": "Dark Theme (Pure)",
+  "lightTheme": "Light Theme",
+  "developers": "Developers",
+  "officialWebsite": "Official Website",
+  "unableToOpenUrl": "Unable to open {url}",
+  "@unableToOpenUrl": {
+    "placeholders": {
+      "url": {"type": "String"}
+    }
+  },
+  "matchInProgress": "Match in Progress",
+  "resetMatch": "Reset Match",
+  "confirmResetMatch": "Are you sure you want to reset score and period to zero?",
+  "durationMinutes": "Duration (minutes)",
+  "periodLabel": "PERIOD",
+  "selectAtLeastTwoTeams": "Select at least 2 teams",
+  "infoStep": "Information",
+  "infoSubtitle": "Name and location",
+  "configStep": "Configuration",
+  "configSubtitle": "Mode and scoring",
+  "teamsStep": "Teams",
+  "teamsSelected": "{count} selected",
+  "@teamsSelected": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "tournamentName": "Tournament Name",
+  "tournamentLocation": "Location",
+  "enterTournamentName": "Enter tournament name",
+  "enterTournamentLocation": "Enter tournament location",
+  "tournamentMode": "Tournament Mode",
+  "scoringSystem": "Scoring System",
+  "win": "Win",
+  "draw": "Draw",
+  "loss": "Loss",
+  "classicBasketball": "Classic Basketball",
+  "standardFootball": "Standard Football",
+  "custom": "Custom",
+  "setYourScores": "Set your own scores",
+  "consolationFinalsSubtitle": "3rd/4th place, 5th/6th, etc.",
+  "matchTimer": "Match Timer: {min} minutes",
+  "@matchTimer": {
+    "placeholders": {
+      "min": {"type": "int"}
+    }
+  },
+  "searchTeam": "Search Team",
+  "selectParticipatingTeams": "Select participating teams (min. 2)",
+  "oddTeamsBye": "Odd number of teams: a BYE will be automatically managed",
+  "selectAll": "Select all",
+  "deselectAll": "Deselect all",
+  "noTeamsFound": "No teams found",
+  "continueAction": "Continue",
+  "backAction": "Back",
+  "groupOnlySubtitle": "Round-robin, final standings",
+  "eliminationOnlySubtitle": "Win or go home",
+  "groupAndEliminationSubtitle": "Group stage then playoffs",
+  "error": "Error",
+  "notFound": "Not found",
+  "tournamentNotFound": "Tournament not found",
+  "participatingTeams": "Participating Teams",
+  "tournamentManagement": "Tournament Management",
+  "calendar": "Calendar",
+  "groupPhase": "Group Phase",
+  "standings": "Standings",
+  "pointsAndStats": "Points & Stats",
+  "elimination": "Elimination",
+  "playoffBracket": "Playoff Bracket",
+  "timerLabel": "Timer",
+  "minutesX": "{count} minutes",
+  "@minutesX": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "tournamentDate": "Tournament Date",
+  "edit": "Edit",
+  "newTournament": "New Tournament",
+  "createTournament": "Create Tournament",
+  "navHome": "Home",
+  "navTeams": "Teams",
+  "navTournaments": "Tournaments",
+  "navTimer": "Timer",
+  "appIcon": "App Icon",
+  "changeAppIcon": "Change App Icon",
+  "pickImageIcon": "Pick Image",
+  "resetIcon": "Reset to default icon"
+}

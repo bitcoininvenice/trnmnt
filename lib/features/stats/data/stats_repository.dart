@@ -13,6 +13,8 @@ class HallOfFameEntry {
   final int? winnerLosses;
   final int? winnerPointsFor;
   final int? winnerPointsAgainst;
+  final DateTime? startDate;
+  final DateTime createdAt;
 
   const HallOfFameEntry({
     required this.tournamentId,
@@ -20,6 +22,8 @@ class HallOfFameEntry {
     required this.location,
     required this.teamCount,
     required this.mode,
+    required this.createdAt,
+    this.startDate,
     this.winningTeam,
     this.winnerWins,
     this.winnerLosses,
@@ -199,7 +203,9 @@ class StatsRepository {
         tournamentName: t.name,
         location: t.location,
         teamCount: teamCount,
-        mode: modeStr,
+        mode: t.mode, // Use raw mode for UI-level localization
+        startDate: t.startDate,
+        createdAt: t.createdAt,
         winningTeam: winnerName,
         winnerWins: winnerWins,
         winnerLosses: winnerLosses,

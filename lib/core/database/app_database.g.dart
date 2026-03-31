@@ -450,6 +450,17 @@ class $TournamentsTable extends Tournaments
     ),
     defaultValue: const Constant(true),
   );
+  static const VerificationMeta _startDateMeta = const VerificationMeta(
+    'startDate',
+  );
+  @override
+  late final GeneratedColumn<DateTime> startDate = GeneratedColumn<DateTime>(
+    'start_date',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -475,6 +486,7 @@ class $TournamentsTable extends Tournaments
     includeConsolationFinals,
     timerMinutes,
     isActive,
+    startDate,
     createdAt,
   ];
   @override
@@ -565,6 +577,12 @@ class $TournamentsTable extends Tournaments
         isActive.isAcceptableOrUnknown(data['is_active']!, _isActiveMeta),
       );
     }
+    if (data.containsKey('start_date')) {
+      context.handle(
+        _startDateMeta,
+        startDate.isAcceptableOrUnknown(data['start_date']!, _startDateMeta),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -624,6 +642,10 @@ class $TournamentsTable extends Tournaments
         DriftSqlType.bool,
         data['${effectivePrefix}is_active'],
       )!,
+      startDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}start_date'],
+      ),
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -653,6 +675,7 @@ class Tournament extends DataClass implements Insertable<Tournament> {
   final bool includeConsolationFinals;
   final int timerMinutes;
   final bool isActive;
+  final DateTime? startDate;
   final DateTime createdAt;
   const Tournament({
     required this.id,
@@ -666,6 +689,7 @@ class Tournament extends DataClass implements Insertable<Tournament> {
     required this.includeConsolationFinals,
     required this.timerMinutes,
     required this.isActive,
+    this.startDate,
     required this.createdAt,
   });
   @override
@@ -684,6 +708,9 @@ class Tournament extends DataClass implements Insertable<Tournament> {
     );
     map['timer_minutes'] = Variable<int>(timerMinutes);
     map['is_active'] = Variable<bool>(isActive);
+    if (!nullToAbsent || startDate != null) {
+      map['start_date'] = Variable<DateTime>(startDate);
+    }
     map['created_at'] = Variable<DateTime>(createdAt);
     return map;
   }
@@ -701,6 +728,9 @@ class Tournament extends DataClass implements Insertable<Tournament> {
       includeConsolationFinals: Value(includeConsolationFinals),
       timerMinutes: Value(timerMinutes),
       isActive: Value(isActive),
+      startDate: startDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(startDate),
       createdAt: Value(createdAt),
     );
   }
@@ -724,6 +754,7 @@ class Tournament extends DataClass implements Insertable<Tournament> {
       ),
       timerMinutes: serializer.fromJson<int>(json['timerMinutes']),
       isActive: serializer.fromJson<bool>(json['isActive']),
+      startDate: serializer.fromJson<DateTime?>(json['startDate']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
     );
   }
@@ -744,6 +775,7 @@ class Tournament extends DataClass implements Insertable<Tournament> {
       ),
       'timerMinutes': serializer.toJson<int>(timerMinutes),
       'isActive': serializer.toJson<bool>(isActive),
+      'startDate': serializer.toJson<DateTime?>(startDate),
       'createdAt': serializer.toJson<DateTime>(createdAt),
     };
   }
@@ -760,6 +792,7 @@ class Tournament extends DataClass implements Insertable<Tournament> {
     bool? includeConsolationFinals,
     int? timerMinutes,
     bool? isActive,
+    Value<DateTime?> startDate = const Value.absent(),
     DateTime? createdAt,
   }) => Tournament(
     id: id ?? this.id,
@@ -774,6 +807,7 @@ class Tournament extends DataClass implements Insertable<Tournament> {
         includeConsolationFinals ?? this.includeConsolationFinals,
     timerMinutes: timerMinutes ?? this.timerMinutes,
     isActive: isActive ?? this.isActive,
+    startDate: startDate.present ? startDate.value : this.startDate,
     createdAt: createdAt ?? this.createdAt,
   );
   Tournament copyWithCompanion(TournamentsCompanion data) {
@@ -799,6 +833,7 @@ class Tournament extends DataClass implements Insertable<Tournament> {
           ? data.timerMinutes.value
           : this.timerMinutes,
       isActive: data.isActive.present ? data.isActive.value : this.isActive,
+      startDate: data.startDate.present ? data.startDate.value : this.startDate,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
     );
   }
@@ -817,6 +852,7 @@ class Tournament extends DataClass implements Insertable<Tournament> {
           ..write('includeConsolationFinals: $includeConsolationFinals, ')
           ..write('timerMinutes: $timerMinutes, ')
           ..write('isActive: $isActive, ')
+          ..write('startDate: $startDate, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
@@ -835,6 +871,7 @@ class Tournament extends DataClass implements Insertable<Tournament> {
     includeConsolationFinals,
     timerMinutes,
     isActive,
+    startDate,
     createdAt,
   );
   @override
@@ -852,6 +889,7 @@ class Tournament extends DataClass implements Insertable<Tournament> {
           other.includeConsolationFinals == this.includeConsolationFinals &&
           other.timerMinutes == this.timerMinutes &&
           other.isActive == this.isActive &&
+          other.startDate == this.startDate &&
           other.createdAt == this.createdAt);
 }
 
@@ -867,6 +905,7 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
   final Value<bool> includeConsolationFinals;
   final Value<int> timerMinutes;
   final Value<bool> isActive;
+  final Value<DateTime?> startDate;
   final Value<DateTime> createdAt;
   const TournamentsCompanion({
     this.id = const Value.absent(),
@@ -880,6 +919,7 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
     this.includeConsolationFinals = const Value.absent(),
     this.timerMinutes = const Value.absent(),
     this.isActive = const Value.absent(),
+    this.startDate = const Value.absent(),
     this.createdAt = const Value.absent(),
   });
   TournamentsCompanion.insert({
@@ -894,6 +934,7 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
     this.includeConsolationFinals = const Value.absent(),
     this.timerMinutes = const Value.absent(),
     this.isActive = const Value.absent(),
+    this.startDate = const Value.absent(),
     this.createdAt = const Value.absent(),
   }) : name = Value(name),
        location = Value(location);
@@ -909,6 +950,7 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
     Expression<bool>? includeConsolationFinals,
     Expression<int>? timerMinutes,
     Expression<bool>? isActive,
+    Expression<DateTime>? startDate,
     Expression<DateTime>? createdAt,
   }) {
     return RawValuesInsertable({
@@ -924,6 +966,7 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
         'include_consolation_finals': includeConsolationFinals,
       if (timerMinutes != null) 'timer_minutes': timerMinutes,
       if (isActive != null) 'is_active': isActive,
+      if (startDate != null) 'start_date': startDate,
       if (createdAt != null) 'created_at': createdAt,
     });
   }
@@ -940,6 +983,7 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
     Value<bool>? includeConsolationFinals,
     Value<int>? timerMinutes,
     Value<bool>? isActive,
+    Value<DateTime?>? startDate,
     Value<DateTime>? createdAt,
   }) {
     return TournamentsCompanion(
@@ -955,6 +999,7 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
           includeConsolationFinals ?? this.includeConsolationFinals,
       timerMinutes: timerMinutes ?? this.timerMinutes,
       isActive: isActive ?? this.isActive,
+      startDate: startDate ?? this.startDate,
       createdAt: createdAt ?? this.createdAt,
     );
   }
@@ -997,6 +1042,9 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
     if (isActive.present) {
       map['is_active'] = Variable<bool>(isActive.value);
     }
+    if (startDate.present) {
+      map['start_date'] = Variable<DateTime>(startDate.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -1017,6 +1065,7 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
           ..write('includeConsolationFinals: $includeConsolationFinals, ')
           ..write('timerMinutes: $timerMinutes, ')
           ..write('isActive: $isActive, ')
+          ..write('startDate: $startDate, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
@@ -3180,6 +3229,7 @@ typedef $$TournamentsTableCreateCompanionBuilder =
       Value<bool> includeConsolationFinals,
       Value<int> timerMinutes,
       Value<bool> isActive,
+      Value<DateTime?> startDate,
       Value<DateTime> createdAt,
     });
 typedef $$TournamentsTableUpdateCompanionBuilder =
@@ -3195,6 +3245,7 @@ typedef $$TournamentsTableUpdateCompanionBuilder =
       Value<bool> includeConsolationFinals,
       Value<int> timerMinutes,
       Value<bool> isActive,
+      Value<DateTime?> startDate,
       Value<DateTime> createdAt,
     });
 
@@ -3306,6 +3357,11 @@ class $$TournamentsTableFilterComposer
 
   ColumnFilters<bool> get isActive => $composableBuilder(
     column: $table.isActive,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get startDate => $composableBuilder(
+    column: $table.startDate,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3429,6 +3485,11 @@ class $$TournamentsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<DateTime> get startDate => $composableBuilder(
+    column: $table.startDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -3486,6 +3547,9 @@ class $$TournamentsTableAnnotationComposer
 
   GeneratedColumn<bool> get isActive =>
       $composableBuilder(column: $table.isActive, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get startDate =>
+      $composableBuilder(column: $table.startDate, builder: (column) => column);
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -3580,6 +3644,7 @@ class $$TournamentsTableTableManager
                 Value<bool> includeConsolationFinals = const Value.absent(),
                 Value<int> timerMinutes = const Value.absent(),
                 Value<bool> isActive = const Value.absent(),
+                Value<DateTime?> startDate = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => TournamentsCompanion(
                 id: id,
@@ -3593,6 +3658,7 @@ class $$TournamentsTableTableManager
                 includeConsolationFinals: includeConsolationFinals,
                 timerMinutes: timerMinutes,
                 isActive: isActive,
+                startDate: startDate,
                 createdAt: createdAt,
               ),
           createCompanionCallback:
@@ -3608,6 +3674,7 @@ class $$TournamentsTableTableManager
                 Value<bool> includeConsolationFinals = const Value.absent(),
                 Value<int> timerMinutes = const Value.absent(),
                 Value<bool> isActive = const Value.absent(),
+                Value<DateTime?> startDate = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => TournamentsCompanion.insert(
                 id: id,
@@ -3621,6 +3688,7 @@ class $$TournamentsTableTableManager
                 includeConsolationFinals: includeConsolationFinals,
                 timerMinutes: timerMinutes,
                 isActive: isActive,
+                startDate: startDate,
                 createdAt: createdAt,
               ),
           withReferenceMapper: (p0) => p0

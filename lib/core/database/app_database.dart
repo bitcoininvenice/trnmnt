@@ -39,6 +39,7 @@ class Tournaments extends Table {
   BoolColumn get includeConsolationFinals => boolean().withDefault(const Constant(false))();
   IntColumn get timerMinutes => integer().withDefault(const Constant(10))();
   BoolColumn get isActive => boolean().withDefault(const Constant(true))();
+  DateTimeColumn get startDate => dateTime().nullable()();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 }
 
@@ -147,7 +148,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration {
@@ -158,6 +159,9 @@ class AppDatabase extends _$AppDatabase {
       onUpgrade: (Migrator m, int from, int to) async {
         if (from < 2) {
           await m.createTable(courts);
+        }
+        if (from < 3) {
+          await m.addColumn(tournaments, tournaments.startDate);
         }
       },
     );

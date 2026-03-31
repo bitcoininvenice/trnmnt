@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../data/tournaments_repository.dart';
 import '../../../teams/data/teams_repository.dart';
+import 'package:trnmnt/generated/l10n/app_localizations.dart';
 
 class TournamentSetupScreen extends ConsumerStatefulWidget {
   const TournamentSetupScreen({super.key});
@@ -15,8 +16,9 @@ class _TournamentSetupScreenState extends ConsumerState<TournamentSetupScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _locationController = TextEditingController();
-  final _searchController = TextEditingController(); // Search controller
+  final _searchController = TextEditingController(); 
   
+  DateTime _startDate = DateTime.now();
   String _mode = 'group_only';
   String _scoringSystem = 'win2_loss1';
   int _winPoints = 2;
@@ -40,7 +42,7 @@ class _TournamentSetupScreenState extends ConsumerState<TournamentSetupScreen> {
   Future<void> _createTournament() async {
     if (_selectedTeamIds.length < 2) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Seleziona almeno 2 squadre'), backgroundColor: Colors.orange),
+        SnackBar(content: Text(AppLocalizations.of(context)!.selectAtLeastTwoTeams), backgroundColor: Colors.orange),
       );
       return;
     }
@@ -60,6 +62,7 @@ class _TournamentSetupScreenState extends ConsumerState<TournamentSetupScreen> {
         lossPoints: _lossPoints,
         includeConsolationFinals: _includeConsolationFinals,
         timerMinutes: _timerMinutes,
+        startDate: _startDate,
       );
 
       await repo.setTournamentTeams(tournamentId, _selectedTeamIds.toList());
@@ -70,7 +73,7 @@ class _TournamentSetupScreenState extends ConsumerState<TournamentSetupScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Errore: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text('${AppLocalizations.of(context)!.error}: $e'), backgroundColor: Colors.red),
         );
       }
     } finally {
@@ -84,7 +87,7 @@ class _TournamentSetupScreenState extends ConsumerState<TournamentSetupScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Nuovo Torneo'),
+        title: Text(AppLocalizations.of(context)!.newTournament),
         leading: IconButton(
           icon: const Icon(Icons.close),
           onPressed: () => context.go('/tournaments'),
@@ -123,12 +126,12 @@ class _TournamentSetupScreenState extends ConsumerState<TournamentSetupScreen> {
                           width: 20,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : Text(_currentStep == 2 ? 'Crea Torneo' : 'Continua'),
+                      : Text(_currentStep == 2 ? AppLocalizations.of(context)!.createTournament : AppLocalizations.of(context)!.continueAction),
                 ),
                 const SizedBox(width: 12),
                 TextButton(
                   onPressed: details.onStepCancel,
-                  child: Text(_currentStep == 0 ? 'Annulla' : 'Indietro'),
+                  child: Text(_currentStep == 0 ? AppLocalizations.of(context)!.cancel : AppLocalizations.of(context)!.backAction),
                 ),
               ],
             ),
@@ -136,22 +139,22 @@ class _TournamentSetupScreenState extends ConsumerState<TournamentSetupScreen> {
         },
         steps: [
           Step(
-            title: const Text('Informazioni'),
-            subtitle: const Text('Nome e luogo'),
+            title: Text(AppLocalizations.of(context)!.infoStep),
+            subtitle: Text(AppLocalizations.of(context)!.infoSubtitle),
             isActive: _currentStep >= 0,
             state: _currentStep > 0 ? StepState.complete : StepState.indexed,
             content: _buildInfoStep(),
           ),
           Step(
-            title: const Text('Configurazione'),
-            subtitle: const Text('Modalità e punteggio'),
+            title: Text(AppLocalizations.of(context)!.configStep),
+            subtitle: Text(AppLocalizations.of(context)!.configSubtitle),
             isActive: _currentStep >= 1,
             state: _currentStep > 1 ? StepState.complete : StepState.indexed,
             content: _buildConfigStep(),
           ),
           Step(
-            title: const Text('Squadre'),
-            subtitle: Text('${_selectedTeamIds.length} selezionate'),
+            title: Text(AppLocalizations.of(context)!.teamsStep),
+            subtitle: Text(AppLocalizations.of(context)!.teamsSelected(_selectedTeamIds.length)),
             isActive: _currentStep >= 2,
             state: StepState.indexed,
             content: _buildTeamsStep(),
@@ -168,14 +171,14 @@ class _TournamentSetupScreenState extends ConsumerState<TournamentSetupScreen> {
         children: [
           TextFormField(
             controller: _nameController,
-            decoration: const InputDecoration(
-              labelText: 'Nome Torneo',
+            decoration: InputDecoration(
+              labelText: AppLocalizations.of(context)!.tournamentName,
               hintText: 'Es. Torneo Estivo 2024',
-              prefixIcon: Icon(Icons.emoji_events),
+              prefixIcon: const Icon(Icons.emoji_events),
             ),
             validator: (value) {
               if (value == null || value.trim().isEmpty) {
-                return 'Inserisci il nome del torneo';
+                return AppLocalizations.of(context)!.enterTournamentName;
               }
               return null;
             },
@@ -183,19 +186,49 @@ class _TournamentSetupScreenState extends ConsumerState<TournamentSetupScreen> {
           const SizedBox(height: 16),
           TextFormField(
             controller: _locationController,
-            decoration: const InputDecoration(
-              labelText: 'Luogo',
+            decoration: InputDecoration(
+              labelText: AppLocalizations.of(context)!.tournamentLocation,
               hintText: 'Es. Palestra Comunale',
-              prefixIcon: Icon(Icons.location_on),
+              prefixIcon: const Icon(Icons.location_on),
             ),
             validator: (value) {
               if (value == null || value.trim().isEmpty) {
-                return 'Inserisci il luogo del torneo';
+                return AppLocalizations.of(context)!.enterTournamentLocation;
               }
               return null;
             },
           ),
+          const SizedBox(height: 24),
+          _buildDateField(),
         ],
+      ),
+    );
+  }
+
+  Widget _buildDateField() {
+    final dateStr = "${_startDate.day}/${_startDate.month}/${_startDate.year}";
+    return InkWell(
+      onTap: () async {
+        final picked = await showDatePicker(
+          context: context,
+          initialDate: _startDate,
+          firstDate: DateTime(2020),
+          lastDate: DateTime(2100),
+        );
+        if (picked != null) {
+          setState(() => _startDate = picked);
+        }
+      },
+      child: InputDecorator(
+        decoration: InputDecoration(
+          labelText: AppLocalizations.of(context)!.tournamentDate,
+          prefixIcon: const Icon(Icons.calendar_today),
+          border: const OutlineInputBorder(),
+        ),
+        child: Text(
+          dateStr,
+          style: Theme.of(context).textTheme.bodyLarge,
+        ),
       ),
     );
   }
@@ -204,12 +237,12 @@ class _TournamentSetupScreenState extends ConsumerState<TournamentSetupScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Modalità Torneo', style: Theme.of(context).textTheme.titleSmall),
+        Text(AppLocalizations.of(context)!.tournamentMode, style: Theme.of(context).textTheme.titleSmall),
         const SizedBox(height: 8),
         _buildModeSelector(),
         const SizedBox(height: 24),
         
-        Text('Sistema Punteggio', style: Theme.of(context).textTheme.titleSmall),
+        Text(AppLocalizations.of(context)!.scoringSystem, style: Theme.of(context).textTheme.titleSmall),
         const SizedBox(height: 8),
         _buildScoringSelector(),
         
@@ -221,21 +254,21 @@ class _TournamentSetupScreenState extends ConsumerState<TournamentSetupScreen> {
         const SizedBox(height: 24),
         if (_mode != 'group_only') ...[
           SwitchListTile(
-            title: const Text('Finali consolazione'),
-            subtitle: const Text('3°/4° posto, 5°/6°, etc.'),
+            title: Text(AppLocalizations.of(context)!.consolationFinals),
+            subtitle: Text(AppLocalizations.of(context)!.consolationFinalsSubtitle),
             value: _includeConsolationFinals,
             onChanged: (value) => setState(() => _includeConsolationFinals = value),
           ),
         ],
         
         const SizedBox(height: 16),
-        Text('Timer Partita: $_timerMinutes minuti', style: Theme.of(context).textTheme.titleSmall),
+        Text(AppLocalizations.of(context)!.matchTimer(_timerMinutes), style: Theme.of(context).textTheme.titleSmall),
         Slider(
           value: _timerMinutes.toDouble(),
           min: 1,
           max: 20,
           divisions: 19,
-          label: '$_timerMinutes min',
+          label: '${_timerMinutes} min',
           onChanged: (value) => setState(() => _timerMinutes = value.round()),
         ),
       ],
@@ -245,9 +278,9 @@ class _TournamentSetupScreenState extends ConsumerState<TournamentSetupScreen> {
   Widget _buildModeSelector() {
     return Column(
       children: [
-        _buildModeOption('group_only', 'Solo Girone', 'Round-robin, classifica finale', Icons.table_chart),
-        _buildModeOption('elimination_only', 'Solo Eliminatoria', 'Win or go home', Icons.account_tree),
-        _buildModeOption('group_and_elimination', 'Girone + Playoff', 'Fase a gironi poi eliminatoria', Icons.sports_basketball),
+        _buildModeOption('group_only', AppLocalizations.of(context)!.groupOnly, AppLocalizations.of(context)!.groupOnlySubtitle, Icons.table_chart),
+        _buildModeOption('elimination_only', AppLocalizations.of(context)!.eliminationOnly, AppLocalizations.of(context)!.eliminationOnlySubtitle, Icons.account_tree),
+        _buildModeOption('group_and_elimination', AppLocalizations.of(context)!.groupAndElimination, AppLocalizations.of(context)!.groupAndEliminationSubtitle, Icons.sports_basketball),
       ],
     );
   }
@@ -270,7 +303,7 @@ class _TournamentSetupScreenState extends ConsumerState<TournamentSetupScreen> {
     return Column(
       children: [
         RadioListTile<String>(
-          title: const Text('Basket Classico'),
+          title: Text(AppLocalizations.of(context)!.classicBasketball),
           subtitle: const Text('V=2, S=1'),
           value: 'win2_loss1',
           groupValue: _scoringSystem,
@@ -282,7 +315,7 @@ class _TournamentSetupScreenState extends ConsumerState<TournamentSetupScreen> {
           }),
         ),
         RadioListTile<String>(
-          title: const Text('Calcio Standard'),
+          title: Text(AppLocalizations.of(context)!.standardFootball),
           subtitle: const Text('V=3, P=1, S=0'),
           value: 'win3_draw1_loss0',
           groupValue: _scoringSystem,
@@ -294,8 +327,8 @@ class _TournamentSetupScreenState extends ConsumerState<TournamentSetupScreen> {
           }),
         ),
         RadioListTile<String>(
-          title: const Text('Personalizzato'),
-          subtitle: const Text('Imposta i tuoi punteggi'),
+          title: Text(AppLocalizations.of(context)!.custom),
+          subtitle: Text(AppLocalizations.of(context)!.setYourScores),
           value: 'custom',
           groupValue: _scoringSystem,
           onChanged: (value) => setState(() => _scoringSystem = value!),
@@ -310,7 +343,7 @@ class _TournamentSetupScreenState extends ConsumerState<TournamentSetupScreen> {
         Expanded(
           child: TextFormField(
             initialValue: _winPoints.toString(),
-            decoration: const InputDecoration(labelText: 'Vittoria'),
+            decoration: InputDecoration(labelText: AppLocalizations.of(context)!.win),
             keyboardType: TextInputType.number,
             onChanged: (value) => _winPoints = int.tryParse(value) ?? _winPoints,
           ),
@@ -319,7 +352,7 @@ class _TournamentSetupScreenState extends ConsumerState<TournamentSetupScreen> {
         Expanded(
           child: TextFormField(
             initialValue: _drawPoints.toString(),
-            decoration: const InputDecoration(labelText: 'Pareggio'),
+            decoration: InputDecoration(labelText: AppLocalizations.of(context)!.draw),
             keyboardType: TextInputType.number,
             onChanged: (value) => _drawPoints = int.tryParse(value) ?? _drawPoints,
           ),
@@ -328,7 +361,7 @@ class _TournamentSetupScreenState extends ConsumerState<TournamentSetupScreen> {
         Expanded(
           child: TextFormField(
             initialValue: _lossPoints.toString(),
-            decoration: const InputDecoration(labelText: 'Sconfitta'),
+            decoration: InputDecoration(labelText: AppLocalizations.of(context)!.loss),
             keyboardType: TextInputType.number,
             onChanged: (value) => _lossPoints = int.tryParse(value) ?? _lossPoints,
           ),
@@ -346,17 +379,17 @@ class _TournamentSetupScreenState extends ConsumerState<TournamentSetupScreen> {
 
     return teamsAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, stack) => Text('Errore: $error'),
+      error: (error, stack) => Text('${AppLocalizations.of(context)!.error}: $error'),
       data: (teams) {
         if (teams.isEmpty) {
           return Column(
             children: [
-              const Text('Nessuna squadra disponibile'),
+              Text(AppLocalizations.of(context)!.noTeamsInDatabase),
               const SizedBox(height: 16),
               ElevatedButton.icon(
                 onPressed: () => context.go('/teams/new'),
                 icon: const Icon(Icons.add),
-                label: const Text('Crea Squadra'),
+                label: Text(AppLocalizations.of(context)!.createTeam),
               ),
             ],
           );
@@ -372,7 +405,7 @@ class _TournamentSetupScreenState extends ConsumerState<TournamentSetupScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Seleziona le squadre partecipanti (min. 2)',
+              AppLocalizations.of(context)!.selectParticipatingTeams,
               style: Theme.of(context).textTheme.bodyMedium,
             ),
             const SizedBox(height: 16),
@@ -381,7 +414,7 @@ class _TournamentSetupScreenState extends ConsumerState<TournamentSetupScreen> {
             TextField(
               controller: _searchController,
               decoration: InputDecoration(
-                labelText: 'Cerca Squadra',
+                labelText: AppLocalizations.of(context)!.searchTeam,
                 hintText: 'Nome squadra...',
                 prefixIcon: const Icon(Icons.search),
                 border: const OutlineInputBorder(),
@@ -404,14 +437,14 @@ class _TournamentSetupScreenState extends ConsumerState<TournamentSetupScreen> {
                   color: Colors.orange.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Row(
+                child: Row(
                   children: [
-                    Icon(Icons.info, color: Colors.orange, size: 20),
-                    SizedBox(width: 8),
+                    const Icon(Icons.info, color: Colors.orange, size: 20),
+                    const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Squadre dispari: verrà gestito automaticamente il riposo (BYE)',
-                        style: TextStyle(fontSize: 12),
+                        AppLocalizations.of(context)!.oddTeamsBye,
+                        style: const TextStyle(fontSize: 12),
                       ),
                     ),
                   ],
@@ -434,16 +467,16 @@ class _TournamentSetupScreenState extends ConsumerState<TournamentSetupScreen> {
                       });
                     }, 
                     child: Text(_selectedTeamIds.containsAll(filteredTeams.map((t) => t.id)) 
-                      ? 'Deseleziona tutti' 
-                      : 'Seleziona tutti'),
+                      ? AppLocalizations.of(context)!.deselectAll 
+                      : AppLocalizations.of(context)!.selectAll),
                   ),
                 ],
               ),
 
             if (filteredTeams.isEmpty)
-              const Padding(
-                padding: EdgeInsets.all(16.0),
-                child: Center(child: Text('Nessuna squadra trovata')),
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Center(child: Text(AppLocalizations.of(context)!.noTeamsFound)),
               )
             else
               ...filteredTeams.map((team) {

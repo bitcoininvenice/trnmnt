@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:trnmnt/generated/l10n/app_localizations.dart';
 import '../../data/tournaments_repository.dart';
 
 class TournamentsScreen extends ConsumerWidget {
@@ -13,7 +14,7 @@ class TournamentsScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('I Miei Tornei'),
+        title: Text(AppLocalizations.of(context)!.myTournaments),
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
@@ -29,7 +30,7 @@ class TournamentsScreen extends ConsumerWidget {
             children: [
               const Icon(Icons.error_outline, size: 64, color: Colors.red),
               const SizedBox(height: 16),
-              Text('Errore: $error'),
+              Text('Error: $error'),
             ],
           ),
         ),
@@ -50,7 +51,7 @@ class TournamentsScreen extends ConsumerWidget {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.go('/tournaments/new'),
         icon: const Icon(Icons.add),
-        label: const Text('Nuovo Torneo'),
+        label: Text(AppLocalizations.of(context)!.newTournament),
       ),
     );
   }
@@ -67,12 +68,12 @@ class TournamentsScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 24),
           Text(
-            'Nessun torneo',
+            AppLocalizations.of(context)!.noTournaments,
             style: Theme.of(context).textTheme.headlineSmall,
           ),
           const SizedBox(height: 8),
           Text(
-            'Crea il tuo primo torneo di basket',
+            AppLocalizations.of(context)!.createFirstTournament,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               color: Colors.white.withValues(alpha: 0.6),
             ),
@@ -81,7 +82,7 @@ class TournamentsScreen extends ConsumerWidget {
           ElevatedButton.icon(
             onPressed: () => context.go('/tournaments/new'),
             icon: const Icon(Icons.add),
-            label: const Text('Crea Torneo'),
+            label: Text(AppLocalizations.of(context)!.createTournament),
           ),
         ],
       ),
@@ -89,7 +90,7 @@ class TournamentsScreen extends ConsumerWidget {
   }
 
   Widget _buildTournamentCard(BuildContext context, WidgetRef ref, dynamic tournament, int index) {
-    final modeLabel = _getModeLabel(tournament.mode);
+    final modeLabel = _getModeLabel(tournament.mode, context);
     final modeColor = _getModeColor(tournament.mode);
 
     return Card(
@@ -133,15 +134,28 @@ class TournamentsScreen extends ConsumerWidget {
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        const SizedBox(height: 4),
                         Row(
                           children: [
-                            Icon(Icons.location_on, size: 14, color: Colors.white.withValues(alpha: 0.6)),
+                            Icon(Icons.calendar_today, size: 14, color: Colors.white.withValues(alpha: 0.6)),
                             const SizedBox(width: 4),
                             Text(
-                              tournament.location,
+                              tournament.startDate != null 
+                                ? "${tournament.startDate!.day}/${tournament.startDate!.month}/${tournament.startDate!.year}"
+                                : "${tournament.createdAt.day}/${tournament.createdAt.month}/${tournament.createdAt.year}",
                               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                 color: Colors.white.withValues(alpha: 0.6),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Icon(Icons.location_on, size: 14, color: Colors.white.withValues(alpha: 0.6)),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                AppLocalizations.of(context)!.location(tournament.location),
+                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: Colors.white.withValues(alpha: 0.6),
+                                ),
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                           ],
@@ -155,17 +169,17 @@ class TournamentsScreen extends ConsumerWidget {
                         final confirm = await showDialog<bool>(
                           context: context,
                           builder: (context) => AlertDialog(
-                            title: const Text('Elimina torneo'),
-                            content: Text('Sei sicuro di voler eliminare "${tournament.name}"?'),
+                            title: Text(AppLocalizations.of(context)!.deleteTournament),
+                            content: Text(AppLocalizations.of(context)!.confirmDeleteTournament(tournament.name)),
                             actions: [
                               TextButton(
                                 onPressed: () => Navigator.pop(context, false),
-                                child: const Text('Annulla'),
+                                child: Text(AppLocalizations.of(context)!.cancel),
                               ),
                               TextButton(
                                 onPressed: () => Navigator.pop(context, true),
                                 style: TextButton.styleFrom(foregroundColor: Colors.red),
-                                child: const Text('Elimina'),
+                                child: Text(AppLocalizations.of(context)!.delete),
                               ),
                             ],
                           ),
@@ -176,11 +190,11 @@ class TournamentsScreen extends ConsumerWidget {
                       }
                     },
                     itemBuilder: (context) => [
-                      const PopupMenuItem(
+                      PopupMenuItem(
                         value: 'delete',
                         child: ListTile(
                           leading: Icon(Icons.delete, color: Colors.red),
-                          title: Text('Elimina', style: TextStyle(color: Colors.red)),
+                          title: Text(AppLocalizations.of(context)!.delete, style: TextStyle(color: Colors.red)),
                           contentPadding: EdgeInsets.zero,
                         ),
                       ),
@@ -196,7 +210,7 @@ class TournamentsScreen extends ConsumerWidget {
                   _buildChip(modeLabel, modeColor),
                   const SizedBox(width: 8),
                   if (tournament.includeConsolationFinals)
-                    _buildChip('Finali consolazione', Colors.purple),
+                    _buildChip(AppLocalizations.of(context)!.consolationFinals, Colors.purple),
                 ],
               ),
             ),
@@ -225,14 +239,14 @@ class TournamentsScreen extends ConsumerWidget {
     );
   }
 
-  String _getModeLabel(String mode) {
+  String _getModeLabel(String mode, BuildContext context) {
     switch (mode) {
       case 'group_only':
-        return 'Solo Girone';
+        return AppLocalizations.of(context)!.groupOnly;
       case 'elimination_only':
-        return 'Solo Eliminatoria';
+        return AppLocalizations.of(context)!.eliminationOnly;
       case 'group_and_elimination':
-        return 'Girone + Playoff';
+        return AppLocalizations.of(context)!.groupAndElimination;
       default:
         return mode;
     }

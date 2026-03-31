@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:drift/drift.dart' as drift;
 import '../../../../core/database/app_database.dart';
 import '../../data/courts_repository.dart';
+import 'package:trnmnt/generated/l10n/app_localizations.dart';
 
 class MapScreen extends ConsumerStatefulWidget {
   const MapScreen({super.key});
@@ -47,7 +48,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Posizione mappa salvata!')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.positionSaved)),
       );
     }
   }
@@ -115,18 +116,20 @@ class _MapScreenState extends ConsumerState<MapScreen> {
               children: [
                 const Icon(Icons.sports_basketball, color: Colors.orange),
                 const SizedBox(width: 8),
-                Text('Canestri: ${court.hoops}'),
+                Text(AppLocalizations.of(context)!.hoopsCount(court.hoops)),
               ],
             ),
             const SizedBox(height: 8),
-            Text('Retine: ${court.netsStatus}'),
+            Text('${AppLocalizations.of(context)!.netsTitle}: ${_translateNets(context, court.netsStatus)}'),
             const SizedBox(height: 8),
-            Text('Campo: ${court.courtStatus}'),
+            Text('${AppLocalizations.of(context)!.courtTitle}: ${_translateCourt(context, court.courtStatus)}'),
             const SizedBox(height: 8),
-            Text('Linee: ${court.linesStatus}'),
+            Text('${AppLocalizations.of(context)!.linesTitle}: ${_translateLines(context, court.linesStatus)}'),
             const SizedBox(height: 8),
-            Text('Luci: ${court.hasLights ? "Sì" : "No"}'),
+            Text('${AppLocalizations.of(context)!.lightsTitle}: ${court.hasLights ? AppLocalizations.of(context)!.yes : AppLocalizations.of(context)!.no}'),
             const SizedBox(height: 16),
+            Text(AppLocalizations.of(context)!.starsCount(court.stars)),
+            const SizedBox(height: 8),
             Row(
               children: List.generate(
                 5,
@@ -143,16 +146,46 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     );
   }
 
+  String _translateNets(BuildContext context, String value) {
+    switch (value) {
+      case 'ferro': return AppLocalizations.of(context)!.metal;
+      case 'stoffa': return AppLocalizations.of(context)!.cloth;
+      case 'rotte': return AppLocalizations.of(context)!.broken;
+      case 'non presenti': return AppLocalizations.of(context)!.notPresent;
+      default: return value;
+    }
+  }
+
+  String _translateCourt(BuildContext context, String value) {
+    switch (value) {
+      case 'ben mantenuto': return AppLocalizations.of(context)!.wellMaintained;
+      case 'giocabile': return AppLocalizations.of(context)!.playable;
+      case 'preso male': return AppLocalizations.of(context)!.poorCondition;
+      default: return value;
+    }
+  }
+
+  String _translateLines(BuildContext context, String value) {
+    switch (value) {
+      case 'ben definite': return AppLocalizations.of(context)!.wellDefined;
+      case 'visibili': return AppLocalizations.of(context)!.visible;
+      case 'rovinate': return AppLocalizations.of(context)!.damaged;
+      default: return value;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final courtsAsync = ref.watch(courtsProvider);
 
     return Scaffold(
+      backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(
-        title: const Text('Mappa Campetti'),
+        title: Text(AppLocalizations.of(context)!.courtsMap),
       ),
       body: Stack(
         children: [
+          Container(color: Theme.of(context).colorScheme.surface), // Background for offline
           FlutterMap(
             mapController: _mapController,
             options: MapOptions(
@@ -200,9 +233,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
-                        'Tocca la mappa per\naggiungere un campetto',
-                        style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+                      Text(
+                        AppLocalizations.of(context)!.tapMapInstruction,
+                        style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
                       ),
                       IconButton(
                         icon: const Icon(Icons.close, color: Colors.white),
@@ -260,7 +293,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                   heroTag: 'addCourt',
                   onPressed: () => setState(() => _isAddingMode = true),
                   icon: const Icon(Icons.add_location),
-                  label: const Text('Aggiungi'),
+                  label: Text(AppLocalizations.of(context)!.addAction),
                 ),
               ],
             )
@@ -305,14 +338,14 @@ class _AddCourtFormState extends State<AddCourtForm> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text('Nuovo Campetto', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            Text(AppLocalizations.of(context)!.newCourtTitle, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
             const SizedBox(height: 16),
-            TextField(controller: _nameController, decoration: const InputDecoration(labelText: 'Nome')),
-            TextField(controller: _descController, decoration: const InputDecoration(labelText: 'Descrizione')),
+            TextField(controller: _nameController, decoration: InputDecoration(labelText: AppLocalizations.of(context)!.nameLabel)),
+            TextField(controller: _descController, decoration: InputDecoration(labelText: AppLocalizations.of(context)!.descLabel)),
             const SizedBox(height: 16),
             Row(
               children: [
-                const Text('Canestri:'),
+                Text('${AppLocalizations.of(context)!.hoops}:'),
                 const Spacer(),
                 IconButton(icon: const Icon(Icons.remove), onPressed: () => setState(() => _hoops = _hoops > 1 ? _hoops - 1 : 1)),
                 Text(_hoops.toString()),
@@ -321,31 +354,44 @@ class _AddCourtFormState extends State<AddCourtForm> {
             ),
             DropdownButtonFormField<String>(
               value: _nets,
-              decoration: const InputDecoration(labelText: 'Retine'),
-              items: ['ferro', 'stoffa', 'rotte', 'non presenti'].map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+              decoration: InputDecoration(labelText: AppLocalizations.of(context)!.netsTitle),
+              items: [
+                DropdownMenuItem(value: 'ferro', child: Text(AppLocalizations.of(context)!.metal)),
+                DropdownMenuItem(value: 'stoffa', child: Text(AppLocalizations.of(context)!.cloth)),
+                DropdownMenuItem(value: 'rotte', child: Text(AppLocalizations.of(context)!.broken)),
+                DropdownMenuItem(value: 'non presenti', child: Text(AppLocalizations.of(context)!.notPresent)),
+              ],
               onChanged: (v) => setState(() => _nets = v!),
             ),
             DropdownButtonFormField<String>(
               value: _court,
-              decoration: const InputDecoration(labelText: 'Campo'),
-              items: ['ben mantenuto', 'giocabile', 'preso male'].map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+              decoration: InputDecoration(labelText: AppLocalizations.of(context)!.courtTitle),
+              items: [
+                DropdownMenuItem(value: 'ben mantenuto', child: Text(AppLocalizations.of(context)!.wellMaintained)),
+                DropdownMenuItem(value: 'giocabile', child: Text(AppLocalizations.of(context)!.playable)),
+                DropdownMenuItem(value: 'preso male', child: Text(AppLocalizations.of(context)!.poorCondition)),
+              ],
               onChanged: (v) => setState(() => _court = v!),
             ),
             DropdownButtonFormField<String>(
               value: _lines,
-              decoration: const InputDecoration(labelText: 'Linee'),
-              items: ['ben definite', 'visibili', 'rovinate'].map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+              decoration: InputDecoration(labelText: AppLocalizations.of(context)!.linesTitle),
+              items: [
+                DropdownMenuItem(value: 'ben definite', child: Text(AppLocalizations.of(context)!.wellDefined)),
+                DropdownMenuItem(value: 'visibili', child: Text(AppLocalizations.of(context)!.visible)),
+                DropdownMenuItem(value: 'rovinate', child: Text(AppLocalizations.of(context)!.damaged)),
+              ],
               onChanged: (v) => setState(() => _lines = v!),
             ),
             SwitchListTile(
-              title: const Text('Luci'),
+              title: Text(AppLocalizations.of(context)!.lightsTitle),
               value: _lights,
               onChanged: (v) => setState(() => _lights = v),
               contentPadding: EdgeInsets.zero,
             ),
             Row(
               children: [
-                const Text('Valutazione:'),
+                Text('${AppLocalizations.of(context)!.rating}:'),
                 const Spacer(),
                 ...List.generate(5, (index) => IconButton(
                   icon: Icon(index < _stars ? Icons.star : Icons.star_border, color: Colors.amber),
@@ -368,7 +414,7 @@ class _AddCourtFormState extends State<AddCourtForm> {
                   _stars,
                 );
               },
-              child: const Text('SALVA'),
+              child: Text(AppLocalizations.of(context)!.saveAction),
             )
           ],
         ),

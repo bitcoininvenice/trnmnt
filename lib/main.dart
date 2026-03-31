@@ -7,7 +7,9 @@ import 'core/theme/app_theme.dart';
 import 'core/router/app_router.dart';
 import 'core/providers/database_provider.dart';
 import 'core/providers/theme_provider.dart';
-import 'core/providers/database_provider.dart';
+import 'core/providers/locale_provider.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:trnmnt/generated/l10n/app_localizations.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -107,12 +109,26 @@ class TrnmntApp extends ConsumerWidget {
           ),
         ),
       ),
-      data: (_) => MaterialApp.router(
-        debugShowCheckedModeBanner: false,
-        title: 'TRNMNT',
-        theme: getTheme(),
-        routerConfig: router,
-      ),
+        data: (_) {
+          final locale = ref.watch(localeProvider);
+          return MaterialApp.router(
+            debugShowCheckedModeBanner: false,
+            title: 'TRNMNT',
+            theme: getTheme(),
+            locale: locale,
+            localizationsDelegates: [
+              AppLocalizations.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            supportedLocales: const [
+              Locale('it', ''),
+              Locale('en', ''),
+            ],
+            routerConfig: router,
+          );
+        },
     );
   }
 }
