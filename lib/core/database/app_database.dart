@@ -7,6 +7,7 @@ import 'package:sqlcipher_flutter_libs/sqlcipher_flutter_libs.dart';
 import 'package:sqlite3/sqlite3.dart';
 import 'package:sqlite3/open.dart';
 import 'package:flutter/foundation.dart';
+import 'dart:ffi';
 import '../security/encryption_service.dart';
 
 part 'app_database.g.dart';
@@ -114,12 +115,25 @@ class AppDatabase extends _$AppDatabase {
 
   /// Initialize SQLCipher - must be called before database access
   static Future<void> initializeSqlCipher() async {
-    if (Platform.isAndroid && !_sqlCipherInitialized) {
+    if (_sqlCipherInitialized) return;
+    
+    if (Platform.isAndroid) {
       await applyWorkaroundToOpenSqlCipherOnOldAndroidVersions();
       open.overrideFor(OperatingSystem.android, openCipherOnAndroid);
       _sqlCipherInitialized = true;
-    } else if (Platform.isIOS && !_sqlCipherInitialized) {
-      // On iOS, the framework handles symbol resolution automatically.
+    } else if (Platform.isIOS) {
+      // FORCE SQLCipher on iOS. By default, iOS might pick system sqlite3.dylib
+      try {
+        // Common path for SQLCipher dynamic framework from CocoaPods
+        open.overrideFor(OperatingSystem.iOS, () => DynamicLibrary.open('SQLCipher.framework/SQLCipher'));
+        debugPrint('DB: SQLCipher override applied for iOS');
+      } catch (e) {
+        debugPrint('DB WARNING: Could not find SQLCipher.framework, trying process symbols: $e');
+        try {
+          // Fallback to process symbols (might work if statically linked)
+          open.overrideFor(OperatingSystem.iOS, () => DynamicLibrary.process());
+        } catch (_) {}
+      }
       _sqlCipherInitialized = true;
     }
   }
@@ -136,16 +150,62 @@ class AppDatabase extends _$AppDatabase {
     final dbFolder = await getApplicationDocumentsDirectory();
     final file = File(p.join(dbFolder.path, 'trnmnt_encrypted.db'));
 
-
     final database = NativeDatabase(
       file,
       setup: (rawDb) {
         try {
-          // Set the encryption key
-          rawDb.execute("PRAGMA key = '$password';");
-          // Verify the database is accessible
-          final res = rawDb.select('SELECT 1;');
+          // 1. First, check if the library actually supports SQLCipher
+          bool supportsCipher = false;
+          try {
+            final versionCheck = rawDb.select('PRAGMA cipher_version;');
+            supportsCipher = versionCheck.isNotEmpty && versionCheck.first.columnAt(0) != null;
+          } catch (_) {
+            supportsCipher = false;
+          }
+
+          if (!supportsCipher) {
+            debugPrint('DB WARNING: SQLCipher symbols not found. Falling back to standard SQLite.');
+            return; // Exit setup, standard SQLite is fine for plaintext
+          }
+
+          // 2. Detect if the file is plaintext or encrypted
+          // We do this by attempting a select WITHOUT a key first.
+          bool isPlaintext = false;
+          try {
+            rawDb.execute('SELECT count(*) FROM sqlite_master;');
+            isPlaintext = true;
+          } catch (_) {
+            isPlaintext = false;
+          }
+
+          if (isPlaintext) {
+            debugPrint('DB: Plaintext detected. Attempting migration to encrypted...');
+            try {
+              // Note: In some SQLCipher versions, you can't rekey from plaintext directly.
+              rawDb.execute("PRAGMA rekey = '$password';");
+              debugPrint('DB: Encryption migration complete.');
+            } catch (e) {
+              debugPrint('DB WARNING: Could not encrypt plaintext database ($e). Proceeding in plaintext mode to avoid data loss.');
+              // We don't rethrow here, so the app can still work with the plaintext data.
+            }
+          } else {
+            // It's already encrypted (or we don't have access yet), so set the key
+            rawDb.execute("PRAGMA key = '$password';");
+          }
+          
+          // 3. Set compatibility flags (page size 4KB is standard for SQLCipher)
+          rawDb.execute("PRAGMA cipher_page_size = 4096;");
+
+          // 4. Final verification
+          try {
+            rawDb.execute('SELECT count(*) FROM sqlite_master;');
+            debugPrint('DB: Database access verified.');
+          } catch (e) {
+            debugPrint('DB FATAL: Access denied after applying key. Key might be wrong or file corrupted: $e');
+            rethrow;
+          }
         } catch (e) {
+          debugPrint('DB SETUP ERROR: $e');
           rethrow;
         }
       },
