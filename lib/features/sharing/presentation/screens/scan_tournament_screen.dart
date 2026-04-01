@@ -30,6 +30,9 @@ class _ScanTournamentScreenState extends ConsumerState<ScanTournamentScreen> {
     final id = uri.queryParameters['id'];
 
     if (ip == null || port == null || id == null) return;
+    
+    // Stop scanner immediately to prevent multiple hits
+    await _controller.stop();
 
     setState(() {
       _isProcessing = true;
@@ -41,12 +44,12 @@ class _ScanTournamentScreenState extends ConsumerState<ScanTournamentScreen> {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        final success = await _importTournamentBundle(data);
-        if (success && mounted) {
+        final newId = await _importTournamentBundle(data, ip: ip, port: int.parse(port), remoteId: int.parse(id));
+        if (newId != null && mounted) {
            ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Tournament imported successfully!'), backgroundColor: Colors.green),
           );
-          context.go('/');
+          context.go('/tournaments/$newId');
         }
       } else {
         setState(() {
@@ -60,21 +63,44 @@ class _ScanTournamentScreenState extends ConsumerState<ScanTournamentScreen> {
           _status = 'Connection failed. Ensure both devices are on the same WiFi.\n$e';
           _isProcessing = false;
         });
+        // Restart scanner on failure if user wants to try again?
+        // Actually, we show the error and let them go back or we can add a 'Retry' button.
+        // For now, let's allow them to go back.
       }
     }
   }
 
-  Future<bool> _importTournamentBundle(Map<String, dynamic> data) async {
+  Future<int?> _importTournamentBundle(
+    Map<String, dynamic> data, {
+    required String ip,
+    required int port,
+    required int remoteId,
+  }) async {
     final db = ref.read(dbProvider);
     final tournamentData = data['tournament'] as Map<String, dynamic>;
     final teamsData = data['teams'] as List<dynamic>;
     final matchesData = data['matches'] as List<dynamic>;
 
+    // Check for duplicates (same name + Import suffix and same location)
+    final importName = tournamentData['name'] + ' (Import)';
+    final existing = await (db.select(db.tournaments)
+      ..where((t) => t.name.equals(importName) & t.location.equals(tournamentData['location'])))
+      .getSingleOrNull();
+
+    if (existing != null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Questo torneo è già stato importato!'), backgroundColor: Colors.orange),
+        );
+      }
+      return existing.id;
+    }
+
     // 1. Create NEW Tournament record (Copy of receiver's version)
     // We remove the ID to let it auto-increment
     final tournamentId = await db.into(db.tournaments).insert(
       TournamentsCompanion.insert(
-        name: tournamentData['name'] + ' (Import)',
+        name: importName,
         location: tournamentData['location'],
         mode: drift.Value(tournamentData['mode']),
         scoringSystem: drift.Value(tournamentData['scoringSystem']),
@@ -84,7 +110,10 @@ class _ScanTournamentScreenState extends ConsumerState<ScanTournamentScreen> {
         includeConsolationFinals: drift.Value(tournamentData['includeConsolationFinals']),
         timerMinutes: drift.Value(tournamentData['timerMinutes']),
         isActive: drift.Value(tournamentData['isActive']),
-        isReadOnly: const drift.Value(true), // Set it to read-only
+        isReadOnly: const drift.Value(true),
+        sourceIp: drift.Value(ip),
+        sourcePort: drift.Value(port),
+        remoteId: drift.Value(remoteId),
       )
     );
 
@@ -137,7 +166,7 @@ class _ScanTournamentScreenState extends ConsumerState<ScanTournamentScreen> {
       );
     }
 
-    return true;
+    return tournamentId;
   }
 
   @override

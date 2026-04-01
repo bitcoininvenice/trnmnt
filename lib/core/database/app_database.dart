@@ -42,6 +42,12 @@ class Tournaments extends Table {
   IntColumn get timerMinutes => integer().withDefault(const Constant(10))();
   BoolColumn get isActive => boolean().withDefault(const Constant(true))();
   BoolColumn get isReadOnly => boolean().withDefault(const Constant(false))();
+  IntColumn get remoteId => integer().nullable()();
+  TextColumn get sourceIp => text().nullable()();
+  IntColumn get sourcePort => integer().nullable()();
+  BoolColumn get isPublished => boolean().withDefault(const Constant(false))();
+  DateTimeColumn get publishedAt => dateTime().nullable()();
+  TextColumn get webUrl => text().nullable()();
   DateTimeColumn get startDate => dateTime().nullable()();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 }

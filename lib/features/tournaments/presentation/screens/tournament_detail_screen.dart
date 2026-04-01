@@ -1,19 +1,131 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:http/http.dart' as http;
+import 'package:drift/drift.dart' as drift;
+import '../../../../core/database/app_database.dart';
+import '../../../../core/providers/database_provider.dart';
 import '../../data/tournaments_repository.dart';
 import 'package:trnmnt/generated/l10n/app_localizations.dart';
-
-class TournamentDetailScreen extends ConsumerWidget {
+class TournamentDetailScreen extends ConsumerStatefulWidget {
   final int tournamentId;
-
   const TournamentDetailScreen({super.key, required this.tournamentId});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final tournamentAsync = ref.watch(tournamentByIdProvider(tournamentId));
-    final teamsAsync = ref.watch(tournamentTeamsProvider(tournamentId));
+  ConsumerState<TournamentDetailScreen> createState() => _TournamentDetailScreenState();
+}
+
+class _TournamentDetailScreenState extends ConsumerState<TournamentDetailScreen> {
+  bool _isSyncing = false;
+  String? _syncError;
+  DateTime? _lastSync;
+
+  @override
+  void initState() {
+    super.initState();
+    _startPolling();
+  }
+
+  void _startPolling() async {
+    // Wait for the first frame to check it's read-only
+    await Future.delayed(const Duration(seconds: 1));
+    if (!mounted) return;
+
+    final tournament = await ref.read(tournamentByIdProvider(widget.tournamentId).future);
+    if (tournament != null && tournament.isReadOnly && tournament.sourceIp != null) {
+      // Poll every 30 seconds
+      _syncFromSource(tournament);
+      Future.doWhile(() async {
+        await Future.delayed(const Duration(seconds: 30));
+        if (!mounted) return false;
+        final latest = await ref.read(tournamentByIdProvider(widget.tournamentId).future);
+        if (latest != null && latest.isReadOnly && latest.sourceIp != null) {
+          await _syncFromSource(latest);
+          return true;
+        }
+        return false;
+      });
+    }
+  }
+
+  Future<void> _syncFromSource(dynamic tournament) async {
+    if (_isSyncing) return;
+    setState(() => _isSyncing = true);
+    
+    try {
+      final response = await http.get(
+        Uri.parse('http://${tournament.sourceIp}:${tournament.sourcePort}/tournament/${tournament.remoteId}')
+      ).timeout(const Duration(seconds: 5));
+
+      if (response.statusCode == 200 && mounted) {
+        final data = jsonDecode(response.body);
+        await _updateTournamentFromBundle(widget.tournamentId, data);
+        setState(() {
+          _lastSync = DateTime.now();
+          _syncError = null;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _syncError = 'Sync failed: $e');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSyncing = false);
+      }
+    }
+  }
+
+  Future<void> _updateTournamentFromBundle(int localId, Map<String, dynamic> data) async {
+    final db = ref.read(dbProvider);
+    final matchesData = data['matches'] as List<dynamic>;
+    final teamsData = data['teams'] as List<dynamic>;
+
+    // 1. Get local team mapping
+    final tournamentTeams = await (db.select(db.tournamentTeams)
+      ..where((tt) => tt.tournamentId.equals(localId))).get();
+    final teamIds = tournamentTeams.map((tt) => tt.teamId).toList();
+    
+    final localTeams = await (db.select(db.teams)
+      ..where((t) => t.id.isIn(teamIds))).get();
+
+    final Map<int, int> teamMapping = {};
+    for (final remoteTeam in teamsData) {
+      final localTeam = localTeams.firstWhere((lt) => lt.name == remoteTeam['name'], orElse: () => localTeams.first);
+      teamMapping[remoteTeam['id']] = localTeam.id;
+    }
+
+    // 2. Update matches
+    await db.transaction(() async {
+      // Remove old matches (simplest way to sync)
+      await (db.delete(db.matches)..where((m) => m.tournamentId.equals(localId))).go();
+      
+      for (final matchJson in matchesData) {
+        final homeId = matchJson['homeTeamId'] as int?;
+        final awayId = matchJson['awayTeamId'] as int?;
+        
+        await db.into(db.matches).insert(
+          MatchesCompanion.insert(
+            tournamentId: localId,
+            homeTeamId: drift.Value(homeId != null ? teamMapping[homeId] : null),
+            awayTeamId: drift.Value(awayId != null ? teamMapping[awayId] : null),
+            homeScore: drift.Value(matchJson['homeScore']),
+            awayScore: drift.Value(matchJson['awayScore']),
+            round: matchJson['round'],
+            phase: matchJson['phase'],
+            isCompleted: drift.Value(matchJson['isCompleted']),
+          )
+        );
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tournamentAsync = ref.watch(tournamentByIdProvider(widget.tournamentId));
+    final teamsAsync = ref.watch(tournamentTeamsProvider(widget.tournamentId));
 
     return tournamentAsync.when(
       loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
@@ -61,13 +173,14 @@ class TournamentDetailScreen extends ConsumerWidget {
                   IconButton(
                     icon: const Icon(Icons.share),
                     tooltip: AppLocalizations.of(context)!.share,
-                    onPressed: () => context.push('/share/$tournamentId?name=${tournament.name}'),
+                    onPressed: () => context.push('/share/${widget.tournamentId}?name=${tournament.name}'),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.edit),
-                    tooltip: AppLocalizations.of(context)!.edit,
-                    onPressed: () => context.go('/tournaments/$tournamentId/edit'),
-                  ),
+                  if (!tournament.isReadOnly)
+                    IconButton(
+                      icon: const Icon(Icons.edit),
+                      tooltip: AppLocalizations.of(context)!.edit,
+                      onPressed: () => context.go('/tournaments/${widget.tournamentId}/edit'),
+                    ),
                 ],
               ),
               SliverToBoxAdapter(
@@ -76,6 +189,30 @@ class TournamentDetailScreen extends ConsumerWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Sync badge
+                      if (tournament.isReadOnly) ...[
+                        Row(
+                          children: [
+                            Icon(_isSyncing ? Icons.sync : Icons.cloud_download, 
+                                 size: 14, 
+                                 color: _syncError != null ? Colors.red : Colors.blue),
+                            const SizedBox(width: 8),
+                            Text(
+                              _isSyncing ? "Syncing..." : (_syncError != null ? "Sync error" : "Read Only (Sync enabled)"),
+                              style: TextStyle(
+                                fontSize: 11, 
+                                color: _syncError != null ? Colors.red : Colors.blue, 
+                                fontWeight: FontWeight.bold
+                              ),
+                            ),
+                            if (_lastSync != null) 
+                               Text(" • Last: ${_lastSync!.hour}:${_lastSync!.minute}:${_lastSync!.second}", 
+                                    style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                      ],
+
                       // Location
                       Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -136,11 +273,7 @@ class TournamentDetailScreen extends ConsumerWidget {
                           ),
                         ),
                       ),
-                      
-                      
-                      
                       const SizedBox(height: 16),
-                      
                       _buildActionCards(context, tournament),
                     ],
                   ),
@@ -165,7 +298,7 @@ class TournamentDetailScreen extends ConsumerWidget {
         title: AppLocalizations.of(context)!.calendar,
         subtitle: AppLocalizations.of(context)!.groupPhase,
         color: Colors.blue,
-        onTap: () => context.go('/tournaments/$tournamentId/calendar'),
+        onTap: () => context.go('/tournaments/${widget.tournamentId}/calendar'),
       ));
     }
 
@@ -177,7 +310,7 @@ class TournamentDetailScreen extends ConsumerWidget {
         title: AppLocalizations.of(context)!.standings,
         subtitle: AppLocalizations.of(context)!.pointsAndStats,
         color: Colors.green,
-        onTap: () => context.go('/tournaments/$tournamentId/standings'),
+        onTap: () => context.go('/tournaments/${widget.tournamentId}/standings'),
       ));
     }
 
@@ -189,7 +322,7 @@ class TournamentDetailScreen extends ConsumerWidget {
         title: AppLocalizations.of(context)!.elimination,
         subtitle: AppLocalizations.of(context)!.playoffBracket,
         color: Colors.orange,
-        onTap: () => context.go('/tournaments/$tournamentId/bracket'),
+        onTap: () => context.go('/tournaments/${widget.tournamentId}/bracket'),
       ));
     }
 

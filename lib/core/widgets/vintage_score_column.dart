@@ -3,13 +3,13 @@ import 'package:flutter/material.dart';
 class VintageScoreColumn extends StatelessWidget {
   final String teamName;
   final int score;
-  final ValueChanged<int> onScoreChanged;
+  final ValueChanged<int>? onScoreChanged;
 
   const VintageScoreColumn({
     super.key,
     required this.teamName,
     required this.score,
-    required this.onScoreChanged,
+    this.onScoreChanged,
   });
 
   @override
@@ -45,21 +45,23 @@ class VintageScoreColumn extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(height: 8),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            IconButton(
-              icon: const Icon(Icons.remove_circle_outline, size: 28, color: Colors.white54),
-              onPressed: () => onScoreChanged(score - 1),
-            ),
-            const SizedBox(width: 4),
-            IconButton(
-              icon: const Icon(Icons.add_circle_outline, size: 28, color: Colors.white54),
-              onPressed: () => onScoreChanged(score + 1),
-            ),
-          ],
-        )
+        if (onScoreChanged != null) ...[
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.remove_circle_outline, size: 28, color: Colors.white54),
+                onPressed: () => onScoreChanged!(score - 1),
+              ),
+              const SizedBox(width: 4),
+              IconButton(
+                icon: const Icon(Icons.add_circle_outline, size: 28, color: Colors.white54),
+                onPressed: () => onScoreChanged!(score + 1),
+              ),
+            ],
+          ),
+        ]
       ],
     );
   }

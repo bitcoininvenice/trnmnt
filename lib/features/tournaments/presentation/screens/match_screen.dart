@@ -4,6 +4,7 @@ import '../../../../core/database/app_database.dart';
 import '../../../../core/providers/database_provider.dart';
 import '../../data/matches_repository.dart';
 import '../../../../core/widgets/vintage_score_column.dart';
+import '../../data/tournaments_repository.dart';
 import '../../../sharing/data/share_repository.dart';
 
 /// Provider for a single match by ID
@@ -110,6 +111,10 @@ class _MatchScreenState extends ConsumerState<MatchScreen> {
         final homeTeam = matchWithTeams.homeTeam;
         final awayTeam = matchWithTeams.awayTeam;
 
+        // Fetch tournament to check readOnly
+        final tournamentAsync = ref.watch(tournamentByIdProvider(match.tournamentId));
+        final isReadOnly = tournamentAsync.valueOrNull?.isReadOnly ?? false;
+
         // Initialize state with existing scores
         if (!_initialized) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -144,7 +149,7 @@ class _MatchScreenState extends ConsumerState<MatchScreen> {
                         child: VintageScoreColumn(
                           teamName: homeTeam?.name ?? 'Casa'.toUpperCase(),
                           score: _homeScore ?? 0,
-                          onScoreChanged: (val) {
+                          onScoreChanged: isReadOnly ? null : (val) {
                             setState(() {
                               if (val >= 0) _homeScore = val;
                             });
@@ -170,7 +175,7 @@ class _MatchScreenState extends ConsumerState<MatchScreen> {
                         child: VintageScoreColumn(
                           teamName: awayTeam?.name ?? 'Ospiti'.toUpperCase(),
                           score: _awayScore ?? 0,
-                          onScoreChanged: (val) {
+                          onScoreChanged: isReadOnly ? null : (val) {
                             setState(() {
                               if (val >= 0) _awayScore = val;
                             });
@@ -184,31 +189,32 @@ class _MatchScreenState extends ConsumerState<MatchScreen> {
                 const Spacer(),
 
                 // Save button
-                Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: SizedBox(
-                    width: double.infinity,
-                    height: 56,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.grey.shade900,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          side: BorderSide(color: Colors.grey.shade800, width: 2),
+                if (!isReadOnly)
+                  Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: 56,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.grey.shade900,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            side: BorderSide(color: Colors.grey.shade800, width: 2),
+                          ),
                         ),
+                        onPressed: _isLoading ? null : _saveScore,
+                        child: _isLoading
+                            ? const SizedBox(
+                                height: 24,
+                                width: 24,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Text('SALVA RISULTATO', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1.5, fontFamily: 'monospace')),
                       ),
-                      onPressed: _isLoading ? null : _saveScore,
-                      child: _isLoading
-                          ? const SizedBox(
-                              height: 24,
-                              width: 24,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Text('SALVA RISULTATO', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1.5, fontFamily: 'monospace')),
                     ),
                   ),
-                ),
               ],
             ),
           ),

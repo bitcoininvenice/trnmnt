@@ -10,6 +10,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:trnmnt/generated/l10n/app_localizations.dart';
 import 'package:trnmnt/core/providers/api_config_provider.dart';
 import '../../data/share_repository.dart';
+import 'package:trnmnt/features/tournaments/data/tournaments_repository.dart';
 
 class ShareTournamentScreen extends ConsumerStatefulWidget {
   final int tournamentId;
@@ -49,6 +50,15 @@ class _ShareTournamentScreenState extends ConsumerState<ShareTournamentScreen> {
   Future<void> _setupServer() async {
     final repo = ref.read(shareRepositoryProvider);
     try {
+      // Fetch existing webUrl/twitchChannel from DB
+      final tournament = await ref.read(tournamentByIdProvider(widget.tournamentId).future);
+      if (tournament != null) {
+        setState(() {
+          _webUrl = tournament.webUrl;
+          // Note: twitchChannel is not in the schema yet, but if it were we'd load it.
+        });
+      }
+
       // On Android, getting the WiFi IP requires Location permission
       if (Theme.of(context).platform == TargetPlatform.android) {
         final status = await Permission.locationWhenInUse.request();
@@ -123,8 +133,12 @@ class _ShareTournamentScreenState extends ConsumerState<ShareTournamentScreen> {
           _webUrl = fullUrl;
           _isPublishing = false;
         });
+
+        // Save to DB
+        await repo.saveWebUrl(widget.tournamentId, fullUrl);
+
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
+           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Pubblicato con successo! 🏀'), backgroundColor: Colors.blue),
           );
         }

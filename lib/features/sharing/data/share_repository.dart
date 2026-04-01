@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -95,13 +96,34 @@ class ShareRepository {
         'data': export,
         'last_updated': DateTime.now().toIso8601String(),
       });
+
+      // Update local status
+      final baseUrl = dotenv.env['VESB_BASE_URL'] ?? 'https://vesb.vercel.app';
+      final finalUrl = '$baseUrl/tournaments/$tournamentId';
+
+      await (_db.update(_db.tournaments)..where((t) => t.id.equals(tournamentId))).write(
+        TournamentsCompanion(
+          isPublished: const Value(true),
+          publishedAt: Value(DateTime.now()),
+          webUrl: Value(finalUrl),
+        ),
+      );
       
       // Return the public URL
-      final baseUrl = dotenv.env['VESB_BASE_URL'] ?? 'https://vesb.vercel.app';
-      return '$baseUrl/tournaments/$tournamentId';
+      return finalUrl;
     } catch (e) {
       return null;
     }
+  }
+
+  Future<void> saveWebUrl(int tournamentId, String url) async {
+    await (_db.update(_db.tournaments)..where((t) => t.id.equals(tournamentId))).write(
+      TournamentsCompanion(
+        isPublished: const Value(true),
+        publishedAt: Value(DateTime.now()),
+        webUrl: Value(url),
+      ),
+    );
   }
 }
 

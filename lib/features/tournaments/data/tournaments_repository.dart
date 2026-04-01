@@ -5,10 +5,37 @@ import '../../../../core/providers/database_provider.dart';
 
 /// Provider for all tournaments
 final tournamentsProvider = StreamProvider<List<Tournament>>((ref) async* {
-  final db = await ref.watch(databaseProvider.future);
+  final db = ref.watch(dbProvider);
   yield* (db.select(db.tournaments)
     ..orderBy([(t) => OrderingTerm.desc(t.startDate), (t) => OrderingTerm.desc(t.createdAt)]))
     .watch();
+});
+
+/// Providers for filtering
+final tournamentSearchQueryProvider = StateProvider<String>((ref) => '');
+final tournamentModeFilterProvider = StateProvider<String?>((ref) => null);
+final tournamentStatusFilterProvider = StateProvider<String>((ref) => 'all'); // 'all', 'local', 'cloud'
+
+/// Provider for filtered tournaments
+final filteredTournamentsProvider = Provider<AsyncValue<List<Tournament>>>((ref) {
+  final tournamentsAsync = ref.watch(tournamentsProvider);
+  final searchQuery = ref.watch(tournamentSearchQueryProvider).toLowerCase();
+  final modeFilter = ref.watch(tournamentModeFilterProvider);
+  final statusFilter = ref.watch(tournamentStatusFilterProvider);
+
+  return tournamentsAsync.whenData((tournaments) {
+    return tournaments.where((t) {
+      final matchesSearch = t.name.toLowerCase().contains(searchQuery) || 
+                           t.location.toLowerCase().contains(searchQuery);
+      final matchesMode = modeFilter == null || t.mode == modeFilter;
+      
+      bool matchesStatus = true;
+      if (statusFilter == 'local') matchesStatus = !t.isPublished;
+      if (statusFilter == 'cloud') matchesStatus = t.isPublished;
+
+      return matchesSearch && matchesMode && matchesStatus;
+    }).toList();
+  });
 });
 
 /// Provider for a single tournament by ID

@@ -465,6 +465,74 @@ class $TournamentsTable extends Tournaments
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _remoteIdMeta = const VerificationMeta(
+    'remoteId',
+  );
+  @override
+  late final GeneratedColumn<int> remoteId = GeneratedColumn<int>(
+    'remote_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _sourceIpMeta = const VerificationMeta(
+    'sourceIp',
+  );
+  @override
+  late final GeneratedColumn<String> sourceIp = GeneratedColumn<String>(
+    'source_ip',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _sourcePortMeta = const VerificationMeta(
+    'sourcePort',
+  );
+  @override
+  late final GeneratedColumn<int> sourcePort = GeneratedColumn<int>(
+    'source_port',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _isPublishedMeta = const VerificationMeta(
+    'isPublished',
+  );
+  @override
+  late final GeneratedColumn<bool> isPublished = GeneratedColumn<bool>(
+    'is_published',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_published" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _publishedAtMeta = const VerificationMeta(
+    'publishedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> publishedAt = GeneratedColumn<DateTime>(
+    'published_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _webUrlMeta = const VerificationMeta('webUrl');
+  @override
+  late final GeneratedColumn<String> webUrl = GeneratedColumn<String>(
+    'web_url',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _startDateMeta = const VerificationMeta(
     'startDate',
   );
@@ -502,6 +570,12 @@ class $TournamentsTable extends Tournaments
     timerMinutes,
     isActive,
     isReadOnly,
+    remoteId,
+    sourceIp,
+    sourcePort,
+    isPublished,
+    publishedAt,
+    webUrl,
     startDate,
     createdAt,
   ];
@@ -602,6 +676,48 @@ class $TournamentsTable extends Tournaments
         ),
       );
     }
+    if (data.containsKey('remote_id')) {
+      context.handle(
+        _remoteIdMeta,
+        remoteId.isAcceptableOrUnknown(data['remote_id']!, _remoteIdMeta),
+      );
+    }
+    if (data.containsKey('source_ip')) {
+      context.handle(
+        _sourceIpMeta,
+        sourceIp.isAcceptableOrUnknown(data['source_ip']!, _sourceIpMeta),
+      );
+    }
+    if (data.containsKey('source_port')) {
+      context.handle(
+        _sourcePortMeta,
+        sourcePort.isAcceptableOrUnknown(data['source_port']!, _sourcePortMeta),
+      );
+    }
+    if (data.containsKey('is_published')) {
+      context.handle(
+        _isPublishedMeta,
+        isPublished.isAcceptableOrUnknown(
+          data['is_published']!,
+          _isPublishedMeta,
+        ),
+      );
+    }
+    if (data.containsKey('published_at')) {
+      context.handle(
+        _publishedAtMeta,
+        publishedAt.isAcceptableOrUnknown(
+          data['published_at']!,
+          _publishedAtMeta,
+        ),
+      );
+    }
+    if (data.containsKey('web_url')) {
+      context.handle(
+        _webUrlMeta,
+        webUrl.isAcceptableOrUnknown(data['web_url']!, _webUrlMeta),
+      );
+    }
     if (data.containsKey('start_date')) {
       context.handle(
         _startDateMeta,
@@ -671,6 +787,30 @@ class $TournamentsTable extends Tournaments
         DriftSqlType.bool,
         data['${effectivePrefix}is_read_only'],
       )!,
+      remoteId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}remote_id'],
+      ),
+      sourceIp: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source_ip'],
+      ),
+      sourcePort: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}source_port'],
+      ),
+      isPublished: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_published'],
+      )!,
+      publishedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}published_at'],
+      ),
+      webUrl: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}web_url'],
+      ),
       startDate: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}start_date'],
@@ -705,6 +845,12 @@ class Tournament extends DataClass implements Insertable<Tournament> {
   final int timerMinutes;
   final bool isActive;
   final bool isReadOnly;
+  final int? remoteId;
+  final String? sourceIp;
+  final int? sourcePort;
+  final bool isPublished;
+  final DateTime? publishedAt;
+  final String? webUrl;
   final DateTime? startDate;
   final DateTime createdAt;
   const Tournament({
@@ -720,6 +866,12 @@ class Tournament extends DataClass implements Insertable<Tournament> {
     required this.timerMinutes,
     required this.isActive,
     required this.isReadOnly,
+    this.remoteId,
+    this.sourceIp,
+    this.sourcePort,
+    required this.isPublished,
+    this.publishedAt,
+    this.webUrl,
     this.startDate,
     required this.createdAt,
   });
@@ -740,6 +892,22 @@ class Tournament extends DataClass implements Insertable<Tournament> {
     map['timer_minutes'] = Variable<int>(timerMinutes);
     map['is_active'] = Variable<bool>(isActive);
     map['is_read_only'] = Variable<bool>(isReadOnly);
+    if (!nullToAbsent || remoteId != null) {
+      map['remote_id'] = Variable<int>(remoteId);
+    }
+    if (!nullToAbsent || sourceIp != null) {
+      map['source_ip'] = Variable<String>(sourceIp);
+    }
+    if (!nullToAbsent || sourcePort != null) {
+      map['source_port'] = Variable<int>(sourcePort);
+    }
+    map['is_published'] = Variable<bool>(isPublished);
+    if (!nullToAbsent || publishedAt != null) {
+      map['published_at'] = Variable<DateTime>(publishedAt);
+    }
+    if (!nullToAbsent || webUrl != null) {
+      map['web_url'] = Variable<String>(webUrl);
+    }
     if (!nullToAbsent || startDate != null) {
       map['start_date'] = Variable<DateTime>(startDate);
     }
@@ -761,6 +929,22 @@ class Tournament extends DataClass implements Insertable<Tournament> {
       timerMinutes: Value(timerMinutes),
       isActive: Value(isActive),
       isReadOnly: Value(isReadOnly),
+      remoteId: remoteId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(remoteId),
+      sourceIp: sourceIp == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sourceIp),
+      sourcePort: sourcePort == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sourcePort),
+      isPublished: Value(isPublished),
+      publishedAt: publishedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(publishedAt),
+      webUrl: webUrl == null && nullToAbsent
+          ? const Value.absent()
+          : Value(webUrl),
       startDate: startDate == null && nullToAbsent
           ? const Value.absent()
           : Value(startDate),
@@ -788,6 +972,12 @@ class Tournament extends DataClass implements Insertable<Tournament> {
       timerMinutes: serializer.fromJson<int>(json['timerMinutes']),
       isActive: serializer.fromJson<bool>(json['isActive']),
       isReadOnly: serializer.fromJson<bool>(json['isReadOnly']),
+      remoteId: serializer.fromJson<int?>(json['remoteId']),
+      sourceIp: serializer.fromJson<String?>(json['sourceIp']),
+      sourcePort: serializer.fromJson<int?>(json['sourcePort']),
+      isPublished: serializer.fromJson<bool>(json['isPublished']),
+      publishedAt: serializer.fromJson<DateTime?>(json['publishedAt']),
+      webUrl: serializer.fromJson<String?>(json['webUrl']),
       startDate: serializer.fromJson<DateTime?>(json['startDate']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
     );
@@ -810,6 +1000,12 @@ class Tournament extends DataClass implements Insertable<Tournament> {
       'timerMinutes': serializer.toJson<int>(timerMinutes),
       'isActive': serializer.toJson<bool>(isActive),
       'isReadOnly': serializer.toJson<bool>(isReadOnly),
+      'remoteId': serializer.toJson<int?>(remoteId),
+      'sourceIp': serializer.toJson<String?>(sourceIp),
+      'sourcePort': serializer.toJson<int?>(sourcePort),
+      'isPublished': serializer.toJson<bool>(isPublished),
+      'publishedAt': serializer.toJson<DateTime?>(publishedAt),
+      'webUrl': serializer.toJson<String?>(webUrl),
       'startDate': serializer.toJson<DateTime?>(startDate),
       'createdAt': serializer.toJson<DateTime>(createdAt),
     };
@@ -828,6 +1024,12 @@ class Tournament extends DataClass implements Insertable<Tournament> {
     int? timerMinutes,
     bool? isActive,
     bool? isReadOnly,
+    Value<int?> remoteId = const Value.absent(),
+    Value<String?> sourceIp = const Value.absent(),
+    Value<int?> sourcePort = const Value.absent(),
+    bool? isPublished,
+    Value<DateTime?> publishedAt = const Value.absent(),
+    Value<String?> webUrl = const Value.absent(),
     Value<DateTime?> startDate = const Value.absent(),
     DateTime? createdAt,
   }) => Tournament(
@@ -844,6 +1046,12 @@ class Tournament extends DataClass implements Insertable<Tournament> {
     timerMinutes: timerMinutes ?? this.timerMinutes,
     isActive: isActive ?? this.isActive,
     isReadOnly: isReadOnly ?? this.isReadOnly,
+    remoteId: remoteId.present ? remoteId.value : this.remoteId,
+    sourceIp: sourceIp.present ? sourceIp.value : this.sourceIp,
+    sourcePort: sourcePort.present ? sourcePort.value : this.sourcePort,
+    isPublished: isPublished ?? this.isPublished,
+    publishedAt: publishedAt.present ? publishedAt.value : this.publishedAt,
+    webUrl: webUrl.present ? webUrl.value : this.webUrl,
     startDate: startDate.present ? startDate.value : this.startDate,
     createdAt: createdAt ?? this.createdAt,
   );
@@ -873,6 +1081,18 @@ class Tournament extends DataClass implements Insertable<Tournament> {
       isReadOnly: data.isReadOnly.present
           ? data.isReadOnly.value
           : this.isReadOnly,
+      remoteId: data.remoteId.present ? data.remoteId.value : this.remoteId,
+      sourceIp: data.sourceIp.present ? data.sourceIp.value : this.sourceIp,
+      sourcePort: data.sourcePort.present
+          ? data.sourcePort.value
+          : this.sourcePort,
+      isPublished: data.isPublished.present
+          ? data.isPublished.value
+          : this.isPublished,
+      publishedAt: data.publishedAt.present
+          ? data.publishedAt.value
+          : this.publishedAt,
+      webUrl: data.webUrl.present ? data.webUrl.value : this.webUrl,
       startDate: data.startDate.present ? data.startDate.value : this.startDate,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
     );
@@ -893,6 +1113,12 @@ class Tournament extends DataClass implements Insertable<Tournament> {
           ..write('timerMinutes: $timerMinutes, ')
           ..write('isActive: $isActive, ')
           ..write('isReadOnly: $isReadOnly, ')
+          ..write('remoteId: $remoteId, ')
+          ..write('sourceIp: $sourceIp, ')
+          ..write('sourcePort: $sourcePort, ')
+          ..write('isPublished: $isPublished, ')
+          ..write('publishedAt: $publishedAt, ')
+          ..write('webUrl: $webUrl, ')
           ..write('startDate: $startDate, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
@@ -913,6 +1139,12 @@ class Tournament extends DataClass implements Insertable<Tournament> {
     timerMinutes,
     isActive,
     isReadOnly,
+    remoteId,
+    sourceIp,
+    sourcePort,
+    isPublished,
+    publishedAt,
+    webUrl,
     startDate,
     createdAt,
   );
@@ -932,6 +1164,12 @@ class Tournament extends DataClass implements Insertable<Tournament> {
           other.timerMinutes == this.timerMinutes &&
           other.isActive == this.isActive &&
           other.isReadOnly == this.isReadOnly &&
+          other.remoteId == this.remoteId &&
+          other.sourceIp == this.sourceIp &&
+          other.sourcePort == this.sourcePort &&
+          other.isPublished == this.isPublished &&
+          other.publishedAt == this.publishedAt &&
+          other.webUrl == this.webUrl &&
           other.startDate == this.startDate &&
           other.createdAt == this.createdAt);
 }
@@ -949,6 +1187,12 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
   final Value<int> timerMinutes;
   final Value<bool> isActive;
   final Value<bool> isReadOnly;
+  final Value<int?> remoteId;
+  final Value<String?> sourceIp;
+  final Value<int?> sourcePort;
+  final Value<bool> isPublished;
+  final Value<DateTime?> publishedAt;
+  final Value<String?> webUrl;
   final Value<DateTime?> startDate;
   final Value<DateTime> createdAt;
   const TournamentsCompanion({
@@ -964,6 +1208,12 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
     this.timerMinutes = const Value.absent(),
     this.isActive = const Value.absent(),
     this.isReadOnly = const Value.absent(),
+    this.remoteId = const Value.absent(),
+    this.sourceIp = const Value.absent(),
+    this.sourcePort = const Value.absent(),
+    this.isPublished = const Value.absent(),
+    this.publishedAt = const Value.absent(),
+    this.webUrl = const Value.absent(),
     this.startDate = const Value.absent(),
     this.createdAt = const Value.absent(),
   });
@@ -980,6 +1230,12 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
     this.timerMinutes = const Value.absent(),
     this.isActive = const Value.absent(),
     this.isReadOnly = const Value.absent(),
+    this.remoteId = const Value.absent(),
+    this.sourceIp = const Value.absent(),
+    this.sourcePort = const Value.absent(),
+    this.isPublished = const Value.absent(),
+    this.publishedAt = const Value.absent(),
+    this.webUrl = const Value.absent(),
     this.startDate = const Value.absent(),
     this.createdAt = const Value.absent(),
   }) : name = Value(name),
@@ -997,6 +1253,12 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
     Expression<int>? timerMinutes,
     Expression<bool>? isActive,
     Expression<bool>? isReadOnly,
+    Expression<int>? remoteId,
+    Expression<String>? sourceIp,
+    Expression<int>? sourcePort,
+    Expression<bool>? isPublished,
+    Expression<DateTime>? publishedAt,
+    Expression<String>? webUrl,
     Expression<DateTime>? startDate,
     Expression<DateTime>? createdAt,
   }) {
@@ -1014,6 +1276,12 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
       if (timerMinutes != null) 'timer_minutes': timerMinutes,
       if (isActive != null) 'is_active': isActive,
       if (isReadOnly != null) 'is_read_only': isReadOnly,
+      if (remoteId != null) 'remote_id': remoteId,
+      if (sourceIp != null) 'source_ip': sourceIp,
+      if (sourcePort != null) 'source_port': sourcePort,
+      if (isPublished != null) 'is_published': isPublished,
+      if (publishedAt != null) 'published_at': publishedAt,
+      if (webUrl != null) 'web_url': webUrl,
       if (startDate != null) 'start_date': startDate,
       if (createdAt != null) 'created_at': createdAt,
     });
@@ -1032,6 +1300,12 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
     Value<int>? timerMinutes,
     Value<bool>? isActive,
     Value<bool>? isReadOnly,
+    Value<int?>? remoteId,
+    Value<String?>? sourceIp,
+    Value<int?>? sourcePort,
+    Value<bool>? isPublished,
+    Value<DateTime?>? publishedAt,
+    Value<String?>? webUrl,
     Value<DateTime?>? startDate,
     Value<DateTime>? createdAt,
   }) {
@@ -1049,6 +1323,12 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
       timerMinutes: timerMinutes ?? this.timerMinutes,
       isActive: isActive ?? this.isActive,
       isReadOnly: isReadOnly ?? this.isReadOnly,
+      remoteId: remoteId ?? this.remoteId,
+      sourceIp: sourceIp ?? this.sourceIp,
+      sourcePort: sourcePort ?? this.sourcePort,
+      isPublished: isPublished ?? this.isPublished,
+      publishedAt: publishedAt ?? this.publishedAt,
+      webUrl: webUrl ?? this.webUrl,
       startDate: startDate ?? this.startDate,
       createdAt: createdAt ?? this.createdAt,
     );
@@ -1095,6 +1375,24 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
     if (isReadOnly.present) {
       map['is_read_only'] = Variable<bool>(isReadOnly.value);
     }
+    if (remoteId.present) {
+      map['remote_id'] = Variable<int>(remoteId.value);
+    }
+    if (sourceIp.present) {
+      map['source_ip'] = Variable<String>(sourceIp.value);
+    }
+    if (sourcePort.present) {
+      map['source_port'] = Variable<int>(sourcePort.value);
+    }
+    if (isPublished.present) {
+      map['is_published'] = Variable<bool>(isPublished.value);
+    }
+    if (publishedAt.present) {
+      map['published_at'] = Variable<DateTime>(publishedAt.value);
+    }
+    if (webUrl.present) {
+      map['web_url'] = Variable<String>(webUrl.value);
+    }
     if (startDate.present) {
       map['start_date'] = Variable<DateTime>(startDate.value);
     }
@@ -1119,6 +1417,12 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
           ..write('timerMinutes: $timerMinutes, ')
           ..write('isActive: $isActive, ')
           ..write('isReadOnly: $isReadOnly, ')
+          ..write('remoteId: $remoteId, ')
+          ..write('sourceIp: $sourceIp, ')
+          ..write('sourcePort: $sourcePort, ')
+          ..write('isPublished: $isPublished, ')
+          ..write('publishedAt: $publishedAt, ')
+          ..write('webUrl: $webUrl, ')
           ..write('startDate: $startDate, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
@@ -3284,6 +3588,12 @@ typedef $$TournamentsTableCreateCompanionBuilder =
       Value<int> timerMinutes,
       Value<bool> isActive,
       Value<bool> isReadOnly,
+      Value<int?> remoteId,
+      Value<String?> sourceIp,
+      Value<int?> sourcePort,
+      Value<bool> isPublished,
+      Value<DateTime?> publishedAt,
+      Value<String?> webUrl,
       Value<DateTime?> startDate,
       Value<DateTime> createdAt,
     });
@@ -3301,6 +3611,12 @@ typedef $$TournamentsTableUpdateCompanionBuilder =
       Value<int> timerMinutes,
       Value<bool> isActive,
       Value<bool> isReadOnly,
+      Value<int?> remoteId,
+      Value<String?> sourceIp,
+      Value<int?> sourcePort,
+      Value<bool> isPublished,
+      Value<DateTime?> publishedAt,
+      Value<String?> webUrl,
       Value<DateTime?> startDate,
       Value<DateTime> createdAt,
     });
@@ -3418,6 +3734,36 @@ class $$TournamentsTableFilterComposer
 
   ColumnFilters<bool> get isReadOnly => $composableBuilder(
     column: $table.isReadOnly,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get remoteId => $composableBuilder(
+    column: $table.remoteId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get sourceIp => $composableBuilder(
+    column: $table.sourceIp,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get sourcePort => $composableBuilder(
+    column: $table.sourcePort,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isPublished => $composableBuilder(
+    column: $table.isPublished,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get publishedAt => $composableBuilder(
+    column: $table.publishedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get webUrl => $composableBuilder(
+    column: $table.webUrl,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3551,6 +3897,36 @@ class $$TournamentsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get remoteId => $composableBuilder(
+    column: $table.remoteId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get sourceIp => $composableBuilder(
+    column: $table.sourceIp,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get sourcePort => $composableBuilder(
+    column: $table.sourcePort,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isPublished => $composableBuilder(
+    column: $table.isPublished,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get publishedAt => $composableBuilder(
+    column: $table.publishedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get webUrl => $composableBuilder(
+    column: $table.webUrl,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get startDate => $composableBuilder(
     column: $table.startDate,
     builder: (column) => ColumnOrderings(column),
@@ -3618,6 +3994,30 @@ class $$TournamentsTableAnnotationComposer
     column: $table.isReadOnly,
     builder: (column) => column,
   );
+
+  GeneratedColumn<int> get remoteId =>
+      $composableBuilder(column: $table.remoteId, builder: (column) => column);
+
+  GeneratedColumn<String> get sourceIp =>
+      $composableBuilder(column: $table.sourceIp, builder: (column) => column);
+
+  GeneratedColumn<int> get sourcePort => $composableBuilder(
+    column: $table.sourcePort,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get isPublished => $composableBuilder(
+    column: $table.isPublished,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get publishedAt => $composableBuilder(
+    column: $table.publishedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get webUrl =>
+      $composableBuilder(column: $table.webUrl, builder: (column) => column);
 
   GeneratedColumn<DateTime> get startDate =>
       $composableBuilder(column: $table.startDate, builder: (column) => column);
@@ -3716,6 +4116,12 @@ class $$TournamentsTableTableManager
                 Value<int> timerMinutes = const Value.absent(),
                 Value<bool> isActive = const Value.absent(),
                 Value<bool> isReadOnly = const Value.absent(),
+                Value<int?> remoteId = const Value.absent(),
+                Value<String?> sourceIp = const Value.absent(),
+                Value<int?> sourcePort = const Value.absent(),
+                Value<bool> isPublished = const Value.absent(),
+                Value<DateTime?> publishedAt = const Value.absent(),
+                Value<String?> webUrl = const Value.absent(),
                 Value<DateTime?> startDate = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => TournamentsCompanion(
@@ -3731,6 +4137,12 @@ class $$TournamentsTableTableManager
                 timerMinutes: timerMinutes,
                 isActive: isActive,
                 isReadOnly: isReadOnly,
+                remoteId: remoteId,
+                sourceIp: sourceIp,
+                sourcePort: sourcePort,
+                isPublished: isPublished,
+                publishedAt: publishedAt,
+                webUrl: webUrl,
                 startDate: startDate,
                 createdAt: createdAt,
               ),
@@ -3748,6 +4160,12 @@ class $$TournamentsTableTableManager
                 Value<int> timerMinutes = const Value.absent(),
                 Value<bool> isActive = const Value.absent(),
                 Value<bool> isReadOnly = const Value.absent(),
+                Value<int?> remoteId = const Value.absent(),
+                Value<String?> sourceIp = const Value.absent(),
+                Value<int?> sourcePort = const Value.absent(),
+                Value<bool> isPublished = const Value.absent(),
+                Value<DateTime?> publishedAt = const Value.absent(),
+                Value<String?> webUrl = const Value.absent(),
                 Value<DateTime?> startDate = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => TournamentsCompanion.insert(
@@ -3763,6 +4181,12 @@ class $$TournamentsTableTableManager
                 timerMinutes: timerMinutes,
                 isActive: isActive,
                 isReadOnly: isReadOnly,
+                remoteId: remoteId,
+                sourceIp: sourceIp,
+                sourcePort: sourcePort,
+                isPublished: isPublished,
+                publishedAt: publishedAt,
+                webUrl: webUrl,
                 startDate: startDate,
                 createdAt: createdAt,
               ),

@@ -10,7 +10,9 @@ class TournamentsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final tournamentsAsync = ref.watch(tournamentsProvider);
+    final tournamentsAsync = ref.watch(filteredTournamentsProvider);
+    final searchQuery = ref.watch(tournamentSearchQueryProvider);
+    final selectedMode = ref.watch(tournamentModeFilterProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -21,6 +23,58 @@ class TournamentsScreen extends ConsumerWidget {
             onPressed: () => context.go('/tournaments/new'),
           ),
         ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(160),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: Column(
+              children: [
+                // Search Bar
+                TextField(
+                  onChanged: (val) => ref.read(tournamentSearchQueryProvider.notifier).state = val,
+                  decoration: InputDecoration(
+                    hintText: 'Cerca per nome o campetto...',
+                    prefixIcon: const Icon(Icons.search, size: 20),
+                    hintStyle: const TextStyle(fontSize: 14),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+                    filled: true,
+                    fillColor: Colors.grey.shade900,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                
+                // Mode Filters
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      FilterChip(
+                        label: const Text('Tutti', style: TextStyle(fontSize: 12)),
+                        selected: selectedMode == null,
+                        showCheckmark: false,
+                        onSelected: (_) => ref.read(tournamentModeFilterProvider.notifier).state = null,
+                      ),
+                      const SizedBox(width: 8),
+                      _buildFilterChip(context, ref, 'group_only', AppLocalizations.of(context)!.groupOnly, selectedMode),
+                      const SizedBox(width: 8),
+                      _buildFilterChip(context, ref, 'elimination_only', AppLocalizations.of(context)!.eliminationOnly, selectedMode),
+                      const SizedBox(width: 8),
+                      _buildFilterChip(context, ref, 'group_and_elimination', AppLocalizations.of(context)!.groupAndElimination, selectedMode),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                
+                // Status Filters (All, Local, Cloud)
+                const _StatusFilterBar(),
+              ],
+            ),
+          ),
+        ),
       ),
       body: tournamentsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -128,11 +182,19 @@ class TournamentsScreen extends ConsumerWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          tournament.name,
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
+                        Row(
+                          children: [
+                            Text(
+                              tournament.name,
+                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            if (tournament.isPublished) ...[
+                              const SizedBox(width: 8),
+                              const Icon(Icons.cloud_done, color: Colors.blue, size: 16),
+                            ],
+                          ],
                         ),
                         Row(
                           children: [
@@ -239,6 +301,17 @@ class TournamentsScreen extends ConsumerWidget {
     );
   }
 
+  Widget _buildFilterChip(BuildContext context, WidgetRef ref, String mode, String label, String? selectedMode) {
+    return FilterChip(
+      label: Text(label, style: const TextStyle(fontSize: 12)),
+      selected: selectedMode == mode,
+      showCheckmark: false,
+      onSelected: (val) {
+        ref.read(tournamentModeFilterProvider.notifier).state = val ? mode : null;
+      },
+    );
+  }
+
   String _getModeLabel(String mode, BuildContext context) {
     switch (mode) {
       case 'group_only':
@@ -263,5 +336,50 @@ class TournamentsScreen extends ConsumerWidget {
       default:
         return Colors.grey;
     }
+  }
+}
+
+class _StatusFilterBar extends ConsumerWidget {
+  const _StatusFilterBar();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final status = ref.watch(tournamentStatusFilterProvider);
+    
+    return Row(
+      children: [
+        _buildStatusTab(ref, 'all', 'Tutti', status == 'all'),
+        _buildStatusTab(ref, 'local', 'Solo Locali', status == 'local'),
+        _buildStatusTab(ref, 'cloud', 'Su Cloud', status == 'cloud'),
+      ],
+    );
+  }
+
+  Widget _buildStatusTab(WidgetRef ref, String value, String label, bool isSelected) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => ref.read(tournamentStatusFilterProvider.notifier).state = value,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          decoration: BoxDecoration(
+            border: Border(
+              bottom: BorderSide(
+                color: isSelected ? Colors.blue : Colors.transparent,
+                width: 2,
+              ),
+            ),
+          ),
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              color: isSelected ? Colors.blue : Colors.grey,
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
