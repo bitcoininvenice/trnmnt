@@ -136,6 +136,8 @@ class HallOfFameScreen extends ConsumerWidget {
         return l10n.eliminationOnly;
       case 'group_and_elimination':
         return l10n.groupAndElimination;
+      case 'madness':
+        return l10n.madness;
       default:
         return mode;
     }

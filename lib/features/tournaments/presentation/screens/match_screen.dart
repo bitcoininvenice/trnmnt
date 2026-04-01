@@ -62,19 +62,26 @@ class _MatchScreenState extends ConsumerState<MatchScreen> {
         _awayScore!,
       );
 
-      // 1. Get tournament ID for sync (BEFORE pop)
+      // 1. Get tournament data to check publication status
       final matchData = await ref.read(matchByIdProvider(widget.matchId).future);
       final tournamentId = matchData?.match.tournamentId;
+      
+      if (tournamentId != null) {
+        final tournament = await ref.read(tournamentByIdProvider(tournamentId).future);
+        final isPublished = tournament?.isPublished ?? false;
 
-      if (mounted) {
-        Navigator.pop(context);
-        
-        // 2. Start sync in background (NOW SAFE because we don't use 'ref' inside an async block of a dead widget)
-        if (tournamentId != null) {
-          shareRepo.publishToSupabase(tournamentId).catchError((e) {
-             return null;
-          });
+        if (mounted) {
+          Navigator.pop(context);
+          
+          // 2. Start sync in background ONLY if already published
+          if (isPublished) {
+            shareRepo.publishToSupabase(tournamentId).catchError((e) {
+               return null;
+            });
+          }
         }
+      } else if (mounted) {
+        Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) {

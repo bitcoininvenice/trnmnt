@@ -242,13 +242,16 @@ class AppLocalizationsIt extends AppLocalizations {
   String get createTournament => 'Crea Torneo';
 
   @override
-  String get groupOnly => 'Solo Girone';
+  String get groupOnly => 'Campionato';
 
   @override
-  String get eliminationOnly => 'Solo Eliminatoria';
+  String get eliminationOnly => 'Playoff';
 
   @override
-  String get groupAndElimination => 'Girone + Playoff';
+  String get groupAndElimination => 'Campionato & Playoff';
+
+  @override
+  String get madness => 'Madness';
 
   @override
   String get consolationFinals => 'Finali consolazione';
@@ -433,7 +436,10 @@ class AppLocalizationsIt extends AppLocalizations {
   String get eliminationOnlySubtitle => 'Vinci o vai a casa';
 
   @override
-  String get groupAndEliminationSubtitle => 'Fase a gironi poi eliminatoria';
+  String get groupAndEliminationSubtitle => 'Campionato poi Playoff';
+
+  @override
+  String get madnessSubtitle => 'Chi vince regna, alta intensità!';
 
   @override
   String get error => 'Errore';

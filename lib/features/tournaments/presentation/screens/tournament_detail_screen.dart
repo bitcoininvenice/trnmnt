@@ -326,6 +326,18 @@ class _TournamentDetailScreenState extends ConsumerState<TournamentDetailScreen>
       ));
     }
 
+    // Madness
+    if (mode == 'madness') {
+      actions.add(_buildActionCard(
+        context,
+        icon: Icons.flash_on,
+        title: AppLocalizations.of(context)!.madness,
+        subtitle: AppLocalizations.of(context)!.madnessSubtitle,
+        color: Colors.deepPurple,
+        onTap: () => context.go('/tournaments/${widget.tournamentId}/madness'),
+      ));
+    }
+
     // Timer
     actions.add(_buildActionCard(
       context,

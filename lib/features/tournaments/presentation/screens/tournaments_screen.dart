@@ -349,14 +349,14 @@ class _StatusFilterBar extends ConsumerWidget {
     
     return Row(
       children: [
-        _buildStatusTab(ref, 'all', 'Tutti', status == 'all'),
-        _buildStatusTab(ref, 'local', 'Solo Locali', status == 'local'),
-        _buildStatusTab(ref, 'cloud', 'Su Cloud', status == 'cloud'),
+        _buildStatusTab(ref, 'all', const Text('Tutti', style: TextStyle(fontSize: 12)), status == 'all'),
+        _buildStatusTab(ref, 'local', const Icon(Icons.smartphone, size: 20), status == 'local'),
+        _buildStatusTab(ref, 'cloud', const Icon(Icons.cloud, size: 20), status == 'cloud'),
       ],
     );
   }
 
-  Widget _buildStatusTab(WidgetRef ref, String value, String label, bool isSelected) {
+  Widget _buildStatusTab(WidgetRef ref, String value, Widget content, bool isSelected) {
     return Expanded(
       child: GestureDetector(
         onTap: () => ref.read(tournamentStatusFilterProvider.notifier).state = value,
@@ -370,13 +370,19 @@ class _StatusFilterBar extends ConsumerWidget {
               ),
             ),
           ),
-          child: Text(
-            label,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-              color: isSelected ? Colors.blue : Colors.grey,
+          child: Center(
+            child: DefaultTextStyle.merge(
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                color: isSelected ? Colors.blue : Colors.grey,
+              ),
+              child: IconTheme.merge(
+                data: IconThemeData(
+                  color: isSelected ? Colors.blue : Colors.grey,
+                ),
+                child: content,
+              ),
             ),
           ),
         ),

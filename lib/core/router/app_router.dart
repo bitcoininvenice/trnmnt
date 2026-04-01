@@ -12,6 +12,7 @@ import '../../features/tournaments/presentation/screens/calendar_screen.dart';
 import '../../features/tournaments/presentation/screens/standings_screen.dart';
 import '../../features/tournaments/presentation/screens/bracket_screen.dart';
 import '../../features/tournaments/presentation/screens/match_screen.dart';
+import '../../features/tournaments/presentation/screens/madness_screen.dart';
 import '../../features/timer/presentation/screens/timer_screen.dart';
 import '../../features/single_match/presentation/screens/single_match_setup_screen.dart';
 import '../../features/single_match/presentation/screens/single_match_screen.dart';
@@ -108,6 +109,14 @@ final routerProvider = Provider<GoRouter>((ref) {
                     builder: (context, state) {
                       final matchId = int.parse(state.pathParameters['matchId']!);
                       return MatchScreen(matchId: matchId);
+                    },
+                  ),
+                  GoRoute(
+                    path: 'madness',
+                    name: 'tournament-madness',
+                    builder: (context, state) {
+                      final id = int.parse(state.pathParameters['tournamentId']!);
+                      return MadnessScreen(tournamentId: id);
                     },
                   ),
                   GoRoute(

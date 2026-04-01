@@ -539,20 +539,26 @@ abstract class AppLocalizations {
   /// No description provided for @groupOnly.
   ///
   /// In it, this message translates to:
-  /// **'Solo Girone'**
+  /// **'Campionato'**
   String get groupOnly;
 
   /// No description provided for @eliminationOnly.
   ///
   /// In it, this message translates to:
-  /// **'Solo Eliminatoria'**
+  /// **'Playoff'**
   String get eliminationOnly;
 
   /// No description provided for @groupAndElimination.
   ///
   /// In it, this message translates to:
-  /// **'Girone + Playoff'**
+  /// **'Campionato & Playoff'**
   String get groupAndElimination;
+
+  /// No description provided for @madness.
+  ///
+  /// In it, this message translates to:
+  /// **'Madness'**
+  String get madness;
 
   /// No description provided for @consolationFinals.
   ///
@@ -893,8 +899,14 @@ abstract class AppLocalizations {
   /// No description provided for @groupAndEliminationSubtitle.
   ///
   /// In it, this message translates to:
-  /// **'Fase a gironi poi eliminatoria'**
+  /// **'Campionato poi Playoff'**
   String get groupAndEliminationSubtitle;
+
+  /// No description provided for @madnessSubtitle.
+  ///
+  /// In it, this message translates to:
+  /// **'Chi vince regna, alta intensità!'**
+  String get madnessSubtitle;
 
   /// No description provided for @error.
   ///

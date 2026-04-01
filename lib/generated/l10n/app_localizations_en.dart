@@ -242,13 +242,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get createTournament => 'Create Tournament';
 
   @override
-  String get groupOnly => 'Group Only';
+  String get groupOnly => 'League';
 
   @override
-  String get eliminationOnly => 'Elimination Only';
+  String get eliminationOnly => 'Playoff';
 
   @override
-  String get groupAndElimination => 'Group & Playoff';
+  String get groupAndElimination => 'League & Playoff';
+
+  @override
+  String get madness => 'Madness';
 
   @override
   String get consolationFinals => 'Consolation Finals';
@@ -432,6 +435,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get groupAndEliminationSubtitle => 'Group stage then playoffs';
+
+  @override
+  String get madnessSubtitle => 'Winner stays, high intensity!';
 
   @override
   String get error => 'Error';

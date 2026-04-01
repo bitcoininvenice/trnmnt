@@ -14,7 +14,7 @@ final tournamentsProvider = StreamProvider<List<Tournament>>((ref) async* {
 /// Providers for filtering
 final tournamentSearchQueryProvider = StateProvider<String>((ref) => '');
 final tournamentModeFilterProvider = StateProvider<String?>((ref) => null);
-final tournamentStatusFilterProvider = StateProvider<String>((ref) => 'all'); // 'all', 'local', 'cloud'
+final tournamentStatusFilterProvider = StateProvider<String>((ref) => 'local'); // Default to local as requested
 
 /// Provider for filtered tournaments
 final filteredTournamentsProvider = Provider<AsyncValue<List<Tournament>>>((ref) {
@@ -24,7 +24,7 @@ final filteredTournamentsProvider = Provider<AsyncValue<List<Tournament>>>((ref)
   final statusFilter = ref.watch(tournamentStatusFilterProvider);
 
   return tournamentsAsync.whenData((tournaments) {
-    return tournaments.where((t) {
+    final list = tournaments.where((t) {
       final matchesSearch = t.name.toLowerCase().contains(searchQuery) || 
                            t.location.toLowerCase().contains(searchQuery);
       final matchesMode = modeFilter == null || t.mode == modeFilter;
@@ -35,6 +35,15 @@ final filteredTournamentsProvider = Provider<AsyncValue<List<Tournament>>>((ref)
 
       return matchesSearch && matchesMode && matchesStatus;
     }).toList();
+
+    // Secondary explicit sort to be absolutely sure (Newest first)
+    list.sort((a, b) {
+      final dateA = a.startDate ?? a.createdAt;
+      final dateB = b.startDate ?? b.createdAt;
+      return dateB.compareTo(dateA); 
+    });
+    
+    return list;
   });
 });
 
