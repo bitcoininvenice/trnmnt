@@ -222,7 +222,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration {
@@ -239,7 +239,7 @@ class AppDatabase extends _$AppDatabase {
           await m.createTable(courts);
         }
 
-        // 2. Ensure all columns in tournaments exist (from v3 and v4)
+        // 2. Ensure all columns in tournaments exist
         final columnRes = await customSelect('PRAGMA table_info(tournaments)').get();
         final existingCols = columnRes.map((r) => r.read<String>('name')).toList();
 
@@ -254,6 +254,12 @@ class AppDatabase extends _$AppDatabase {
           'timer_minutes': tournaments.timerMinutes,
           'is_active': tournaments.isActive,
           'is_read_only': tournaments.isReadOnly,
+          'remote_id': tournaments.remoteId,
+          'source_ip': tournaments.sourceIp,
+          'source_port': tournaments.sourcePort,
+          'is_published': tournaments.isPublished,
+          'published_at': tournaments.publishedAt,
+          'web_url': tournaments.webUrl,
         };
 
         for (final entry in expectedCols.entries) {

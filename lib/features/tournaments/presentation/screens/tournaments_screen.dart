@@ -24,10 +24,11 @@ class TournamentsScreen extends ConsumerWidget {
           ),
         ],
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(160),
+          preferredSize: const Size.fromHeight(180),
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
                 // Search Bar
                 TextField(
