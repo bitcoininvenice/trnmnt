@@ -210,7 +210,7 @@ class TournamentsScreen extends ConsumerWidget {
                               ),
                             ),
                             const SizedBox(width: 12),
-                            Icon(Icons.location_on, size: 14, color: Colors.white.withValues(alpha: 0.6)),
+                            Icon(Icons.stadium, size: 14, color: Colors.white.withValues(alpha: 0.6)),
                             const SizedBox(width: 4),
                             Expanded(
                               child: Text(

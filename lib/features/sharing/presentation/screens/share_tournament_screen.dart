@@ -180,7 +180,7 @@ class _ShareTournamentScreenState extends ConsumerState<ShareTournamentScreen> {
       bodyContent = Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // ── Twitch channel input ──────────────────────────────────
+          if(_webUrl == null)
           Container(
             margin: const EdgeInsets.only(bottom: 20),
             padding: const EdgeInsets.all(16),
@@ -264,7 +264,7 @@ class _ShareTournamentScreenState extends ConsumerState<ShareTournamentScreen> {
               ],
             ),
             child: QrImageView(
-              data: qrData.isNotEmpty ? qrData : 'https://vesb.vercel.app',
+              data: qrData.isNotEmpty ? qrData : '',
               version: QrVersions.auto,
               size: 250.0,
               backgroundColor: Colors.white,
@@ -296,7 +296,17 @@ class _ShareTournamentScreenState extends ConsumerState<ShareTournamentScreen> {
 
           const SizedBox(height: 16),
 
-          // ── Publish button ────────────────────────────────────────
+          
+
+          // ── URL display ───────────────────────────────────────────
+          if (_webUrl != null) ...[
+            const SizedBox(height: 8),
+            SelectableText(
+              _webUrl!,
+              style: const TextStyle(color: Colors.blue, fontSize: 11, decoration: TextDecoration.underline),
+            ),
+          ] else ...[
+            // ── Publish button ────────────────────────────────────────
           OutlinedButton.icon(
             onPressed: _isPublishing ? null : _publishToWeb,
             icon: _isPublishing
@@ -308,32 +318,14 @@ class _ShareTournamentScreenState extends ConsumerState<ShareTournamentScreen> {
               side: const BorderSide(color: Colors.blueAccent),
             ),
           ),
-
-          // ── URL display ───────────────────────────────────────────
-          if (_webUrl != null) ...[
-            const SizedBox(height: 8),
-            SelectableText(
-              _webUrl!,
-              style: const TextStyle(color: Colors.blue, fontSize: 11, decoration: TextDecoration.underline),
-            ),
           ],
 
           // ── Open in browser & Copy Link ───────────────────────────
           if (isWebLink) ...[
-            const SizedBox(height: 16),
+                const SizedBox(height: 10),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                ElevatedButton.icon(
-                  onPressed: () => _openWebUrl(_webUrl!),
-                  icon: const Icon(Icons.open_in_browser),
-                  label: Text(AppLocalizations.of(context)!.openInBrowser),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.orange,
-                    foregroundColor: Colors.white,
-                  ),
-                ),
-                const SizedBox(width: 12),
                 OutlinedButton.icon(
                   onPressed: () {
                     Clipboard.setData(ClipboardData(text: _webUrl!));
@@ -346,6 +338,22 @@ class _ShareTournamentScreenState extends ConsumerState<ShareTournamentScreen> {
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.white,
                     side: BorderSide(color: Colors.white.withOpacity(0.3)),
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 15),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                ElevatedButton.icon(
+                  onPressed: () => _openWebUrl(_webUrl!),
+                  icon: const Icon(Icons.open_in_browser),
+                  label: Text(AppLocalizations.of(context)!.openInBrowser),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange,
+                    foregroundColor: Colors.white,
                   ),
                 ),
               ],

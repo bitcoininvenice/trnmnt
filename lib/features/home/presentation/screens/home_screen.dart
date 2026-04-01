@@ -6,6 +6,7 @@ import 'package:trnmnt/generated/l10n/app_localizations.dart';
 import 'package:trnmnt/core/providers/icon_provider.dart';
 import 'package:trnmnt/features/stats/presentation/widgets/stats_overview.dart';
 import 'package:trnmnt/features/stats/data/stats_repository.dart';
+import 'package:trnmnt/features/single_match/data/single_match_provider.dart';
 import 'dart:io';
 
 class HomeScreen extends ConsumerWidget {
@@ -118,6 +119,61 @@ class HomeScreen extends ConsumerWidget {
               },
             ),
           ),
+
+          // Active Single Match Resume Section
+          if (ref.watch(singleMatchProvider).isRunning || 
+              ref.watch(singleMatchProvider).homeScore > 0 || 
+              ref.watch(singleMatchProvider).awayScore > 0)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                child: Card(
+                  color: Colors.purple.withValues(alpha: 0.1),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    side: const BorderSide(color: Colors.purple, width: 1),
+                  ),
+                  child: InkWell(
+                    onTap: () {
+                      final match = ref.read(singleMatchProvider);
+                      context.pushNamed(
+                        'single-match-board',
+                        extra: {
+                          'homeTeamName': match.homeTeamName,
+                          'awayTeamName': match.awayTeamName,
+                        },
+                      );
+                    },
+                    borderRadius: BorderRadius.circular(16),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.sports_basketball, color: Colors.purple, size: 32),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  AppLocalizations.of(context)!.matchInProgress,
+                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                ),
+                                Text(
+                                  '${ref.watch(singleMatchProvider).homeTeamName} ${ref.watch(singleMatchProvider).homeScore} - ${ref.watch(singleMatchProvider).awayScore} ${ref.watch(singleMatchProvider).awayTeamName}',
+                                  style: const TextStyle(color: Colors.white70),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const Icon(Icons.chevron_right, color: Colors.purple),
+                        ],
+                      ),
+                    ),
+                  ),
+                ).animate().slideY(begin: 1).fadeIn(),
+              ),
+            ),
 
           // Quick Actions Grid
           SliverPadding(

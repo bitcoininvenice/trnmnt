@@ -201,63 +201,63 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
           const SizedBox(height: 16),
 
-          // API Settings
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Text(
-                        AppLocalizations.of(context)!.apiSettings,
-                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                      ),
-                      const Spacer(),
-                      // Status Dot
-                      Container(
-                        width: 12,
-                        height: 12,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: ref.watch(apiConfigProvider).isConnected ? Colors.green : Colors.red,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    initialValue: ref.read(apiConfigProvider).baseUrl,
-                    decoration: InputDecoration(
-                      labelText: AppLocalizations.of(context)!.apiUrl,
-                      hintText: AppLocalizations.of(context)!.apiUrlHint,
-                      border: const OutlineInputBorder(),
-                      suffixIcon: IconButton(
-                        icon: const Icon(Icons.check_circle_outline),
-                        onPressed: () async {
-                          final success = await ref.read(apiConfigProvider.notifier).testConnection();
-                          if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(success 
-                                  ? AppLocalizations.of(context)!.connectionWorking 
-                                  : AppLocalizations.of(context)!.connectionError),
-                                backgroundColor: success ? Colors.green : Colors.red,
-                              ),
-                            );
-                          }
-                        },
-                      ),
-                    ),
-                    onFieldSubmitted: (val) => ref.read(apiConfigProvider.notifier).setUrl(val),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
+          // // API Settings
+          // Card(
+          //   child: Padding(
+          //     padding: const EdgeInsets.all(16),
+          //     child: Column(
+          //       crossAxisAlignment: CrossAxisAlignment.start,
+          //       children: [
+          //         Row(
+          //           children: [
+          //             Text(
+          //               AppLocalizations.of(context)!.apiSettings,
+          //               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          //             ),
+          //             const Spacer(),
+          //             // Status Dot
+          //             Container(
+          //               width: 12,
+          //               height: 12,
+          //               decoration: BoxDecoration(
+          //                 shape: BoxShape.circle,
+          //                 color: ref.watch(apiConfigProvider).isConnected ? Colors.green : Colors.red,
+          //               ),
+          //             ),
+          //             const SizedBox(width: 8),
+          //           ],
+          //         ),
+          //         const SizedBox(height: 16),
+          //         TextFormField(
+          //           initialValue: ref.read(apiConfigProvider).baseUrl,
+          //           decoration: InputDecoration(
+          //             labelText: AppLocalizations.of(context)!.apiUrl,
+          //             hintText: AppLocalizations.of(context)!.apiUrlHint,
+          //             border: const OutlineInputBorder(),
+          //             suffixIcon: IconButton(
+          //               icon: const Icon(Icons.check_circle_outline),
+          //               onPressed: () async {
+          //                 final success = await ref.read(apiConfigProvider.notifier).testConnection();
+          //                 if (mounted) {
+          //                   ScaffoldMessenger.of(context).showSnackBar(
+          //                     SnackBar(
+          //                       content: Text(success 
+          //                         ? AppLocalizations.of(context)!.connectionWorking 
+          //                         : AppLocalizations.of(context)!.connectionError),
+          //                       backgroundColor: success ? Colors.green : Colors.red,
+          //                     ),
+          //                   );
+          //                 }
+          //               },
+          //             ),
+          //           ),
+          //           onFieldSubmitted: (val) => ref.read(apiConfigProvider.notifier).setUrl(val),
+          //         ),
+          //       ],
+          //     ),
+          //   ),
+          // ),
+          // const SizedBox(height: 16),
 
           // Developer Section
           Card(

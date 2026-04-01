@@ -1,12 +1,13 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/widgets/vintage_score_column.dart';
 import 'package:trnmnt/generated/l10n/app_localizations.dart';
+import '../../data/single_match_provider.dart';
 
-class SingleMatchScreen extends StatefulWidget {
+class SingleMatchScreen extends ConsumerStatefulWidget {
   final String homeTeamName;
   final String awayTeamName;
 
@@ -17,80 +18,24 @@ class SingleMatchScreen extends StatefulWidget {
   });
 
   @override
-  State<SingleMatchScreen> createState() => _SingleMatchScreenState();
+  ConsumerState<SingleMatchScreen> createState() => _SingleMatchScreenState();
 }
 
-class _SingleMatchScreenState extends State<SingleMatchScreen> {
-  // Scoreboard State
-  int _homeScore = 0;
-  int _awayScore = 0;
-  int _period = 1;
-
-  // Timer State
-  int _totalSeconds = 600; // 10 minutes default
-  int _remainingSeconds = 600;
-  bool _isRunning = false;
-  bool _isFinished = false;
-  Timer? _timer;
+class _SingleMatchScreenState extends ConsumerState<SingleMatchScreen> {
   final AudioPlayer _audioPlayer = AudioPlayer();
 
   @override
+  void initState() {
+    super.initState();
+    Future.microtask(() {
+      ref.read(singleMatchProvider.notifier).setup(widget.homeTeamName, widget.awayTeamName);
+    });
+  }
+
+  @override
   void dispose() {
-    _timer?.cancel();
     _audioPlayer.dispose();
     super.dispose();
-  }
-
-  void _setDuration(int minutes) {
-    if (_isRunning) return;
-    setState(() {
-      _totalSeconds = minutes * 60;
-      _remainingSeconds = _totalSeconds;
-      _isFinished = false;
-    });
-  }
-
-  void _startTimer() {
-    if (_remainingSeconds <= 0) return;
-    setState(() {
-      _isRunning = true;
-      _isFinished = false;
-    });
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      setState(() {
-        if (_remainingSeconds > 0) {
-          _remainingSeconds--;
-        } else {
-          _stopTimer();
-          _isFinished = true;
-          _playBuzzer();
-        }
-      });
-    });
-  }
-
-  void _stopTimer() {
-    _timer?.cancel();
-    _timer = null;
-    setState(() {
-      _isRunning = false;
-    });
-  }
-
-  void _resetTimer() {
-    _stopTimer();
-    setState(() {
-      _remainingSeconds = _totalSeconds;
-      _isFinished = false;
-    });
-  }
-
-  void _toggleTimer() {
-    if (_isRunning) {
-      _stopTimer();
-    } else {
-      _startTimer();
-    }
   }
 
   Future<void> _playBuzzer() async {
@@ -102,16 +47,16 @@ class _SingleMatchScreenState extends State<SingleMatchScreen> {
     }
   }
 
-  String get _formattedTime {
-    final minutes = _remainingSeconds ~/ 60;
-    final seconds = _remainingSeconds % 60;
+  String _formatTime(int remainingSeconds) {
+    final minutes = remainingSeconds ~/ 60;
+    final seconds = remainingSeconds % 60;
     return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
   }
 
-  Color get _timerColor {
-    if (_isFinished) return Colors.red;
-    if (!_isRunning) return Colors.blue;
-    final percentage = _remainingSeconds / (_totalSeconds > 0 ? _totalSeconds : 1);
+  Color _getTimerColor(SingleMatchState state) {
+    if (state.isFinished) return Colors.red;
+    if (!state.isRunning) return Colors.blue;
+    final percentage = state.remainingSeconds / (state.totalSeconds > 0 ? state.totalSeconds : 1);
     if (percentage > 0.25) return Colors.green;
     if (percentage > 0.1) return Colors.orange;
     return Colors.red;
@@ -119,8 +64,17 @@ class _SingleMatchScreenState extends State<SingleMatchScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final matchState = ref.watch(singleMatchProvider);
+    final notifier = ref.read(singleMatchProvider.notifier);
+
+    ref.listen(singleMatchProvider.select((s) => s.isFinished), (prev, next) {
+      if (next && !(prev ?? false)) {
+        _playBuzzer();
+      }
+    });
+
     return Scaffold(
-      backgroundColor: const Color(0xFF121212), // Vintage dark background
+      backgroundColor: const Color(0xFF121212),
       resizeToAvoidBottomInset: false,
       appBar: AppBar(
         backgroundColor: Colors.black,
@@ -142,15 +96,11 @@ class _SingleMatchScreenState extends State<SingleMatchScreen> {
                     ),
                     TextButton(
                       onPressed: () {
-                        setState(() {
-                          _homeScore = 0;
-                          _awayScore = 0;
-                          _period = 1;
-                        });
+                        notifier.resetMatch();
                         Navigator.of(context).pop();
                       },
                       style: TextButton.styleFrom(foregroundColor: Colors.red),
-                      child: Text(AppLocalizations.of(context)!.delete), // Using delete as 'Azzera' here
+                      child: Text(AppLocalizations.of(context)!.delete),
                     ),
                   ],
                 ),
@@ -162,49 +112,31 @@ class _SingleMatchScreenState extends State<SingleMatchScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // SCOREBOARD
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
               child: Row(
                 children: [
-                  // HOME TEAM
                   Expanded(
                     child: VintageScoreColumn(
-                      teamName: widget.homeTeamName,
-                      score: _homeScore,
-                      onScoreChanged: (val) {
-                        setState(() {
-                          if (val >= 0) _homeScore = val;
-                        });
-                      },
+                      teamName: matchState.homeTeamName,
+                      score: matchState.homeScore,
+                      onScoreChanged: (val) => notifier.updateHomeScore(val),
                     ),
                   ),
-                  
-                  // PERIOD
-                  _buildPeriodColumn(),
-                  
-                  // AWAY TEAM
+                  _buildPeriodColumn(matchState, notifier),
                   Expanded(
                     child: VintageScoreColumn(
-                      teamName: widget.awayTeamName,
-                      score: _awayScore,
-                      onScoreChanged: (val) {
-                        setState(() {
-                          if (val >= 0) _awayScore = val;
-                        });
-                      },
+                      teamName: matchState.awayTeamName,
+                      score: matchState.awayScore,
+                      onScoreChanged: (val) => notifier.updateAwayScore(val),
                     ),
                   ),
                 ],
               ),
             ),
             const Divider(height: 16, thickness: 2),
-
-            // DURATION SELECTOR
-            _buildDurationSelector(),
+            _buildDurationSelector(matchState, notifier),
             const SizedBox(height: 12),
-
-            // TIMER DISPLAY
             Expanded(
               child: Center(
                 child: SingleChildScrollView(
@@ -212,76 +144,71 @@ class _SingleMatchScreenState extends State<SingleMatchScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                      decoration: BoxDecoration(
-                        color: Colors.black,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: Colors.grey.shade900, width: 4),
-                        boxShadow: [
-                          BoxShadow(
-                            color: _timerColor.withValues(alpha: 0.2),
-                            blurRadius: 15,
-                            spreadRadius: 2,
+                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                        decoration: BoxDecoration(
+                          color: Colors.black,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: Colors.grey.shade900, width: 4),
+                          boxShadow: [
+                            BoxShadow(
+                              color: _getTimerColor(matchState).withValues(alpha: 0.2),
+                              blurRadius: 15,
+                              spreadRadius: 2,
+                            ),
+                          ],
+                        ),
+                        child: Text(
+                          _formatTime(matchState.remainingSeconds),
+                          style: TextStyle(
+                            fontSize: 64,
+                            fontWeight: FontWeight.bold,
+                            fontFamily: 'monospace',
+                            color: _getTimerColor(matchState),
+                            shadows: [
+                              Shadow(color: _getTimerColor(matchState), blurRadius: 15),
+                            ],
+                          ),
+                        ),
+                      ).animate(target: matchState.isFinished ? 1 : 0).shake(duration: 500.ms).then().shimmer(duration: 1000.ms, color: Colors.red),
+                      const SizedBox(height: 24),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          _buildControlButton(
+                            icon: Icons.replay,
+                            onPressed: () => notifier.resetTimer(),
+                            color: Colors.grey,
+                            size: 48,
+                          ),
+                          const SizedBox(width: 24),
+                          _buildControlButton(
+                            icon: matchState.isRunning ? Icons.pause : Icons.play_arrow,
+                            onPressed: () => notifier.toggleTimer(),
+                            color: matchState.isRunning ? Colors.orange : Colors.green,
+                            size: 64,
+                            isPrimary: true,
+                          ),
+                          const SizedBox(width: 24),
+                          _buildControlButton(
+                            icon: Icons.stop,
+                            onPressed: () => notifier.stopTimerManually(),
+                            color: Colors.red,
+                            size: 48,
                           ),
                         ],
                       ),
-                      child: Text(
-                        _formattedTime,
-                        style: TextStyle(
-                          fontSize: 64,
-                          fontWeight: FontWeight.bold,
-                          fontFamily: 'monospace',
-                          color: _timerColor,
-                          shadows: [
-                            Shadow(color: _timerColor, blurRadius: 15),
-                          ],
-                        ),
-                      ),
-                    ).animate(target: _isFinished ? 1 : 0).shake(duration: 500.ms).then().shimmer(duration: 1000.ms, color: Colors.red),
-
-                    const SizedBox(height: 24),
-
-                    // CONTROLS
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        _buildControlButton(
-                          icon: Icons.replay,
-                          onPressed: _resetTimer,
-                          color: Colors.grey,
-                          size: 48,
-                        ),
-                        const SizedBox(width: 24),
-                        _buildControlButton(
-                          icon: _isRunning ? Icons.pause : Icons.play_arrow,
-                          onPressed: _toggleTimer,
-                          color: _isRunning ? Colors.orange : Colors.green,
-                          size: 64,
-                          isPrimary: true,
-                        ),
-                        const SizedBox(width: 24),
-                        _buildControlButton(
-                          icon: Icons.stop,
-                          onPressed: _stopTimer,
-                          color: Colors.red,
-                          size: 48,
-                        ),
-                      ],
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
         ),
       ),
     );
   }
 
- 
-
-  Widget _buildPeriodColumn() {
+  Widget _buildPeriodColumn(SingleMatchState state, SingleMatchNotifier notifier) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8.0),
       child: Column(
@@ -302,7 +229,7 @@ class _SingleMatchScreenState extends State<SingleMatchScreen> {
               ]
             ),
             child: Text(
-              _period.toString(),
+              state.period.toString(),
               style: const TextStyle(
                 fontSize: 32, 
                 fontWeight: FontWeight.bold, 
@@ -318,12 +245,12 @@ class _SingleMatchScreenState extends State<SingleMatchScreen> {
               IconButton(
                 visualDensity: VisualDensity.compact,
                 icon: const Icon(Icons.arrow_drop_down, size: 24, color: Colors.white54),
-                onPressed: () => setState(() { if (_period > 1) _period--; }),
+                onPressed: () => notifier.updatePeriod(state.period - 1),
               ),
               IconButton(
                 visualDensity: VisualDensity.compact,
                 icon: const Icon(Icons.arrow_drop_up, size: 24, color: Colors.white54),
-                onPressed: () => setState(() { _period++; }),
+                onPressed: () => notifier.updatePeriod(state.period + 1),
               ),
             ],
           )
@@ -332,10 +259,9 @@ class _SingleMatchScreenState extends State<SingleMatchScreen> {
     );
   }
 
-  Widget _buildDurationSelector() {
+  Widget _buildDurationSelector(SingleMatchState state, SingleMatchNotifier notifier) {
     final durations = [1, 2, 3, 5, 8, 10, 12, 15, 20];
-    final currentMinutes = _totalSeconds ~/ 60;
-
+    final currentMinutes = state.totalSeconds ~/ 60;
     return Column(
       children: [
         Text(AppLocalizations.of(context)!.durationMinutes, style: const TextStyle(fontSize: 14)),
@@ -351,7 +277,7 @@ class _SingleMatchScreenState extends State<SingleMatchScreen> {
                 child: ChoiceChip(
                   label: Text('$minutes'),
                   selected: isSelected,
-                  onSelected: _isRunning ? null : (_) => _setDuration(minutes),
+                  onSelected: state.isRunning ? null : (_) => notifier.setDuration(minutes),
                 ),
               );
             }).toList(),
