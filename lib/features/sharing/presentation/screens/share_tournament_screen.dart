@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:trnmnt/generated/l10n/app_localizations.dart';
 import 'package:trnmnt/core/providers/api_config_provider.dart';
 import '../../data/share_repository.dart';
@@ -47,10 +49,22 @@ class _ShareTournamentScreenState extends ConsumerState<ShareTournamentScreen> {
   Future<void> _setupServer() async {
     final repo = ref.read(shareRepositoryProvider);
     try {
+      // On Android, getting the WiFi IP requires Location permission
+      if (Theme.of(context).platform == TargetPlatform.android) {
+        final status = await Permission.locationWhenInUse.request();
+        if (status != PermissionStatus.granted) {
+          setState(() {
+            _error = 'Location permission is required to get WiFi IP on Android.';
+            _isLoading = false;
+          });
+          return;
+        }
+      }
+
       final ip = await repo.getLocalIp();
-      if (ip == null) {
+      if (ip == null || ip == '0.0.0.0' || ip.isEmpty) {
         setState(() {
-          _error = 'No WiFi connection found.\nPlease connect to the same network as the receiver.';
+          _error = 'No WiFi connection found or IP hidden.\nPlease connect to the same network as the receiver.';
           _isLoading = false;
         });
         return;
@@ -290,17 +304,37 @@ class _ShareTournamentScreenState extends ConsumerState<ShareTournamentScreen> {
             ),
           ],
 
-          // ── Open in browser ───────────────────────────────────────
+          // ── Open in browser & Copy Link ───────────────────────────
           if (isWebLink) ...[
             const SizedBox(height: 16),
-            ElevatedButton.icon(
-              onPressed: () => _openWebUrl(_webUrl!),
-              icon: const Icon(Icons.open_in_browser),
-              label: Text(AppLocalizations.of(context)!.openInBrowser),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange,
-                foregroundColor: Colors.white,
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                ElevatedButton.icon(
+                  onPressed: () => _openWebUrl(_webUrl!),
+                  icon: const Icon(Icons.open_in_browser),
+                  label: Text(AppLocalizations.of(context)!.openInBrowser),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange,
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                OutlinedButton.icon(
+                  onPressed: () {
+                    Clipboard.setData(ClipboardData(text: _webUrl!));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Link copiato! 📋')),
+                    );
+                  },
+                  icon: const Icon(Icons.copy),
+                  label: const Text('Copia Link'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    side: BorderSide(color: Colors.white.withOpacity(0.3)),
+                  ),
+                ),
+              ],
             ),
           ],
         ],
