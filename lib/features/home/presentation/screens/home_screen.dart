@@ -7,7 +7,9 @@ import 'package:trnmnt/core/providers/icon_provider.dart';
 import 'package:trnmnt/features/stats/presentation/widgets/stats_overview.dart';
 import 'package:trnmnt/features/stats/data/stats_repository.dart';
 import 'package:trnmnt/features/single_match/data/single_match_provider.dart';
+import 'package:trnmnt/features/tournaments/data/tournaments_repository.dart';
 import 'dart:io';
+import 'package:url_launcher/url_launcher.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -100,6 +102,11 @@ class HomeScreen extends ConsumerWidget {
                 ),
               ),
             ),
+          ),
+
+          // Cloud Tournaments Slider
+          SliverToBoxAdapter(
+            child: _CloudTournamentsSlider(),
           ),
 
           // Stats Section (Concept 2 integration)
@@ -309,5 +316,299 @@ class HomeScreen extends ConsumerWidget {
         ),
       ),
     );
+  }
+}
+
+class _CloudTournamentsSlider extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final cloudTournamentsAsync = ref.watch(cloudTournamentsProvider);
+    final currentFilters = ref.watch(cloudFilterProvider);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 20, 16, 12),
+          child: Row(
+            children: [
+              Text(
+                'LIVE HIGHLIGHTS',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.5,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                width: 6,
+                height: 6,
+                decoration: const BoxDecoration(
+                  color: Colors.red,
+                  shape: BoxShape.circle,
+                ),
+              ).animate(onPlay: (c) => c.repeat()).fadeIn(duration: 500.ms).fadeOut(duration: 500.ms),
+              const Spacer(),
+              
+              // Multi-select Dropdown (PopupMenuButton)
+              PopupMenuButton<CloudFilter>(
+                icon: const Icon(Icons.tune, size: 18, color: Colors.grey),
+                onSelected: (filter) {
+                  final newFilters = Set<CloudFilter>.from(currentFilters);
+                  if (newFilters.contains(filter)) {
+                    if (newFilters.length > 1) newFilters.remove(filter);
+                  } else {
+                    newFilters.add(filter);
+                  }
+                  ref.read(cloudFilterProvider.notifier).state = newFilters;
+                },
+                itemBuilder: (context) => [
+                  _buildPopupItem(CloudFilter.inProgress, 'In Corso', currentFilters.contains(CloudFilter.inProgress)),
+                  _buildPopupItem(CloudFilter.future, 'Futuri', currentFilters.contains(CloudFilter.future)),
+                  _buildPopupItem(CloudFilter.past, 'Passati', currentFilters.contains(CloudFilter.past)),
+                ],
+              ),
+            ],
+          ),
+        ),
+
+        cloudTournamentsAsync.when(
+          data: (tournaments) {
+            if (tournaments.isEmpty) {
+              return SizedBox(
+                height: 100,
+                child: Center(
+                  child: Text(
+                    'Non ci sono tornei al momento',
+                    style: TextStyle(color: Colors.grey.shade600, fontSize: 13, fontStyle: FontStyle.italic),
+                  ),
+                ),
+              );
+            }
+
+            return SizedBox(
+              height: 150,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                itemCount: tournaments.length,
+                itemBuilder: (context, index) {
+                  final data = tournaments[index];
+                  final tournament = data['tournament'] as Map<String, dynamic>;
+                  return _CloudTournamentCard(tournament: tournament);
+                },
+              ),
+            );
+          },
+          loading: () => const SizedBox(height: 100, child: Center(child: CircularProgressIndicator())),
+          error: (e, s) => const SizedBox.shrink(),
+        ),
+      ],
+    );
+  }
+
+  PopupMenuItem<CloudFilter> _buildPopupItem(CloudFilter value, String label, bool isSelected) {
+    return PopupMenuItem(
+      value: value,
+      child: Row(
+        children: [
+          Icon(
+            isSelected ? Icons.check_box : Icons.check_box_outline_blank,
+            color: isSelected ? Colors.orange : Colors.grey,
+            size: 20,
+          ),
+          const SizedBox(width: 12),
+          Text(label, style: const TextStyle(fontSize: 14)),
+        ],
+      ),
+    );
+  }
+}
+
+class _CloudTournamentCard extends StatelessWidget {
+  final Map<String, dynamic> tournament;
+
+  const _CloudTournamentCard({required this.tournament});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 280,
+      margin: const EdgeInsets.symmetric(horizontal: 4),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.grey.shade900,
+            Colors.orange.withValues(alpha: 0.1),
+          ],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.purple.withValues(alpha: 0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
+        children: [
+          // Background Court Texture (simulated with opacity)
+          Positioned(
+            right: -20,
+            bottom: -20,
+            child: Icon(
+              Icons.sports_basketball,
+              size: 150,
+              color: Colors.orange.withValues(alpha: 0.05),
+            ),
+          ),
+          
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _buildStatusBadge(tournament),
+                    const Icon(Icons.chevron_right, color: Colors.white38),
+                  ],
+                ),
+                const Spacer(),
+                if (tournament['startDate'] != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          _formatDate(tournament['startDate']),
+                          style: TextStyle(color: Colors.orange.withValues(alpha: 0.8), fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1),
+                        ),
+                        Text(
+                          (tournament['mode'] as String? ?? 'LEAGUE').replaceAll('_', ' ').toUpperCase(),
+                          style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1),
+                        ),
+                      ],
+                    ),
+                  ),
+                Text(
+                  (tournament['name'] as String).toUpperCase(),
+                  maxLines: 2,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 18,
+                    letterSpacing: -0.5,
+                    height: 1.1,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    const Icon(Icons.location_on, color: Colors.orange, size: 14),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        tournament['location'] as String,
+                        style: const TextStyle(color: Colors.white60, fontSize: 12),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          
+          Positioned.fill(
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () {
+                  final id = int.tryParse(tournament['id'].toString());
+                  if (id != null) {
+                    context.pushNamed(
+                      'tournament-detail',
+                      pathParameters: {'tournamentId': id.toString()},
+                    );
+                  }
+                },
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatusBadge(Map<String, dynamic> tournament) {
+    final isActive = tournament['isActive'] as bool? ?? false;
+    final dateVal = tournament['startDate'];
+    
+    DateTime? startDate;
+    if (dateVal is String) {
+      startDate = DateTime.tryParse(dateVal);
+    } else if (dateVal is int) {
+      startDate = DateTime.fromMillisecondsSinceEpoch(dateVal);
+    }
+    
+    final now = DateTime.now();
+
+    String label = 'Prossimamente';
+    Color color = Colors.blue;
+    IconData icon = Icons.calendar_today;
+
+    if (isActive) {
+      label = 'Live';
+      color = Colors.green;
+      icon = Icons.sensors;
+    } else if (startDate != null && startDate.isBefore(now)) {
+      label = 'Concluso';
+      color = Colors.grey;
+      icon = Icons.check_circle_outline;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.2),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: color, size: 12),
+          const SizedBox(width: 4),
+          Text(
+            label.toUpperCase(),
+            style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatDate(dynamic dateVal) {
+    if (dateVal == null) return '';
+    
+    DateTime? date;
+    if (dateVal is String) {
+      date = DateTime.tryParse(dateVal);
+    } else if (dateVal is int) {
+      date = DateTime.fromMillisecondsSinceEpoch(dateVal);
+    }
+
+    if (date == null) return '';
+    return '${date.day}/${date.month}/${date.year}';
   }
 }

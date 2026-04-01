@@ -33,12 +33,6 @@ void main() async {
     DeviceOrientation.portraitDown,
   ]);
 
-  // Initialize SQLCipher (encryption)
-  try {
-    await AppDatabase.initializeSqlCipher();
-  } catch (e) {
-  }
-
   // Set system UI style
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(

@@ -1,7 +1,7 @@
 name: trnmnt
 description: "Basketball Tournament Manager - Gestione tornei di basket"
 publish_to: 'none'
-version: 2.2.0+220
+version: 3.0.0+300
 
 environment:
   sdk: ^3.8.1
@@ -19,14 +19,11 @@ dependencies:
   # Navigation
   go_router: ^14.6.2
   
-  # Database (SQLite with encryption)
+  # Database (SQLite Standard Ultra-Fast)
   drift: ^2.22.1
-  sqlcipher_flutter_libs: ^0.6.5
+  sqlite3_flutter_libs: ^0.5.25
   path_provider: ^2.1.5
   path: ^1.9.0
-  
-  # Secure Storage (for encryption key)
-  flutter_secure_storage: ^9.2.2
   
   # Audio (for buzzer/siren)
   audioplayers: ^6.1.0

@@ -4,6 +4,10 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../data/matches_repository.dart';
 import '../../data/tournaments_repository.dart';
+import '../../../stats/data/stats_repository.dart';
+import '../screens/standings_screen.dart'; // Add this for standingsProvider
+import '../../../../core/database/app_database.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 class CalendarScreen extends ConsumerWidget {
   final int tournamentId;
@@ -13,6 +17,8 @@ class CalendarScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final matchesAsync = ref.watch(groupMatchesProvider(tournamentId));
+    final tournamentsAsync = ref.watch(tournamentsProvider);
+    final tournament = tournamentsAsync.value?.firstWhere((t) => t.id == tournamentId);
 
     return Scaffold(
       appBar: AppBar(
@@ -60,6 +66,12 @@ class CalendarScreen extends ConsumerWidget {
               }
             },
           ),
+          if (tournament != null && tournament.isActive && (tournament.mode == 'group_only' || tournament.mode == 'madness'))
+            IconButton(
+              icon: const Icon(FontAwesomeIcons.trophy, color: Colors.orange, size: 20),
+              tooltip: 'Finalizza torneo',
+              onPressed: () => _finalizeTournament(context, ref, tournament),
+            ),
         ],
       ),
       body: matchesAsync.when(
@@ -252,6 +264,61 @@ class CalendarScreen extends ConsumerWidget {
         ),
       ),
     ).animate().fadeIn(delay: Duration(milliseconds: 50 * index)).slideX(begin: 0.1);
+  }
+
+  void _finalizeTournament(BuildContext context, WidgetRef ref, Tournament tournament) async {
+    // 1. Fetch current standings to find the winner
+    final standings = await ref.read(standingsProvider(tournamentId).future);
+    
+    if (standings.isEmpty) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Nessuna squadra in classifica. Impossibile finalizzare.')),
+        );
+      }
+      return;
+    }
+
+    final winner = standings.first;
+
+    if (!context.mounted) return;
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Finalizza Torneo'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Sei sicuro di voler chiudere il torneo?'),
+            const SizedBox(height: 12),
+            const Text('VINCITORE ATTUALE:', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.orange, letterSpacing: 1)),
+            Text(winner.teamName.toUpperCase(), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
+            const SizedBox(height: 8),
+            const Text('Il torneo diventerà di sola lettura.', style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic, color: Colors.grey)),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('ANNULLA'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, foregroundColor: Colors.black),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('CONFERMA E FINALIZZA'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      await ref.read(tournamentsRepositoryProvider).finalizeTournament(tournamentId, winner.teamId);
+      if (context.mounted) {
+        context.go('/tournaments/$tournamentId'); // Back to detail (read-only)
+      }
+    }
   }
 }
 

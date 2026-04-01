@@ -3,16 +3,11 @@ import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
-import 'package:sqlcipher_flutter_libs/sqlcipher_flutter_libs.dart';
-import 'package:sqlite3/sqlite3.dart';
-import 'package:sqlite3/open.dart';
-import 'package:flutter/foundation.dart';
-import 'dart:ffi';
-import '../security/encryption_service.dart';
 
 part 'app_database.g.dart';
 
 // ==================== TABLES ====================
+// ... (omitting table definitions for brevity, keep everything till @DriftDatabase)
 
 /// Teams table
 class Teams extends Table {
@@ -49,6 +44,7 @@ class Tournaments extends Table {
   DateTimeColumn get publishedAt => dateTime().nullable()();
   TextColumn get webUrl => text().nullable()();
   DateTimeColumn get startDate => dateTime().nullable()();
+  IntColumn get winnerTeamId => integer().nullable().references(Teams, #id)();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 }
 
@@ -112,112 +108,23 @@ class Courts extends Table {
 
 // ==================== DATABASE ====================
 
+// ==================== DATABASE ====================
+
 @DriftDatabase(tables: [Teams, Tournaments, TournamentTeams, Matches, Courts])
 class AppDatabase extends _$AppDatabase {
   AppDatabase._internal(super.e);
 
   static AppDatabase? _instance;
-  static bool _sqlCipherInitialized = false;
-
-  /// Initialize SQLCipher - must be called before database access
-  static Future<void> initializeSqlCipher() async {
-    if (_sqlCipherInitialized) return;
-    
-    if (Platform.isAndroid) {
-      await applyWorkaroundToOpenSqlCipherOnOldAndroidVersions();
-      open.overrideFor(OperatingSystem.android, openCipherOnAndroid);
-      _sqlCipherInitialized = true;
-    } else if (Platform.isIOS) {
-      // FORCE SQLCipher on iOS. By default, iOS might pick system sqlite3.dylib
-      try {
-        // Common path for SQLCipher dynamic framework from CocoaPods
-        open.overrideFor(OperatingSystem.iOS, () => DynamicLibrary.open('SQLCipher.framework/SQLCipher'));
-        debugPrint('DB: SQLCipher override applied for iOS');
-      } catch (e) {
-        debugPrint('DB WARNING: Could not find SQLCipher.framework, trying process symbols: $e');
-        try {
-          // Fallback to process symbols (might work if statically linked)
-          open.overrideFor(OperatingSystem.iOS, () => DynamicLibrary.process());
-        } catch (_) {}
-      }
-      _sqlCipherInitialized = true;
-    }
-  }
 
   static Future<AppDatabase> getInstance() async {
     if (_instance != null) return _instance!;
 
-    // Ensure SQLCipher is initialized
-    await initializeSqlCipher();
-
-    final encryptionService = EncryptionService();
-    final password = await encryptionService.getDatabasePassword();
-
     final dbFolder = await getApplicationDocumentsDirectory();
-    final file = File(p.join(dbFolder.path, 'trnmnt_encrypted.db'));
+    final file = File(p.join(dbFolder.path, 'trnmnt_v3.db'));
 
-    final database = NativeDatabase(
-      file,
-      setup: (rawDb) {
-        try {
-          // 1. First, check if the library actually supports SQLCipher
-          bool supportsCipher = false;
-          try {
-            final versionCheck = rawDb.select('PRAGMA cipher_version;');
-            supportsCipher = versionCheck.isNotEmpty && versionCheck.first.columnAt(0) != null;
-          } catch (_) {
-            supportsCipher = false;
-          }
-
-          if (!supportsCipher) {
-            debugPrint('DB WARNING: SQLCipher symbols not found. Falling back to standard SQLite.');
-            return; // Exit setup, standard SQLite is fine for plaintext
-          }
-
-          // 2. Detect if the file is plaintext or encrypted
-          // We do this by attempting a select WITHOUT a key first.
-          bool isPlaintext = false;
-          try {
-            rawDb.execute('SELECT count(*) FROM sqlite_master;');
-            isPlaintext = true;
-          } catch (_) {
-            isPlaintext = false;
-          }
-
-          if (isPlaintext) {
-            debugPrint('DB: Plaintext detected. Attempting migration to encrypted...');
-            try {
-              // Note: In some SQLCipher versions, you can't rekey from plaintext directly.
-              rawDb.execute("PRAGMA rekey = '$password';");
-              debugPrint('DB: Encryption migration complete.');
-            } catch (e) {
-              debugPrint('DB WARNING: Could not encrypt plaintext database ($e). Proceeding in plaintext mode to avoid data loss.');
-              // We don't rethrow here, so the app can still work with the plaintext data.
-            }
-          } else {
-            // It's already encrypted (or we don't have access yet), so set the key
-            rawDb.execute("PRAGMA key = '$password';");
-          }
-          
-          // 3. Set compatibility flags (page size 4KB is standard for SQLCipher)
-          rawDb.execute("PRAGMA cipher_page_size = 4096;");
-
-          // 4. Final verification
-          try {
-            rawDb.execute('SELECT count(*) FROM sqlite_master;');
-            debugPrint('DB: Database access verified.');
-          } catch (e) {
-            debugPrint('DB FATAL: Access denied after applying key. Key might be wrong or file corrupted: $e');
-            rethrow;
-          }
-        } catch (e) {
-          debugPrint('DB SETUP ERROR: $e');
-          rethrow;
-        }
-      },
-    );
-
+    final database = NativeDatabase(file);
     _instance = AppDatabase._internal(database);
+
     return _instance!;
   }
 
@@ -231,41 +138,8 @@ class AppDatabase extends _$AppDatabase {
         await m.createAll();
       },
       onUpgrade: (Migrator m, int from, int to) async {
-        // Ultra-safe migration: ensure all expected elements exist regardless of 'from' version
-        
-        // 1. Ensure Courts table exists (from v2)
-        final tableRes = await customSelect("SELECT name FROM sqlite_master WHERE type='table' AND name='courts'").get();
-        if (tableRes.isEmpty) {
+        if (from < 5) {
           await m.createTable(courts);
-        }
-
-        // 2. Ensure all columns in tournaments exist
-        final columnRes = await customSelect('PRAGMA table_info(tournaments)').get();
-        final existingCols = columnRes.map((r) => r.read<String>('name')).toList();
-
-        final expectedCols = {
-          'start_date': tournaments.startDate,
-          'mode': tournaments.mode,
-          'scoring_system': tournaments.scoringSystem,
-          'win_points': tournaments.winPoints,
-          'draw_points': tournaments.drawPoints,
-          'loss_points': tournaments.lossPoints,
-          'include_consolation_finals': tournaments.includeConsolationFinals,
-          'timer_minutes': tournaments.timerMinutes,
-          'is_active': tournaments.isActive,
-          'is_read_only': tournaments.isReadOnly,
-          'remote_id': tournaments.remoteId,
-          'source_ip': tournaments.sourceIp,
-          'source_port': tournaments.sourcePort,
-          'is_published': tournaments.isPublished,
-          'published_at': tournaments.publishedAt,
-          'web_url': tournaments.webUrl,
-        };
-
-        for (final entry in expectedCols.entries) {
-          if (!existingCols.contains(entry.key)) {
-            await m.addColumn(tournaments, entry.value);
-          }
         }
       },
     );

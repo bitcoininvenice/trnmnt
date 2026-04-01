@@ -108,31 +108,35 @@ class StatsRepository {
       int? winnerPointsAgainst;
       int? winnerId;
 
-      // Try finding final match winner
-      final finalMatch = await _db.customSelect(
-        "SELECT home_score, away_score, home_team_id, away_team_id FROM matches WHERE tournament_id = ? AND phase = 'final' AND is_completed = 1 LIMIT 1",
-        variables: [Variable.withInt(t.id)]
-      ).getSingleOrNull();
-
-      if (finalMatch != null) {
-        final hs = finalMatch.read<int>('home_score');
-        final as = finalMatch.read<int>('away_score');
-        winnerId = hs > as ? finalMatch.read<int>('home_team_id') : finalMatch.read<int>('away_team_id');
+      if (t.winnerTeamId != null) {
+        winnerId = t.winnerTeamId;
       } else {
-        // Fallback to standings order
-        final isMadness = t.mode == 'madness';
-        final standingQuery = isMadness 
-          ? 'SELECT team_id, SUM(score) as pts FROM (SELECT home_team_id as team_id, home_score as score FROM matches WHERE tournament_id = ? AND is_completed = 1 UNION ALL SELECT away_team_id as team_id, away_score as score FROM matches WHERE tournament_id = ? AND is_completed = 1) GROUP BY team_id ORDER BY pts DESC LIMIT 1'
-          : 'SELECT team_id, SUM(pts) as pts FROM (SELECT home_team_id as team_id, CASE WHEN home_score > away_score THEN ? WHEN home_score = away_score THEN ? ELSE ? END as pts FROM matches WHERE tournament_id = ? AND is_completed = 1 UNION ALL SELECT away_team_id as team_id, CASE WHEN away_score > home_score THEN ? WHEN home_score = away_score THEN ? ELSE ? END as pts FROM matches WHERE tournament_id = ? AND is_completed = 1) GROUP BY team_id ORDER BY pts DESC LIMIT 1';
-        
-        final standingVars = isMadness ? [Variable.withInt(t.id), Variable.withInt(t.id)] : [
-          Variable.withInt(t.winPoints), Variable.withInt(t.drawPoints), Variable.withInt(t.lossPoints), Variable.withInt(t.id),
-          Variable.withInt(t.winPoints), Variable.withInt(t.drawPoints), Variable.withInt(t.lossPoints), Variable.withInt(t.id),
-        ];
+        // Try finding final match winner
+        final finalMatch = await _db.customSelect(
+          "SELECT home_score, away_score, home_team_id, away_team_id FROM matches WHERE tournament_id = ? AND phase = 'final' AND is_completed = 1 LIMIT 1",
+          variables: [Variable.withInt(t.id)]
+        ).getSingleOrNull();
 
-        final result = await _db.customSelect(standingQuery, variables: standingVars).getSingleOrNull();
-        if (result != null) {
-          winnerId = result.read<int>('team_id');
+        if (finalMatch != null) {
+          final hs = finalMatch.read<int>('home_score');
+          final as = finalMatch.read<int>('away_score');
+          winnerId = hs > as ? finalMatch.read<int>('home_team_id') : finalMatch.read<int>('away_team_id');
+        } else if (!t.isActive) {
+          // Fallback to standings only if finished
+          final isMadness = t.mode == 'madness';
+          final standingQuery = isMadness 
+            ? 'SELECT team_id, SUM(score) as pts FROM (SELECT home_team_id as team_id, home_score as score FROM matches WHERE tournament_id = ? AND is_completed = 1 UNION ALL SELECT away_team_id as team_id, away_score as score FROM matches WHERE tournament_id = ? AND is_completed = 1) GROUP BY team_id ORDER BY pts DESC LIMIT 1'
+            : 'SELECT team_id, SUM(pts) as pts FROM (SELECT home_team_id as team_id, CASE WHEN home_score > away_score THEN ? WHEN home_score = away_score THEN ? ELSE ? END as pts FROM matches WHERE tournament_id = ? AND is_completed = 1 UNION ALL SELECT away_team_id as team_id, CASE WHEN away_score > home_score THEN ? WHEN home_score = away_score THEN ? ELSE ? END as pts FROM matches WHERE tournament_id = ? AND is_completed = 1) GROUP BY team_id ORDER BY pts DESC LIMIT 1';
+          
+          final standingVars = isMadness ? [Variable.withInt(t.id), Variable.withInt(t.id)] : [
+            Variable.withInt(t.winPoints), Variable.withInt(t.drawPoints), Variable.withInt(t.lossPoints), Variable.withInt(t.id),
+            Variable.withInt(t.winPoints), Variable.withInt(t.drawPoints), Variable.withInt(t.lossPoints), Variable.withInt(t.id),
+          ];
+
+          final result = await _db.customSelect(standingQuery, variables: standingVars).getSingleOrNull();
+          if (result != null) {
+            winnerId = result.read<int>('team_id');
+          }
         }
       }
 
@@ -161,10 +165,10 @@ class StatsRepository {
           ]
         ).getSingle();
 
-        winnerWins = sRows.read<int>('wins');
-        winnerLosses = sRows.read<int>('losses');
-        winnerPointsFor = sRows.read<int>('points_for');
-        winnerPointsAgainst = sRows.read<int>('points_against');
+        winnerWins = sRows.read<int?>('wins') ?? 0;
+        winnerLosses = sRows.read<int?>('losses') ?? 0;
+        winnerPointsFor = sRows.read<int?>('points_for') ?? 0;
+        winnerPointsAgainst = sRows.read<int?>('points_against') ?? 0;
       } else {
         winnerName = t.isActive ? "In corso..." : "Nessun Vincitore";
       }

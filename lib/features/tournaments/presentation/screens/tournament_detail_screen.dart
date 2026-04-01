@@ -215,14 +215,24 @@ class _TournamentDetailScreenState extends ConsumerState<TournamentDetailScreen>
 
                       // Location
                       Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Row(
-                        children: [
-                          const Icon(Icons.stadium, size: 20, color: Colors.orange),
-                          const SizedBox(width: 8),
-                          Text(tournament.location),
-                        ],),
+                          Expanded(
+                            child: Row(
+                              children: [
+                                const Icon(Icons.stadium, size: 20, color: Colors.orange),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    tournament.location,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 16),
                           // Actions
                       Row(
                         children: [

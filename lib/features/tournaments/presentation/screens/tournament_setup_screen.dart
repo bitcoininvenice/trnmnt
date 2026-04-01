@@ -4,6 +4,10 @@ import 'package:go_router/go_router.dart';
 import '../../data/tournaments_repository.dart';
 import '../../../teams/data/teams_repository.dart';
 import 'package:trnmnt/generated/l10n/app_localizations.dart';
+import '../../../map/data/courts_repository.dart';
+import '../../../../core/services/geocoding_service.dart';
+import 'dart:async';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 class TournamentSetupScreen extends ConsumerStatefulWidget {
   const TournamentSetupScreen({super.key});
@@ -30,6 +34,11 @@ class _TournamentSetupScreenState extends ConsumerState<TournamentSetupScreen> {
   final Set<int> _selectedTeamIds = {};
   int _currentStep = 0;
   bool _isLoading = false;
+
+  // Realtime search location
+  List<LocationSuggestion> _suggestions = [];
+  Timer? _debounce;
+  bool _isSearchingLocation = false;
 
   @override
   void dispose() {
@@ -184,23 +193,150 @@ class _TournamentSetupScreenState extends ConsumerState<TournamentSetupScreen> {
             },
           ),
           const SizedBox(height: 16),
-          TextFormField(
-            controller: _locationController,
-            decoration: InputDecoration(
-              labelText: AppLocalizations.of(context)!.tournamentLocation,
-              hintText: 'Es. Palestra Comunale',
-              prefixIcon: const Icon(Icons.location_on),
-            ),
-            validator: (value) {
-              if (value == null || value.trim().isEmpty) {
-                return AppLocalizations.of(context)!.enterTournamentLocation;
-              }
-              return null;
-            },
-          ),
+          _buildEnhancedLocationField(),
           const SizedBox(height: 24),
           _buildDateField(),
         ],
+      ),
+    );
+  }
+
+  Widget _buildEnhancedLocationField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TextFormField(
+          controller: _locationController,
+          decoration: InputDecoration(
+            labelText: AppLocalizations.of(context)!.tournamentLocation,
+            hintText: 'Cerca indirizzo o campetto...',
+            prefixIcon: const Icon(Icons.location_on),
+            suffixIcon: IconButton(
+              icon: const Icon(Icons.map_outlined, color: Colors.orange),
+              tooltip: 'Scegli dai campetti salvati',
+              onPressed: _showCourtsPicker,
+            ),
+          ),
+          onChanged: _onLocationChanged,
+          validator: (value) {
+            if (value == null || value.trim().isEmpty) {
+              return AppLocalizations.of(context)!.enterTournamentLocation;
+            }
+            return null;
+          },
+        ),
+        if (_isSearchingLocation)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 8),
+            child: LinearProgressIndicator(minHeight: 2),
+          ),
+        if (_suggestions.isNotEmpty)
+          Container(
+            margin: const EdgeInsets.only(top: 4),
+            decoration: BoxDecoration(
+              color: Theme.of(context).cardColor,
+              borderRadius: BorderRadius.circular(8),
+              boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2))],
+            ),
+            constraints: const BoxConstraints(maxHeight: 200),
+            child: ListView.separated(
+              shrinkWrap: true,
+              itemCount: _suggestions.length,
+              separatorBuilder: (_, __) => const Divider(height: 1),
+              itemBuilder: (context, index) {
+                final suggestion = _suggestions[index];
+                return ListTile(
+                  dense: true,
+                  leading: const Icon(Icons.place, size: 18, color: Colors.blue),
+                  title: Text(suggestion.displayName, style: const TextStyle(fontSize: 13)),
+                  onTap: () {
+                    setState(() {
+                      _locationController.text = suggestion.displayName;
+                      _suggestions = [];
+                    });
+                  },
+                );
+              },
+            ),
+          ),
+      ],
+    );
+  }
+
+  void _onLocationChanged(String query) {
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+    _debounce = Timer(const Duration(milliseconds: 500), () async {
+      if (query.length < 3) {
+        setState(() => _suggestions = []);
+        return;
+      }
+      
+      setState(() => _isSearchingLocation = true);
+      try {
+        final results = await ref.read(geocodingServiceProvider).searchAddress(query);
+        setState(() => _suggestions = results);
+      } finally {
+        setState(() => _isSearchingLocation = false);
+      }
+    });
+  }
+
+  void _showCourtsPicker() {
+    final courtsAsync = ref.read(courtsProvider);
+    
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          children: [
+            Container(
+              width: 40, height: 4,
+              margin: const EdgeInsets.symmetric(vertical: 12),
+              decoration: BoxDecoration(color: Colors.grey[600], borderRadius: BorderRadius.circular(2)),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  const Icon(FontAwesomeIcons.basketball, color: Colors.orange, size: 20),
+                  const SizedBox(width: 12),
+                  Text('SCEGLI UN CAMPETTO', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                ],
+              ),
+            ),
+            Expanded(
+              child: courtsAsync.when(
+                data: (courts) {
+                  if (courts.isEmpty) {
+                    return Center(child: Text('Nessun campetto salvato sulla mappa.'));
+                  }
+                  return ListView.builder(
+                    itemCount: courts.length,
+                    itemBuilder: (context, index) {
+                      final court = courts[index];
+                      return ListTile(
+                        leading: const CircleAvatar(backgroundColor: Colors.orange, child: Icon(Icons.sports_basketball, size: 16, color: Colors.white)),
+                        title: Text(court.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                        subtitle: Text('Valutazione: ${"⭐" * court.stars}', style: const TextStyle(fontSize: 12)),
+                        onTap: () {
+                          setState(() => _locationController.text = court.name);
+                          Navigator.pop(context);
+                        },
+                      );
+                    },
+                  );
+                },
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (e, s) => Center(child: Text('Errore nel caricamento campetti')),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

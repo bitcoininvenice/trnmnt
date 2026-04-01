@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+import 'package:go_router/go_router.dart';
 import 'package:trnmnt/generated/l10n/app_localizations.dart';
 import 'package:trnmnt/core/providers/theme_provider.dart';
 import 'package:trnmnt/core/providers/locale_provider.dart';
@@ -83,230 +84,125 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         title: Text(AppLocalizations.of(context)!.settings),
       ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(vertical: 8),
         children: [
-          // Language Section
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(AppLocalizations.of(context)!.appLanguage, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 16),
-                  RadioListTile<String>(
-                    title: const Text('Italiano'),
-                    value: 'it',
-                    groupValue: ref.watch(localeProvider).languageCode,
-                    onChanged: (lang) => ref.read(localeProvider.notifier).setLocale(Locale(lang!)),
-                  ),
-                  RadioListTile<String>(
-                    title: const Text('English'),
-                    value: 'en',
-                    groupValue: ref.watch(localeProvider).languageCode,
-                    onChanged: (lang) => ref.read(localeProvider.notifier).setLocale(Locale(lang!)),
-                  ),
-                ],
-              ),
+          _buildSectionHeader(context, AppLocalizations.of(context)!.appLanguage),
+          ListTile(
+            leading: const Icon(Icons.language, color: Colors.blue),
+            title: Text(AppLocalizations.of(context)!.appLanguage),
+            trailing: DropdownButton<String>(
+              value: ref.watch(localeProvider).languageCode,
+              underline: const SizedBox(),
+              items: const [
+                DropdownMenuItem(value: 'it', child: Text('Italiano')),
+                DropdownMenuItem(value: 'en', child: Text('English')),
+              ],
+              onChanged: (lang) => ref.read(localeProvider.notifier).setLocale(Locale(lang!)),
             ),
           ),
-          const SizedBox(height: 16),
+          const Divider(),
 
-          // Theme Section
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(AppLocalizations.of(context)!.theme, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 16),
-                  RadioListTile<AppThemeMode>(
-                    title: Text(AppLocalizations.of(context)!.baseTheme),
-                    value: AppThemeMode.base,
-                    groupValue: themeMode,
-                    onChanged: (mode) => ref.read(themeProvider.notifier).setTheme(mode!),
-                  ),
-                  RadioListTile<AppThemeMode>(
-                    title: Text(AppLocalizations.of(context)!.darkTheme),
-                    value: AppThemeMode.dark,
-                    groupValue: themeMode,
-                    onChanged: (mode) => ref.read(themeProvider.notifier).setTheme(mode!),
-                  ),
-                  RadioListTile<AppThemeMode>(
-                    title: Text(AppLocalizations.of(context)!.lightTheme),
-                    value: AppThemeMode.light,
-                    groupValue: themeMode,
-                    onChanged: (mode) => ref.read(themeProvider.notifier).setTheme(mode!),
-                  ),
-                ],
-              ),
+          _buildSectionHeader(context, AppLocalizations.of(context)!.theme),
+          ListTile(
+            leading: const Icon(Icons.palette_outlined, color: Colors.orange),
+            title: Text(AppLocalizations.of(context)!.theme),
+            trailing: DropdownButton<AppThemeMode>(
+              value: themeMode,
+              underline: const SizedBox(),
+              items: [
+                DropdownMenuItem(value: AppThemeMode.base, child: Text(AppLocalizations.of(context)!.baseTheme)),
+                DropdownMenuItem(value: AppThemeMode.dark, child: Text(AppLocalizations.of(context)!.darkTheme)),
+                DropdownMenuItem(value: AppThemeMode.light, child: Text(AppLocalizations.of(context)!.lightTheme)),
+              ],
+              onChanged: (mode) => ref.read(themeProvider.notifier).setTheme(mode!),
             ),
           ),
-          const SizedBox(height: 16),
+          const Divider(),
 
-          // App Icon Section
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(AppLocalizations.of(context)!.appIcon, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 16),
-                  Center(
-                    child: Column(
-                      children: [
-                        Container(
-                          width: 100,
-                          height: 100,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(20),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.1),
-                                blurRadius: 10,
-                                spreadRadius: 2,
-                              ),
-                            ],
-                          ),
-                          clipBehavior: Clip.antiAlias,
-                          child: customIconPath != null
-                            ? Image.file(File(customIconPath), fit: BoxFit.cover)
-                            : Image.asset(_assetIconPath, fit: BoxFit.cover, errorBuilder: (c, o, s) => const Icon(Icons.apps, size: 50)),
-                        ),
-                        const SizedBox(height: 16),
-                        ElevatedButton.icon(
-                          onPressed: _pickAppIcon,
-                          icon: const Icon(Icons.photo_library),
-                          label: Text(AppLocalizations.of(context)!.pickImageIcon),
-                        ),
-                        if (customIconPath != null)
-                          TextButton.icon(
-                            onPressed: () async {
-                              await ref.read(customIconProvider.notifier).reset();
-                            },
-                            icon: const Icon(Icons.restore, color: Colors.orange),
-                            label: Text(
-                              AppLocalizations.of(context)!.resetIcon,
-                              style: const TextStyle(color: Colors.orange),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                ],
+          _buildSectionHeader(context, 'Legenda'),
+          ListTile(
+            leading: const Icon(Icons.menu_book, color: Colors.green),
+            title: const Text('Modalità Torneo'),
+            subtitle: const Text('Scopri regole e dettagli'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => context.push('/settings/legend'),
+          ),
+          const Divider(),
+
+          _buildSectionHeader(context, AppLocalizations.of(context)!.appIcon),
+          ListTile(
+            leading: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4)],
               ),
+              clipBehavior: Clip.antiAlias,
+              child: customIconPath != null
+                ? Image.file(File(customIconPath), fit: BoxFit.cover)
+                : Image.asset(_assetIconPath, fit: BoxFit.cover, errorBuilder: (c, o, s) => const Icon(Icons.apps)),
+            ),
+            title: Text(AppLocalizations.of(context)!.appIcon),
+            subtitle: Text(customIconPath != null ? 'Icona personalizzata attiva' : 'Icona predefinita'),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (customIconPath != null)
+                  IconButton(
+                    icon: const Icon(Icons.restore, color: Colors.orange),
+                    onPressed: () => ref.read(customIconProvider.notifier).reset(),
+                  ),
+                IconButton(
+                  icon: const Icon(Icons.photo_library, color: Colors.blue),
+                  onPressed: _pickAppIcon,
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 16),
+          const Divider(),
 
-          // // API Settings
-          // Card(
-          //   child: Padding(
-          //     padding: const EdgeInsets.all(16),
-          //     child: Column(
-          //       crossAxisAlignment: CrossAxisAlignment.start,
-          //       children: [
-          //         Row(
-          //           children: [
-          //             Text(
-          //               AppLocalizations.of(context)!.apiSettings,
-          //               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          //             ),
-          //             const Spacer(),
-          //             // Status Dot
-          //             Container(
-          //               width: 12,
-          //               height: 12,
-          //               decoration: BoxDecoration(
-          //                 shape: BoxShape.circle,
-          //                 color: ref.watch(apiConfigProvider).isConnected ? Colors.green : Colors.red,
-          //               ),
-          //             ),
-          //             const SizedBox(width: 8),
-          //           ],
-          //         ),
-          //         const SizedBox(height: 16),
-          //         TextFormField(
-          //           initialValue: ref.read(apiConfigProvider).baseUrl,
-          //           decoration: InputDecoration(
-          //             labelText: AppLocalizations.of(context)!.apiUrl,
-          //             hintText: AppLocalizations.of(context)!.apiUrlHint,
-          //             border: const OutlineInputBorder(),
-          //             suffixIcon: IconButton(
-          //               icon: const Icon(Icons.check_circle_outline),
-          //               onPressed: () async {
-          //                 final success = await ref.read(apiConfigProvider.notifier).testConnection();
-          //                 if (mounted) {
-          //                   ScaffoldMessenger.of(context).showSnackBar(
-          //                     SnackBar(
-          //                       content: Text(success 
-          //                         ? AppLocalizations.of(context)!.connectionWorking 
-          //                         : AppLocalizations.of(context)!.connectionError),
-          //                       backgroundColor: success ? Colors.green : Colors.red,
-          //                     ),
-          //                   );
-          //                 }
-          //               },
-          //             ),
-          //           ),
-          //           onFieldSubmitted: (val) => ref.read(apiConfigProvider.notifier).setUrl(val),
-          //         ),
-          //       ],
-          //     ),
-          //   ),
-          // ),
-          // const SizedBox(height: 16),
-
-          // Developer Section
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(AppLocalizations.of(context)!.developers, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 8),
-                  const Text('Venice Streetball Community'),
-                  const SizedBox(height: 16),
-                  ListTile(
-                    leading: const FaIcon(FontAwesomeIcons.globe),
-                    title: Text(AppLocalizations.of(context)!.officialWebsite),
-                    subtitle: Text(ref.watch(apiConfigProvider).baseUrl.replaceFirst('https://', '').replaceFirst('http://', '')),
-                    onTap: () => _launchUrl(ref.read(apiConfigProvider).baseUrl),
-                  ),
-                  ListTile(
-                    leading: const FaIcon(FontAwesomeIcons.instagram),
-                    title: const Text('Instagram'),
-                    onTap: () => _launchUrl('https://instagram.com/venicestreetball'),
-                  ),
-                  ListTile(
-                    leading: const FaIcon(FontAwesomeIcons.tiktok),
-                    title: const Text('TikTok'),
-                    onTap: () => _launchUrl('https://tiktok.com/@venicestreetball'),
-                  ),
-                  ListTile(
-                    leading: const FaIcon(FontAwesomeIcons.github),
-                    title: const Text('GitHub'),
-                    onTap: () => _launchUrl('https://github.com/bitcoininvenice/trnmnt/releases/tag/$_baseVersion'),
-                  ),
-                ],
-              ),
-            ),
+          _buildSectionHeader(context, AppLocalizations.of(context)!.developers),
+          ListTile(
+            leading: const FaIcon(FontAwesomeIcons.globe, size: 20),
+            title: Text(AppLocalizations.of(context)!.officialWebsite),
+            onTap: () => _launchUrl(ref.read(apiConfigProvider).baseUrl),
+          ),
+          ListTile(
+            leading: const FaIcon(FontAwesomeIcons.instagram, size: 20),
+            title: const Text('Instagram'),
+            onTap: () => _launchUrl('https://instagram.com/venicestreetball'),
+          ),
+          ListTile(
+            leading: const FaIcon(FontAwesomeIcons.github, size: 20),
+            title: const Text('GitHub'),
+            onTap: () => _launchUrl('https://github.com/bitcoininvenice/trnmnt/releases/tag/$_baseVersion'),
           ),
           const SizedBox(height: 32),
 
-          // Version Info
           Center(
             child: Text(
               '${AppLocalizations.of(context)!.appVersion} $_version',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey.shade500),
+              style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
             ),
           ),
           const SizedBox(height: 32),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(BuildContext context, String title) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 16, top: 16, bottom: 8),
+      child: Text(
+        title.toUpperCase(),
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+          color: Theme.of(context).colorScheme.primary.withOpacity(0.7),
+          letterSpacing: 1.2,
+        ),
       ),
     );
   }

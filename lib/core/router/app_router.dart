@@ -18,6 +18,8 @@ import '../../features/single_match/presentation/screens/single_match_setup_scre
 import '../../features/single_match/presentation/screens/single_match_screen.dart';
 import '../../features/map/presentation/screens/map_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
+import '../../features/settings/presentation/screens/mode_legend_screen.dart';
+import '../../features/settings/presentation/screens/mode_detail_screen.dart';
 import '../../features/stats/presentation/screens/hall_of_fame_screen.dart';
 import '../../features/sharing/presentation/screens/share_tournament_screen.dart';
 import '../../features/sharing/presentation/screens/scan_tournament_screen.dart';
@@ -162,6 +164,21 @@ final routerProvider = Provider<GoRouter>((ref) {
             pageBuilder: (context, state) => const NoTransitionPage(
               child: SettingsScreen(),
             ),
+            routes: [
+              GoRoute(
+                path: 'legend',
+                builder: (context, state) => const ModeLegendScreen(),
+                routes: [
+                  GoRoute(
+                    path: ':modeId',
+                    builder: (context, state) {
+                      final modeId = state.pathParameters['modeId']!;
+                      return ModeDetailScreen(modeId: modeId);
+                    },
+                  ),
+                ],
+              ),
+            ],
           ),
           GoRoute(
             path: '/map',
