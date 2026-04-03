@@ -548,4 +548,72 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get openInBrowser => 'Apri nel Browser';
+
+  @override
+  String get teamOrder => 'Ordine Squadre';
+
+  @override
+  String get dragToReorder => 'Trascina per spostare';
+
+  @override
+  String get madnessOrderSubtitle =>
+      'L\'ordine delle squadre determina il bracket Madness.';
+
+  @override
+  String get live => 'Live';
+
+  @override
+  String get matchDetail => 'Dettaglio Partita';
+
+  @override
+  String get quit => 'Esci';
+
+  @override
+  String get rules => 'Regole';
+
+  @override
+  String get viewTournamentRules => 'Vedi le regole del torneo';
+
+  @override
+  String get multiGroup => 'Gironi Multipli';
+
+  @override
+  String get groupCountLabel => 'Numero di Gironi';
+
+  @override
+  String get teamsPerGroup => 'Squadre per Girone';
+
+  @override
+  String get randomDistribution => 'Distribuzione Casuale';
+
+  @override
+  String get manualDistribution => 'Distribuzione Manuale';
+
+  @override
+  String get qualifiersPerGroupLabel => 'Qualificati per Girone';
+
+  @override
+  String get hasPlayInLabel => 'Includi Spareggi (Play-In)';
+
+  @override
+  String get editGroups => 'Gestisci i Gironi';
+
+  @override
+  String get distributeTeams => 'Distribuisci le squadre nei gironi';
+
+  @override
+  String get groupNameHint => 'Nome Girone (es. A, B...)';
+
+  @override
+  String get upcoming => 'Prossimamente';
+
+  @override
+  String get concluded => 'Concluso';
+
+  @override
+  String get playIn => 'Spareggi';
+
+  @override
+  String get modeLockedWarning =>
+      'La modalità non può essere cambiata perché il torneo è già iniziato.';
 }

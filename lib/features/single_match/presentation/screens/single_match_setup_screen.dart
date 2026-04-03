@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:trnmnt/generated/l10n/app_localizations.dart';
 import '../../../teams/data/teams_repository.dart';
+import '../../../game/providers/game_provider.dart';
 
 class SingleMatchSetupScreen extends ConsumerStatefulWidget {
   const SingleMatchSetupScreen({super.key});
@@ -93,6 +94,7 @@ class _SingleMatchSetupScreenState extends ConsumerState<SingleMatchSetupScreen>
                     ),
                     onPressed: () {
                       if (_formKey.currentState!.validate()) {
+                        ref.read(activeGameProvider.notifier).setupStandalone(_homeTeamName, _awayTeamName);
                         context.pushNamed(
                           'single-match-board',
                           extra: {

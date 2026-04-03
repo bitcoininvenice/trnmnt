@@ -55,7 +55,9 @@ class _ShareTournamentScreenState extends ConsumerState<ShareTournamentScreen> {
       if (tournament != null) {
         setState(() {
           _webUrl = tournament.webUrl;
-          // Note: twitchChannel is not in the schema yet, but if it were we'd load it.
+          if (tournament.twitchChannel != null) {
+            _twitchController.text = tournament.twitchChannel!;
+          }
         });
       }
 
@@ -107,35 +109,20 @@ class _ShareTournamentScreenState extends ConsumerState<ShareTournamentScreen> {
     setState(() => _isPublishing = true);
     try {
       final repo = ref.read(shareRepositoryProvider);
-      final apiConfig = ref.read(apiConfigProvider);
-      final bundle = await repo.getTournamentExport(widget.tournamentId);
-
-      // Inject twitchChannel into tournament data if provided
+      final tournamentsRepo = ref.read(tournamentsRepositoryProvider);
+      
+      // 1. Save and handle twitch channel
       final twitchChannel = _twitchController.text.trim();
-      if (twitchChannel.isNotEmpty && bundle != null) {
-        final tournament = Map<String, dynamic>.from(bundle['tournament'] as Map);
-        tournament['twitchChannel'] = twitchChannel;
-        bundle['tournament'] = tournament;
-      }
+      await tournamentsRepo.updateTwitchChannel(widget.tournamentId, twitchChannel);
 
-      final response = await http.post(
-        Uri.parse('${apiConfig.baseUrl}/api/publish'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(bundle),
-      ).timeout(const Duration(seconds: 15));
+      // 2. Use the central repository method that handles Supabase triggers and slugs
+      final fullUrl = await repo.publishToSupabase(widget.tournamentId);
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final relativeUrl = data['url'] as String;
-        final fullUrl = apiConfig.baseUrl + (relativeUrl.startsWith('/') ? relativeUrl : '/$relativeUrl');
-
+      if (fullUrl != null) {
         setState(() {
           _webUrl = fullUrl;
           _isPublishing = false;
         });
-
-        // Save to DB
-        await repo.saveWebUrl(widget.tournamentId, fullUrl);
 
         if (mounted) {
            ScaffoldMessenger.of(context).showSnackBar(
@@ -143,7 +130,7 @@ class _ShareTournamentScreenState extends ConsumerState<ShareTournamentScreen> {
           );
         }
       } else {
-        throw 'Error ${response.statusCode}: ${response.body}';
+        throw 'Errore durante la pubblicazione sul cloud Supabase.';
       }
     } catch (e) {
       if (mounted) {
@@ -180,9 +167,8 @@ class _ShareTournamentScreenState extends ConsumerState<ShareTournamentScreen> {
       bodyContent = Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          if(_webUrl == null)
           Container(
-            margin: const EdgeInsets.only(bottom: 20),
+            margin: const EdgeInsets.only(bottom: 24),
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: Colors.purple.withOpacity(0.08),
@@ -234,9 +220,23 @@ class _ShareTournamentScreenState extends ConsumerState<ShareTournamentScreen> {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Se attivo, verrà mostrato il player video nella pagina web del torneo.',
+                  _webUrl == null 
+                    ? 'Se attivo, verrà mostrato il player video nella pagina web.'
+                    : 'Modifica e ripubblica per cambiare il canale Twitch.',
                   style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 11),
                 ),
+                if (_webUrl != null) ...[
+                   const SizedBox(height: 8),
+                   SizedBox(
+                     width: double.infinity,
+                     child: TextButton.icon(
+                       onPressed: _isPublishing ? null : _publishToWeb,
+                       icon: const Icon(Icons.sync, size: 16),
+                       label: const Text('Aggiorna Canale Live', style: TextStyle(fontSize: 12)),
+                       style: TextButton.styleFrom(foregroundColor: Colors.purpleAccent, padding: EdgeInsets.zero),
+                     ),
+                   ),
+                ],
               ],
             ),
           ),

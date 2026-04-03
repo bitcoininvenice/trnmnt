@@ -270,7 +270,7 @@ class CalendarScreen extends ConsumerWidget {
     // 1. Fetch current standings to find the winner
     final standings = await ref.read(standingsProvider(tournamentId).future);
     
-    if (standings.isEmpty) {
+    if (standings.isEmpty || standings.values.every((list) => list.isEmpty)) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Nessuna squadra in classifica. Impossibile finalizzare.')),
@@ -279,7 +279,7 @@ class CalendarScreen extends ConsumerWidget {
       return;
     }
 
-    final winner = standings.first;
+    final winner = standings.values.first.first;
 
     if (!context.mounted) return;
 

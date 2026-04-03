@@ -45,6 +45,15 @@ class Tournaments extends Table {
   TextColumn get webUrl => text().nullable()();
   DateTimeColumn get startDate => dateTime().nullable()();
   IntColumn get winnerTeamId => integer().nullable().references(Teams, #id)();
+  
+  // New for multi-group
+  IntColumn get groupCount => integer().withDefault(const Constant(1))();
+  IntColumn get qualifiersPerGroup => integer().withDefault(const Constant(2))();
+  BoolColumn get hasPlayIn => boolean().withDefault(const Constant(false))();
+  TextColumn get groupNames => text().nullable()(); // JSON list of names
+  TextColumn get twitchChannel => text().nullable()(); // Optional: "venicestreetball"
+  TextColumn get cloudId => text().nullable()(); // Unique ID for Supabase link
+
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 }
 
@@ -129,7 +138,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration {
@@ -140,6 +149,18 @@ class AppDatabase extends _$AppDatabase {
       onUpgrade: (Migrator m, int from, int to) async {
         if (from < 5) {
           await m.createTable(courts);
+        }
+        if (from < 6) {
+          await m.addColumn(tournaments, tournaments.groupCount);
+          await m.addColumn(tournaments, tournaments.qualifiersPerGroup);
+          await m.addColumn(tournaments, tournaments.hasPlayIn);
+          await m.addColumn(tournaments, tournaments.groupNames);
+        }
+        if (from < 7) {
+          await m.addColumn(tournaments, tournaments.twitchChannel);
+        }
+        if (from < 8) {
+          await m.addColumn(this.tournaments, this.tournaments.cloudId);
         }
       },
     );

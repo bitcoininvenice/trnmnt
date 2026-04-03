@@ -546,4 +546,72 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get openInBrowser => 'Open in Browser';
+
+  @override
+  String get teamOrder => 'Team Order';
+
+  @override
+  String get dragToReorder => 'Drag to reorder';
+
+  @override
+  String get madnessOrderSubtitle =>
+      'The team order determines the Madness bracket.';
+
+  @override
+  String get live => 'Live';
+
+  @override
+  String get matchDetail => 'Match Details';
+
+  @override
+  String get quit => 'Quit';
+
+  @override
+  String get rules => 'Rules';
+
+  @override
+  String get viewTournamentRules => 'View tournament rules';
+
+  @override
+  String get multiGroup => 'Multi-Group';
+
+  @override
+  String get groupCountLabel => 'Number of Groups';
+
+  @override
+  String get teamsPerGroup => 'Teams per Group';
+
+  @override
+  String get randomDistribution => 'Random Distribution';
+
+  @override
+  String get manualDistribution => 'Manual Distribution';
+
+  @override
+  String get qualifiersPerGroupLabel => 'Qualifiers per Group';
+
+  @override
+  String get hasPlayInLabel => 'Include Play-In (Spareggi)';
+
+  @override
+  String get editGroups => 'Manage Groups';
+
+  @override
+  String get distributeTeams => 'Distribute teams into groups';
+
+  @override
+  String get groupNameHint => 'Group Name (e.g. A, B...)';
+
+  @override
+  String get upcoming => 'Upcoming';
+
+  @override
+  String get concluded => 'Concluded';
+
+  @override
+  String get playIn => 'Play-In';
+
+  @override
+  String get modeLockedWarning =>
+      'Tournament mode cannot be changed once matches have started.';
 }

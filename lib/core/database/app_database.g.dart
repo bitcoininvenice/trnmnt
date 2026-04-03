@@ -558,6 +558,77 @@ class $TournamentsTable extends Tournaments
       'REFERENCES teams (id)',
     ),
   );
+  static const VerificationMeta _groupCountMeta = const VerificationMeta(
+    'groupCount',
+  );
+  @override
+  late final GeneratedColumn<int> groupCount = GeneratedColumn<int>(
+    'group_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1),
+  );
+  static const VerificationMeta _qualifiersPerGroupMeta =
+      const VerificationMeta('qualifiersPerGroup');
+  @override
+  late final GeneratedColumn<int> qualifiersPerGroup = GeneratedColumn<int>(
+    'qualifiers_per_group',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(2),
+  );
+  static const VerificationMeta _hasPlayInMeta = const VerificationMeta(
+    'hasPlayIn',
+  );
+  @override
+  late final GeneratedColumn<bool> hasPlayIn = GeneratedColumn<bool>(
+    'has_play_in',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("has_play_in" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _groupNamesMeta = const VerificationMeta(
+    'groupNames',
+  );
+  @override
+  late final GeneratedColumn<String> groupNames = GeneratedColumn<String>(
+    'group_names',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _twitchChannelMeta = const VerificationMeta(
+    'twitchChannel',
+  );
+  @override
+  late final GeneratedColumn<String> twitchChannel = GeneratedColumn<String>(
+    'twitch_channel',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _cloudIdMeta = const VerificationMeta(
+    'cloudId',
+  );
+  @override
+  late final GeneratedColumn<String> cloudId = GeneratedColumn<String>(
+    'cloud_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -592,6 +663,12 @@ class $TournamentsTable extends Tournaments
     webUrl,
     startDate,
     winnerTeamId,
+    groupCount,
+    qualifiersPerGroup,
+    hasPlayIn,
+    groupNames,
+    twitchChannel,
+    cloudId,
     createdAt,
   ];
   @override
@@ -748,6 +825,48 @@ class $TournamentsTable extends Tournaments
         ),
       );
     }
+    if (data.containsKey('group_count')) {
+      context.handle(
+        _groupCountMeta,
+        groupCount.isAcceptableOrUnknown(data['group_count']!, _groupCountMeta),
+      );
+    }
+    if (data.containsKey('qualifiers_per_group')) {
+      context.handle(
+        _qualifiersPerGroupMeta,
+        qualifiersPerGroup.isAcceptableOrUnknown(
+          data['qualifiers_per_group']!,
+          _qualifiersPerGroupMeta,
+        ),
+      );
+    }
+    if (data.containsKey('has_play_in')) {
+      context.handle(
+        _hasPlayInMeta,
+        hasPlayIn.isAcceptableOrUnknown(data['has_play_in']!, _hasPlayInMeta),
+      );
+    }
+    if (data.containsKey('group_names')) {
+      context.handle(
+        _groupNamesMeta,
+        groupNames.isAcceptableOrUnknown(data['group_names']!, _groupNamesMeta),
+      );
+    }
+    if (data.containsKey('twitch_channel')) {
+      context.handle(
+        _twitchChannelMeta,
+        twitchChannel.isAcceptableOrUnknown(
+          data['twitch_channel']!,
+          _twitchChannelMeta,
+        ),
+      );
+    }
+    if (data.containsKey('cloud_id')) {
+      context.handle(
+        _cloudIdMeta,
+        cloudId.isAcceptableOrUnknown(data['cloud_id']!, _cloudIdMeta),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -843,6 +962,30 @@ class $TournamentsTable extends Tournaments
         DriftSqlType.int,
         data['${effectivePrefix}winner_team_id'],
       ),
+      groupCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}group_count'],
+      )!,
+      qualifiersPerGroup: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}qualifiers_per_group'],
+      )!,
+      hasPlayIn: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}has_play_in'],
+      )!,
+      groupNames: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}group_names'],
+      ),
+      twitchChannel: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}twitch_channel'],
+      ),
+      cloudId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}cloud_id'],
+      ),
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -881,6 +1024,12 @@ class Tournament extends DataClass implements Insertable<Tournament> {
   final String? webUrl;
   final DateTime? startDate;
   final int? winnerTeamId;
+  final int groupCount;
+  final int qualifiersPerGroup;
+  final bool hasPlayIn;
+  final String? groupNames;
+  final String? twitchChannel;
+  final String? cloudId;
   final DateTime createdAt;
   const Tournament({
     required this.id,
@@ -903,6 +1052,12 @@ class Tournament extends DataClass implements Insertable<Tournament> {
     this.webUrl,
     this.startDate,
     this.winnerTeamId,
+    required this.groupCount,
+    required this.qualifiersPerGroup,
+    required this.hasPlayIn,
+    this.groupNames,
+    this.twitchChannel,
+    this.cloudId,
     required this.createdAt,
   });
   @override
@@ -944,6 +1099,18 @@ class Tournament extends DataClass implements Insertable<Tournament> {
     if (!nullToAbsent || winnerTeamId != null) {
       map['winner_team_id'] = Variable<int>(winnerTeamId);
     }
+    map['group_count'] = Variable<int>(groupCount);
+    map['qualifiers_per_group'] = Variable<int>(qualifiersPerGroup);
+    map['has_play_in'] = Variable<bool>(hasPlayIn);
+    if (!nullToAbsent || groupNames != null) {
+      map['group_names'] = Variable<String>(groupNames);
+    }
+    if (!nullToAbsent || twitchChannel != null) {
+      map['twitch_channel'] = Variable<String>(twitchChannel);
+    }
+    if (!nullToAbsent || cloudId != null) {
+      map['cloud_id'] = Variable<String>(cloudId);
+    }
     map['created_at'] = Variable<DateTime>(createdAt);
     return map;
   }
@@ -984,6 +1151,18 @@ class Tournament extends DataClass implements Insertable<Tournament> {
       winnerTeamId: winnerTeamId == null && nullToAbsent
           ? const Value.absent()
           : Value(winnerTeamId),
+      groupCount: Value(groupCount),
+      qualifiersPerGroup: Value(qualifiersPerGroup),
+      hasPlayIn: Value(hasPlayIn),
+      groupNames: groupNames == null && nullToAbsent
+          ? const Value.absent()
+          : Value(groupNames),
+      twitchChannel: twitchChannel == null && nullToAbsent
+          ? const Value.absent()
+          : Value(twitchChannel),
+      cloudId: cloudId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(cloudId),
       createdAt: Value(createdAt),
     );
   }
@@ -1016,6 +1195,12 @@ class Tournament extends DataClass implements Insertable<Tournament> {
       webUrl: serializer.fromJson<String?>(json['webUrl']),
       startDate: serializer.fromJson<DateTime?>(json['startDate']),
       winnerTeamId: serializer.fromJson<int?>(json['winnerTeamId']),
+      groupCount: serializer.fromJson<int>(json['groupCount']),
+      qualifiersPerGroup: serializer.fromJson<int>(json['qualifiersPerGroup']),
+      hasPlayIn: serializer.fromJson<bool>(json['hasPlayIn']),
+      groupNames: serializer.fromJson<String?>(json['groupNames']),
+      twitchChannel: serializer.fromJson<String?>(json['twitchChannel']),
+      cloudId: serializer.fromJson<String?>(json['cloudId']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
     );
   }
@@ -1045,6 +1230,12 @@ class Tournament extends DataClass implements Insertable<Tournament> {
       'webUrl': serializer.toJson<String?>(webUrl),
       'startDate': serializer.toJson<DateTime?>(startDate),
       'winnerTeamId': serializer.toJson<int?>(winnerTeamId),
+      'groupCount': serializer.toJson<int>(groupCount),
+      'qualifiersPerGroup': serializer.toJson<int>(qualifiersPerGroup),
+      'hasPlayIn': serializer.toJson<bool>(hasPlayIn),
+      'groupNames': serializer.toJson<String?>(groupNames),
+      'twitchChannel': serializer.toJson<String?>(twitchChannel),
+      'cloudId': serializer.toJson<String?>(cloudId),
       'createdAt': serializer.toJson<DateTime>(createdAt),
     };
   }
@@ -1070,6 +1261,12 @@ class Tournament extends DataClass implements Insertable<Tournament> {
     Value<String?> webUrl = const Value.absent(),
     Value<DateTime?> startDate = const Value.absent(),
     Value<int?> winnerTeamId = const Value.absent(),
+    int? groupCount,
+    int? qualifiersPerGroup,
+    bool? hasPlayIn,
+    Value<String?> groupNames = const Value.absent(),
+    Value<String?> twitchChannel = const Value.absent(),
+    Value<String?> cloudId = const Value.absent(),
     DateTime? createdAt,
   }) => Tournament(
     id: id ?? this.id,
@@ -1093,6 +1290,14 @@ class Tournament extends DataClass implements Insertable<Tournament> {
     webUrl: webUrl.present ? webUrl.value : this.webUrl,
     startDate: startDate.present ? startDate.value : this.startDate,
     winnerTeamId: winnerTeamId.present ? winnerTeamId.value : this.winnerTeamId,
+    groupCount: groupCount ?? this.groupCount,
+    qualifiersPerGroup: qualifiersPerGroup ?? this.qualifiersPerGroup,
+    hasPlayIn: hasPlayIn ?? this.hasPlayIn,
+    groupNames: groupNames.present ? groupNames.value : this.groupNames,
+    twitchChannel: twitchChannel.present
+        ? twitchChannel.value
+        : this.twitchChannel,
+    cloudId: cloudId.present ? cloudId.value : this.cloudId,
     createdAt: createdAt ?? this.createdAt,
   );
   Tournament copyWithCompanion(TournamentsCompanion data) {
@@ -1137,6 +1342,20 @@ class Tournament extends DataClass implements Insertable<Tournament> {
       winnerTeamId: data.winnerTeamId.present
           ? data.winnerTeamId.value
           : this.winnerTeamId,
+      groupCount: data.groupCount.present
+          ? data.groupCount.value
+          : this.groupCount,
+      qualifiersPerGroup: data.qualifiersPerGroup.present
+          ? data.qualifiersPerGroup.value
+          : this.qualifiersPerGroup,
+      hasPlayIn: data.hasPlayIn.present ? data.hasPlayIn.value : this.hasPlayIn,
+      groupNames: data.groupNames.present
+          ? data.groupNames.value
+          : this.groupNames,
+      twitchChannel: data.twitchChannel.present
+          ? data.twitchChannel.value
+          : this.twitchChannel,
+      cloudId: data.cloudId.present ? data.cloudId.value : this.cloudId,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
     );
   }
@@ -1164,6 +1383,12 @@ class Tournament extends DataClass implements Insertable<Tournament> {
           ..write('webUrl: $webUrl, ')
           ..write('startDate: $startDate, ')
           ..write('winnerTeamId: $winnerTeamId, ')
+          ..write('groupCount: $groupCount, ')
+          ..write('qualifiersPerGroup: $qualifiersPerGroup, ')
+          ..write('hasPlayIn: $hasPlayIn, ')
+          ..write('groupNames: $groupNames, ')
+          ..write('twitchChannel: $twitchChannel, ')
+          ..write('cloudId: $cloudId, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
@@ -1191,6 +1416,12 @@ class Tournament extends DataClass implements Insertable<Tournament> {
     webUrl,
     startDate,
     winnerTeamId,
+    groupCount,
+    qualifiersPerGroup,
+    hasPlayIn,
+    groupNames,
+    twitchChannel,
+    cloudId,
     createdAt,
   ]);
   @override
@@ -1217,6 +1448,12 @@ class Tournament extends DataClass implements Insertable<Tournament> {
           other.webUrl == this.webUrl &&
           other.startDate == this.startDate &&
           other.winnerTeamId == this.winnerTeamId &&
+          other.groupCount == this.groupCount &&
+          other.qualifiersPerGroup == this.qualifiersPerGroup &&
+          other.hasPlayIn == this.hasPlayIn &&
+          other.groupNames == this.groupNames &&
+          other.twitchChannel == this.twitchChannel &&
+          other.cloudId == this.cloudId &&
           other.createdAt == this.createdAt);
 }
 
@@ -1241,6 +1478,12 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
   final Value<String?> webUrl;
   final Value<DateTime?> startDate;
   final Value<int?> winnerTeamId;
+  final Value<int> groupCount;
+  final Value<int> qualifiersPerGroup;
+  final Value<bool> hasPlayIn;
+  final Value<String?> groupNames;
+  final Value<String?> twitchChannel;
+  final Value<String?> cloudId;
   final Value<DateTime> createdAt;
   const TournamentsCompanion({
     this.id = const Value.absent(),
@@ -1263,6 +1506,12 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
     this.webUrl = const Value.absent(),
     this.startDate = const Value.absent(),
     this.winnerTeamId = const Value.absent(),
+    this.groupCount = const Value.absent(),
+    this.qualifiersPerGroup = const Value.absent(),
+    this.hasPlayIn = const Value.absent(),
+    this.groupNames = const Value.absent(),
+    this.twitchChannel = const Value.absent(),
+    this.cloudId = const Value.absent(),
     this.createdAt = const Value.absent(),
   });
   TournamentsCompanion.insert({
@@ -1286,6 +1535,12 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
     this.webUrl = const Value.absent(),
     this.startDate = const Value.absent(),
     this.winnerTeamId = const Value.absent(),
+    this.groupCount = const Value.absent(),
+    this.qualifiersPerGroup = const Value.absent(),
+    this.hasPlayIn = const Value.absent(),
+    this.groupNames = const Value.absent(),
+    this.twitchChannel = const Value.absent(),
+    this.cloudId = const Value.absent(),
     this.createdAt = const Value.absent(),
   }) : name = Value(name),
        location = Value(location);
@@ -1310,6 +1565,12 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
     Expression<String>? webUrl,
     Expression<DateTime>? startDate,
     Expression<int>? winnerTeamId,
+    Expression<int>? groupCount,
+    Expression<int>? qualifiersPerGroup,
+    Expression<bool>? hasPlayIn,
+    Expression<String>? groupNames,
+    Expression<String>? twitchChannel,
+    Expression<String>? cloudId,
     Expression<DateTime>? createdAt,
   }) {
     return RawValuesInsertable({
@@ -1334,6 +1595,13 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
       if (webUrl != null) 'web_url': webUrl,
       if (startDate != null) 'start_date': startDate,
       if (winnerTeamId != null) 'winner_team_id': winnerTeamId,
+      if (groupCount != null) 'group_count': groupCount,
+      if (qualifiersPerGroup != null)
+        'qualifiers_per_group': qualifiersPerGroup,
+      if (hasPlayIn != null) 'has_play_in': hasPlayIn,
+      if (groupNames != null) 'group_names': groupNames,
+      if (twitchChannel != null) 'twitch_channel': twitchChannel,
+      if (cloudId != null) 'cloud_id': cloudId,
       if (createdAt != null) 'created_at': createdAt,
     });
   }
@@ -1359,6 +1627,12 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
     Value<String?>? webUrl,
     Value<DateTime?>? startDate,
     Value<int?>? winnerTeamId,
+    Value<int>? groupCount,
+    Value<int>? qualifiersPerGroup,
+    Value<bool>? hasPlayIn,
+    Value<String?>? groupNames,
+    Value<String?>? twitchChannel,
+    Value<String?>? cloudId,
     Value<DateTime>? createdAt,
   }) {
     return TournamentsCompanion(
@@ -1383,6 +1657,12 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
       webUrl: webUrl ?? this.webUrl,
       startDate: startDate ?? this.startDate,
       winnerTeamId: winnerTeamId ?? this.winnerTeamId,
+      groupCount: groupCount ?? this.groupCount,
+      qualifiersPerGroup: qualifiersPerGroup ?? this.qualifiersPerGroup,
+      hasPlayIn: hasPlayIn ?? this.hasPlayIn,
+      groupNames: groupNames ?? this.groupNames,
+      twitchChannel: twitchChannel ?? this.twitchChannel,
+      cloudId: cloudId ?? this.cloudId,
       createdAt: createdAt ?? this.createdAt,
     );
   }
@@ -1452,6 +1732,24 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
     if (winnerTeamId.present) {
       map['winner_team_id'] = Variable<int>(winnerTeamId.value);
     }
+    if (groupCount.present) {
+      map['group_count'] = Variable<int>(groupCount.value);
+    }
+    if (qualifiersPerGroup.present) {
+      map['qualifiers_per_group'] = Variable<int>(qualifiersPerGroup.value);
+    }
+    if (hasPlayIn.present) {
+      map['has_play_in'] = Variable<bool>(hasPlayIn.value);
+    }
+    if (groupNames.present) {
+      map['group_names'] = Variable<String>(groupNames.value);
+    }
+    if (twitchChannel.present) {
+      map['twitch_channel'] = Variable<String>(twitchChannel.value);
+    }
+    if (cloudId.present) {
+      map['cloud_id'] = Variable<String>(cloudId.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -1481,6 +1779,12 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
           ..write('webUrl: $webUrl, ')
           ..write('startDate: $startDate, ')
           ..write('winnerTeamId: $winnerTeamId, ')
+          ..write('groupCount: $groupCount, ')
+          ..write('qualifiersPerGroup: $qualifiersPerGroup, ')
+          ..write('hasPlayIn: $hasPlayIn, ')
+          ..write('groupNames: $groupNames, ')
+          ..write('twitchChannel: $twitchChannel, ')
+          ..write('cloudId: $cloudId, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
@@ -3750,6 +4054,12 @@ typedef $$TournamentsTableCreateCompanionBuilder =
       Value<String?> webUrl,
       Value<DateTime?> startDate,
       Value<int?> winnerTeamId,
+      Value<int> groupCount,
+      Value<int> qualifiersPerGroup,
+      Value<bool> hasPlayIn,
+      Value<String?> groupNames,
+      Value<String?> twitchChannel,
+      Value<String?> cloudId,
       Value<DateTime> createdAt,
     });
 typedef $$TournamentsTableUpdateCompanionBuilder =
@@ -3774,6 +4084,12 @@ typedef $$TournamentsTableUpdateCompanionBuilder =
       Value<String?> webUrl,
       Value<DateTime?> startDate,
       Value<int?> winnerTeamId,
+      Value<int> groupCount,
+      Value<int> qualifiersPerGroup,
+      Value<bool> hasPlayIn,
+      Value<String?> groupNames,
+      Value<String?> twitchChannel,
+      Value<String?> cloudId,
       Value<DateTime> createdAt,
     });
 
@@ -3944,6 +4260,36 @@ class $$TournamentsTableFilterComposer
 
   ColumnFilters<DateTime> get startDate => $composableBuilder(
     column: $table.startDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get groupCount => $composableBuilder(
+    column: $table.groupCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get qualifiersPerGroup => $composableBuilder(
+    column: $table.qualifiersPerGroup,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get hasPlayIn => $composableBuilder(
+    column: $table.hasPlayIn,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get groupNames => $composableBuilder(
+    column: $table.groupNames,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get twitchChannel => $composableBuilder(
+    column: $table.twitchChannel,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get cloudId => $composableBuilder(
+    column: $table.cloudId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -4130,6 +4476,36 @@ class $$TournamentsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get groupCount => $composableBuilder(
+    column: $table.groupCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get qualifiersPerGroup => $composableBuilder(
+    column: $table.qualifiersPerGroup,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get hasPlayIn => $composableBuilder(
+    column: $table.hasPlayIn,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get groupNames => $composableBuilder(
+    column: $table.groupNames,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get twitchChannel => $composableBuilder(
+    column: $table.twitchChannel,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get cloudId => $composableBuilder(
+    column: $table.cloudId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -4242,6 +4618,32 @@ class $$TournamentsTableAnnotationComposer
 
   GeneratedColumn<DateTime> get startDate =>
       $composableBuilder(column: $table.startDate, builder: (column) => column);
+
+  GeneratedColumn<int> get groupCount => $composableBuilder(
+    column: $table.groupCount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get qualifiersPerGroup => $composableBuilder(
+    column: $table.qualifiersPerGroup,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get hasPlayIn =>
+      $composableBuilder(column: $table.hasPlayIn, builder: (column) => column);
+
+  GeneratedColumn<String> get groupNames => $composableBuilder(
+    column: $table.groupNames,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get twitchChannel => $composableBuilder(
+    column: $table.twitchChannel,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get cloudId =>
+      $composableBuilder(column: $table.cloudId, builder: (column) => column);
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -4372,6 +4774,12 @@ class $$TournamentsTableTableManager
                 Value<String?> webUrl = const Value.absent(),
                 Value<DateTime?> startDate = const Value.absent(),
                 Value<int?> winnerTeamId = const Value.absent(),
+                Value<int> groupCount = const Value.absent(),
+                Value<int> qualifiersPerGroup = const Value.absent(),
+                Value<bool> hasPlayIn = const Value.absent(),
+                Value<String?> groupNames = const Value.absent(),
+                Value<String?> twitchChannel = const Value.absent(),
+                Value<String?> cloudId = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => TournamentsCompanion(
                 id: id,
@@ -4394,6 +4802,12 @@ class $$TournamentsTableTableManager
                 webUrl: webUrl,
                 startDate: startDate,
                 winnerTeamId: winnerTeamId,
+                groupCount: groupCount,
+                qualifiersPerGroup: qualifiersPerGroup,
+                hasPlayIn: hasPlayIn,
+                groupNames: groupNames,
+                twitchChannel: twitchChannel,
+                cloudId: cloudId,
                 createdAt: createdAt,
               ),
           createCompanionCallback:
@@ -4418,6 +4832,12 @@ class $$TournamentsTableTableManager
                 Value<String?> webUrl = const Value.absent(),
                 Value<DateTime?> startDate = const Value.absent(),
                 Value<int?> winnerTeamId = const Value.absent(),
+                Value<int> groupCount = const Value.absent(),
+                Value<int> qualifiersPerGroup = const Value.absent(),
+                Value<bool> hasPlayIn = const Value.absent(),
+                Value<String?> groupNames = const Value.absent(),
+                Value<String?> twitchChannel = const Value.absent(),
+                Value<String?> cloudId = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => TournamentsCompanion.insert(
                 id: id,
@@ -4440,6 +4860,12 @@ class $$TournamentsTableTableManager
                 webUrl: webUrl,
                 startDate: startDate,
                 winnerTeamId: winnerTeamId,
+                groupCount: groupCount,
+                qualifiersPerGroup: qualifiersPerGroup,
+                hasPlayIn: hasPlayIn,
+                groupNames: groupNames,
+                twitchChannel: twitchChannel,
+                cloudId: cloudId,
                 createdAt: createdAt,
               ),
           withReferenceMapper: (p0) => p0

@@ -25,7 +25,6 @@ final cloudTournamentsProvider = StreamProvider<List<Map<String, dynamic>>>((ref
     .stream(primaryKey: ['id'])
     .order('last_updated', ascending: false)
     .map((data) {
-      print('CLOUD SYNC: Received ${data.length} items from Supabase');
       final now = DateTime.now();
       
       final List<Map<String, dynamic>> allTournaments = [];
@@ -39,6 +38,22 @@ final cloudTournamentsProvider = StreamProvider<List<Map<String, dynamic>>>((ref
           // Skip invalid items
         }
       }
+
+      // Sort ALL tournaments by startDate (Newest first)
+      allTournaments.sort((a, b) {
+        final tA = a['tournament'] as Map<String, dynamic>?;
+        final tB = b['tournament'] as Map<String, dynamic>?;
+        
+        DateTime parseDate(dynamic val) {
+          if (val is String) return DateTime.tryParse(val) ?? DateTime(1970);
+          if (val is int) return DateTime.fromMillisecondsSinceEpoch(val);
+          return DateTime(1970);
+        }
+
+        final dateA = parseDate(tA?['startDate']);
+        final dateB = parseDate(tB?['startDate']);
+        return dateB.compareTo(dateA); // Descending (Newer first)
+      });
 
       List<Map<String, dynamic>> filterData(Set<CloudFilter> filters) {
         return allTournaments.where((data) {
@@ -140,7 +155,8 @@ final tournamentTeamsProvider = StreamProvider.family<List<TournamentTeamWithTea
   final db = ref.watch(dbProvider);
   final query = db.select(db.tournamentTeams).join([
     innerJoin(db.teams, db.teams.id.equalsExp(db.tournamentTeams.teamId)),
-  ])..where(db.tournamentTeams.tournamentId.equals(tournamentId));
+  ])..where(db.tournamentTeams.tournamentId.equals(tournamentId))
+    ..orderBy([OrderingTerm.asc(db.tournamentTeams.seed)]);
   
   return query.watch().map((rows) => rows.map((row) {
     return TournamentTeamWithTeam(
@@ -175,6 +191,11 @@ class TournamentsRepository {
     int lossPoints = 1,
     bool includeConsolationFinals = false,
     int timerMinutes = 10,
+    int groupCount = 1,
+    int qualifiersPerGroup = 2,
+    bool hasPlayIn = false,
+    String? groupNames,
+    String? twitchChannel,
   }) async {
     return await _db.into(_db.tournaments).insert(
       TournamentsCompanion.insert(
@@ -188,6 +209,11 @@ class TournamentsRepository {
         includeConsolationFinals: Value(includeConsolationFinals),
         timerMinutes: Value(timerMinutes),
         startDate: Value(startDate ?? DateTime.now()),
+        groupCount: Value(groupCount),
+        qualifiersPerGroup: Value(qualifiersPerGroup),
+        hasPlayIn: Value(hasPlayIn),
+        groupNames: Value(groupNames),
+        twitchChannel: Value(twitchChannel),
       ),
     );
   }
@@ -205,6 +231,11 @@ class TournamentsRepository {
     int? timerMinutes,
     bool? isActive,
     DateTime? startDate,
+    int? groupCount,
+    int? qualifiersPerGroup,
+    bool? hasPlayIn,
+    String? groupNames,
+    String? twitchChannel,
   }) async {
     return await (_db.update(_db.tournaments)..where((t) => t.id.equals(id))).write(
       TournamentsCompanion(
@@ -219,6 +250,19 @@ class TournamentsRepository {
         timerMinutes: timerMinutes != null ? Value(timerMinutes) : const Value.absent(),
         isActive: isActive != null ? Value(isActive) : const Value.absent(),
         startDate: startDate != null ? Value(startDate) : const Value.absent(),
+        groupCount: groupCount != null ? Value(groupCount) : const Value.absent(),
+        qualifiersPerGroup: qualifiersPerGroup != null ? Value(qualifiersPerGroup) : const Value.absent(),
+        hasPlayIn: hasPlayIn != null ? Value(hasPlayIn) : const Value.absent(),
+        groupNames: groupNames != null ? Value(groupNames) : const Value.absent(),
+        twitchChannel: twitchChannel != null ? Value(twitchChannel) : const Value.absent(),
+      ),
+    ) > 0;
+  }
+
+  Future<bool> updateTwitchChannel(int id, String? twitchChannel) async {
+    return await (_db.update(_db.tournaments)..where((t) => t.id.equals(id))).write(
+      TournamentsCompanion(
+        twitchChannel: Value(twitchChannel),
       ),
     ) > 0;
   }
@@ -249,12 +293,14 @@ class TournamentsRepository {
       .go();
   }
 
-  Future<void> setTournamentTeams(int tournamentId, List<int> teamIds) async {
+  Future<void> setTournamentTeams(int tournamentId, List<int> teamIds, {Map<int, int>? teamToGroup}) async {
     // Remove all existing teams
     await (_db.delete(_db.tournamentTeams)..where((tt) => tt.tournamentId.equals(tournamentId))).go();
     // Add new teams
     for (var i = 0; i < teamIds.length; i++) {
-      await addTeamToTournament(tournamentId, teamIds[i], seed: i);
+      final teamId = teamIds[i];
+      final group = teamToGroup?[teamId] ?? 1;
+      await addTeamToTournament(tournamentId, teamId, seed: i, groupNumber: group);
     }
   }
 

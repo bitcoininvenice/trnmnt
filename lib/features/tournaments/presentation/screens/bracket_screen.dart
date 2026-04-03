@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../data/tournaments_repository.dart';
 import '../../data/matches_repository.dart';
+import '../../../../core/database/app_database.dart';
 import 'standings_screen.dart';
 
 /// Bracket match data
@@ -57,6 +58,8 @@ final bracketProvider = FutureProvider.family<Map<String, List<BracketMatch>>, i
   return bracket;
 });
 
+final playSpareggiProvider = StateProvider.family<bool, int>((ref, id) => true);
+
 class BracketScreen extends ConsumerWidget {
   final int tournamentId;
 
@@ -103,46 +106,73 @@ class BracketScreen extends ConsumerWidget {
   }
 
   Widget _buildEmptyState(BuildContext context, WidgetRef ref, AsyncValue<dynamic> tournamentAsync) {
+    final playSpareggi = ref.watch(playSpareggiProvider(tournamentId));
+
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.account_tree_outlined,
-            size: 100,
-            color: Colors.white.withValues(alpha: 0.3),
-          ),
-          const SizedBox(height: 24),
-          Text(
-            'Nessun bracket',
-            style: Theme.of(context).textTheme.headlineSmall,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Genera il bracket per iniziare la fase eliminatoria',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Colors.white.withValues(alpha: 0.6),
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 400),
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.account_tree_outlined,
+              size: 80,
+              color: Colors.white.withOpacity(0.3),
             ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 24),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              ElevatedButton.icon(
-                onPressed: () => _generateFromStandings(context, ref),
-                icon: const Icon(Icons.auto_fix_high),
-                label: const Text('Da Classifica'),
+            const SizedBox(height: 24),
+            Text(
+              'Nessun bracket',
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Genera il bracket per iniziare la fase eliminatoria',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Colors.white.withOpacity(0.6),
               ),
-              const SizedBox(width: 16),
-              OutlinedButton.icon(
-                onPressed: () => _generateRandom(context, ref),
-                icon: const Icon(Icons.shuffle),
-                label: const Text('Casuale'),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 32),
+            
+            // SPAREGGI TOGGLE
+            Card(
+              color: Colors.white.withOpacity(0.05),
+              child: SwitchListTile(
+                title: const Text('Gioca Spareggi', style: TextStyle(fontWeight: FontWeight.bold)),
+                subtitle: const Text('2ª vs 3ª dei gironi (Qualifica 3 per girone)'),
+                value: playSpareggi,
+                onChanged: (val) => ref.read(playSpareggiProvider(tournamentId).notifier).state = val,
+                secondary: Icon(Icons.compare_arrows, color: playSpareggi ? Colors.amber : Colors.grey),
               ),
-            ],
-          ),
-        ],
+            ),
+            
+            const SizedBox(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                ElevatedButton.icon(
+                  onPressed: () => _generateFromStandings(context, ref),
+                  icon: const Icon(Icons.auto_fix_high),
+                  label: const Text('Da Classifica'),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                OutlinedButton.icon(
+                  onPressed: () => _generateRandom(context, ref),
+                  icon: const Icon(Icons.shuffle),
+                  label: const Text('Casuale'),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 32),
+          ],
+        ),
       ),
     ).animate().fadeIn();
   }
@@ -167,6 +197,9 @@ class BracketScreen extends ConsumerWidget {
     if (confirm != true) return;
 
     final repo = ref.read(matchesRepositoryProvider);
+    await repo.deleteMatchesByPhase(tournamentId, 'play_in');
+    await repo.deleteMatchesByPhase(tournamentId, 'round_of_32');
+    await repo.deleteMatchesByPhase(tournamentId, 'round_of_16');
     await repo.deleteMatchesByPhase(tournamentId, 'quarterfinal');
     await repo.deleteMatchesByPhase(tournamentId, 'semifinal');
     await repo.deleteMatchesByPhase(tournamentId, 'final');
@@ -174,52 +207,175 @@ class BracketScreen extends ConsumerWidget {
     await repo.deleteMatchesByPhase(tournamentId, 'fifth_place');
     await repo.deleteMatchesByPhase(tournamentId, 'seventh_place');
 
+    if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Tabellone eliminato con successo.')));
+    
     // ignore: unused_result
     ref.refresh(bracketProvider(tournamentId));
   }
 
   Future<void> _generateFromStandings(BuildContext context, WidgetRef ref) async {
-    final standings = await ref.read(standingsProvider(tournamentId).future);
-    if (standings.isEmpty) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Nessuna classifica disponibile. Completa prima alcune partite del girone.'),
-            backgroundColor: Colors.orange,
-          ),
-        );
-      }
-      return;
+    final tournament = await ref.read(tournamentByIdProvider(tournamentId).future);
+    if (tournament == null) return;
+    
+    final playSpareggi = ref.read(playSpareggiProvider(tournamentId));
+    final standingsMap = await ref.read(standingsProvider(tournamentId).future);
+    
+    if (standingsMap.isEmpty) {
+       if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Completare le partite dei gironi per generare il tabellone.')));
+       return;
     }
 
-    await _generateBracket(context, ref, standings.map((s) => s.teamId).toList());
+    final Map<int, List<int>> qualifiersByGroup = {};
+    final List<int> allQualifiersInterleaved = [];
+    final groupNumbers = standingsMap.keys.toList()..sort();
+
+    final qPerGroup = playSpareggi ? 3 : (tournament.qualifiersPerGroup);
+
+    for (var gn in groupNumbers) {
+      final groupStandings = standingsMap[gn]!;
+      final q = groupStandings.take(qPerGroup).map((s) => s.teamId).toList();
+      qualifiersByGroup[gn] = q;
+    }
+
+    int maxQ = 0;
+    for (var q in qualifiersByGroup.values) {
+      if (q.length > maxQ) maxQ = q.length;
+    }
+
+    for (int r = 0; r < maxQ; r++) {
+      for (int gn in groupNumbers) {
+        final groupTeams = qualifiersByGroup[gn]!;
+        if (groupTeams.length > r) {
+          allQualifiersInterleaved.add(groupTeams[r]);
+        }
+      }
+    }
+
+    await _generateDynamicBracket(context, ref, tournament, allQualifiersInterleaved, playSpareggi);
   }
 
   Future<void> _generateRandom(BuildContext context, WidgetRef ref) async {
     final teams = await ref.read(tournamentTeamsProvider(tournamentId).future);
-    if (teams.isEmpty) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Nessuna squadra nel torneo'),
-            backgroundColor: Colors.orange,
-          ),
-        );
-      }
+    final tournament = await ref.read(tournamentByIdProvider(tournamentId).future);
+    if (teams.isEmpty || tournament == null) {
+      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Nessuna squadra nel torneo.')));
       return;
     }
 
-    final teamIds = teams.map((t) => t.team.id).toList()..shuffle(Random());
-    await _generateBracket(context, ref, teamIds);
+    final teamIds = teams.map((t) => t.team.id).toList()..shuffle();
+    await _generateDynamicBracket(context, ref, tournament, teamIds, false);
+  }
+
+  Future<void> _generateDynamicBracket(
+    BuildContext context, 
+    WidgetRef ref, 
+    dynamic tournament, 
+    List<int> allQualifiers,
+    bool playSpareggi,
+  ) async {
+    final repo = ref.read(matchesRepositoryProvider);
+    final numTeams = allQualifiers.length;
+    
+    if (numTeams < 2) {
+       if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Numero di squadre insufficiente.')));
+       return;
+    }
+
+    // Determine Bracket Size
+    int bracketSize = 2;
+    while (bracketSize < numTeams) {
+      bracketSize *= 2;
+    }
+
+    final phaseNames = {
+      2: 'final',
+      4: 'semifinal',
+      8: 'quarterfinal',
+      16: 'round_of_16',
+      32: 'round_of_32',
+    };
+
+    final bool exactPower = bracketSize == numTeams;
+    
+    // Clear existing matches
+    await repo.deleteMatchesByPhase(tournamentId, 'play_in');
+    await repo.deleteMatchesByPhase(tournamentId, 'round_of_32');
+    await repo.deleteMatchesByPhase(tournamentId, 'round_of_16');
+    await repo.deleteMatchesByPhase(tournamentId, 'quarterfinal');
+    await repo.deleteMatchesByPhase(tournamentId, 'semifinal');
+    await repo.deleteMatchesByPhase(tournamentId, 'final');
+    await repo.deleteMatchesByPhase(tournamentId, 'third_place');
+
+    if (exactPower && !playSpareggi) {
+      // STANDARD BRACKET
+      int currentSize = bracketSize;
+      while (currentSize >= 2) {
+        final phase = phaseNames[currentSize]!;
+        final numMatches = currentSize ~/ 2;
+        for (int i = 1; i <= numMatches; i++) {
+          int? home, away;
+          if (currentSize == bracketSize) {
+             home = allQualifiers.length > (i - 1) ? allQualifiers[i - 1] : null;
+             away = allQualifiers.length > (currentSize - i) ? allQualifiers[currentSize - i] : null;
+          }
+          await repo.createMatch(tournamentId: tournamentId, round: i, phase: phase, homeTeamId: home, awayTeamId: away);
+        }
+        currentSize ~/= 2;
+      }
+    } else {
+      // PLAY-IN OR FORCED SPAREGGI
+      // If playSpareggi is true and numTeams is 6, we force bracketSize 8
+      int effectiveBracketSize = bracketSize;
+      if (playSpareggi && numTeams == 6) effectiveBracketSize = 8;
+      
+      final int numByes = effectiveBracketSize - numTeams;
+      final int numPlayIn = numTeams - (effectiveBracketSize ~/ 2);
+      
+      // 1. Play-In Matches
+      for (int i = 1; i <= numPlayIn; i++) {
+        final homeIdx = numByes + (i - 1);
+        final awayIdx = numTeams - i;
+        await repo.createMatch(
+          tournamentId: tournamentId, 
+          round: i, 
+          phase: 'play_in', 
+          homeTeamId: allQualifiers.length > homeIdx ? allQualifiers[homeIdx] : null,
+          awayTeamId: allQualifiers.length > awayIdx ? allQualifiers[awayIdx] : null,
+        );
+      }
+
+      // 2. Next Phases (Seeds waiting)
+      int currentSize = effectiveBracketSize ~/ 2;
+      while (currentSize >= 2) {
+        final phase = phaseNames[currentSize]!;
+        final numMatches = currentSize ~/ 2;
+        for (int i = 1; i <= numMatches; i++) {
+          int? home;
+          if (currentSize == effectiveBracketSize ~/ 2 && i <= numByes) {
+             home = allQualifiers.length > (i - 1) ? allQualifiers[i - 1] : null;
+          }
+          await repo.createMatch(tournamentId: tournamentId, round: i, phase: phase, homeTeamId: home);
+        }
+        currentSize ~/= 2;
+      }
+    }
+
+    if (tournament.includeConsolationFinals) {
+      await repo.createMatch(tournamentId: tournamentId, round: 1, phase: 'third_place');
+    }
+
+    ref.refresh(bracketProvider(tournamentId));
+    if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Bracket generato con successo!')));
   }
 
   Future<void> _generateBracket(BuildContext context, WidgetRef ref, List<int> orderedTeamIds) async {
-    final tournament = await ref.read(tournamentByIdProvider(tournamentId).future);
+     final tournament = await ref.read(tournamentByIdProvider(tournamentId).future);
     if (tournament == null) return;
 
     final repo = ref.read(matchesRepositoryProvider);
     
     // Delete existing elimination matches
+    await repo.deleteMatchesByPhase(tournamentId, 'round_of_16');
     await repo.deleteMatchesByPhase(tournamentId, 'quarterfinal');
     await repo.deleteMatchesByPhase(tournamentId, 'semifinal');
     await repo.deleteMatchesByPhase(tournamentId, 'final');
@@ -229,15 +385,8 @@ class BracketScreen extends ConsumerWidget {
 
     final numTeams = orderedTeamIds.length;
     
-    // Determine bracket size (2, 4, 8, 16...)
-    int bracketSize = 2;
-    while (bracketSize < numTeams) {
-      bracketSize *= 2;
-    }
-
     // Generate matches based on team count
     if (numTeams >= 8) {
-      // Quarterfinals
       for (var i = 0; i < 4; i++) {
         final homeIdx = i;
         final awayIdx = 7 - i;
@@ -253,7 +402,6 @@ class BracketScreen extends ConsumerWidget {
     }
 
     if (numTeams >= 4) {
-      // Semifinals (placeholders if QF exists)
       for (var i = 0; i < 2; i++) {
         final homeIdx = numTeams < 8 ? i : null;
         final awayIdx = numTeams < 8 ? 3 - i : null;
@@ -267,7 +415,6 @@ class BracketScreen extends ConsumerWidget {
       }
     }
 
-    // Final
     await repo.createMatch(
       tournamentId: tournamentId,
       homeTeamId: numTeams == 2 ? orderedTeamIds[0] : null,
@@ -276,54 +423,16 @@ class BracketScreen extends ConsumerWidget {
       phase: 'final',
     );
 
-    // Consolation finals if enabled
     if (tournament.includeConsolationFinals) {
-      // 3rd/4th place
-      await repo.createMatch(
-        tournamentId: tournamentId,
-        round: 1,
-        phase: 'third_place',
-      );
-
-      if (numTeams >= 8) {
-        // Consolation Semifinals (Losers of QF)
-        for (var i = 0; i < 2; i++) {
-           await repo.createMatch(
-            tournamentId: tournamentId,
-            round: i + 1,
-            phase: 'consolation_semifinal',
-          );
-        }
-
-        // 5th/6th place
-        await repo.createMatch(
-          tournamentId: tournamentId,
-          round: 1,
-          phase: 'fifth_place',
-        );
-
-        // 7th/8th place
-        await repo.createMatch(
-          tournamentId: tournamentId,
-          round: 1,
-          phase: 'seventh_place',
-        );
-      }
+      await repo.createMatch(tournamentId: tournamentId, round: 1, phase: 'third_place');
     }
 
-    // Refresh
-    // ignore: unused_result
     ref.refresh(bracketProvider(tournamentId));
-    
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Bracket generato!')),
-      );
-    }
+    if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Bracket generato!')));
   }
 
   Widget _buildBracketView(BuildContext context, Map<String, List<BracketMatch>> bracket) {
-    final phases = ['quarterfinal', 'semifinal', 'final'];
+    final phases = ['play_in', 'round_of_16', 'quarterfinal', 'semifinal', 'final'];
     final consolationPhases = ['consolation_semifinal', 'third_place', 'fifth_place', 'seventh_place'];
 
     // Determine tournament winner
@@ -507,6 +616,10 @@ class BracketScreen extends ConsumerWidget {
 
   String _getPhaseLabel(String phase) {
     switch (phase) {
+      case 'play_in':
+        return 'Spareggi';
+      case 'round_of_16':
+        return 'Ottavi';
       case 'quarterfinal':
         return 'Quarti';
       case 'semifinal':

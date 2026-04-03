@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'dart:convert';
 import '../../data/tournaments_repository.dart';
 import '../../data/matches_repository.dart';
 
@@ -22,22 +24,25 @@ class StandingEntry {
 }
 
 /// Provider for standings
-final standingsProvider = FutureProvider.family<List<StandingEntry>, int>((ref, tournamentId) async {
+/// Provider for standings grouped by groupNumber
+final standingsProvider = FutureProvider.family<Map<int, List<StandingEntry>>, int>((ref, tournamentId) async {
   final matchesAsync = await ref.watch(groupMatchesProvider(tournamentId).future);
   final tournamentAsync = await ref.watch(tournamentByIdProvider(tournamentId).future);
   final teamsAsync = await ref.watch(tournamentTeamsProvider(tournamentId).future);
 
-  if (tournamentAsync == null) return [];
+  if (tournamentAsync == null) return {};
 
   final tournament = tournamentAsync;
   final winPoints = tournament.winPoints;
   final drawPoints = tournament.drawPoints;
   final lossPoints = tournament.lossPoints;
 
-  // Initialize standings for all teams
-  final standings = <int, StandingEntry>{};
+  // Initialize standings for all teams, grouped by groupNumber
+  final Map<int, Map<int, StandingEntry>> groupStandings = {};
   for (final tt in teamsAsync) {
-    standings[tt.team.id] = StandingEntry(
+    final gn = tt.tournamentTeam.groupNumber;
+    groupStandings.putIfAbsent(gn, () => {});
+    groupStandings[gn]![tt.team.id] = StandingEntry(
       teamId: tt.team.id,
       teamName: tt.team.name,
     );
@@ -47,6 +52,10 @@ final standingsProvider = FutureProvider.family<List<StandingEntry>, int>((ref, 
   for (final matchWithTeams in matchesAsync) {
     final match = matchWithTeams.match;
     if (!match.isCompleted || match.isBye) continue;
+
+    final gn = match.groupNumber;
+    if (!groupStandings.containsKey(gn)) continue;
+    final standings = groupStandings[gn]!;
 
     final homeId = match.homeTeamId;
     final awayId = match.awayTeamId;
@@ -94,17 +103,21 @@ final standingsProvider = FutureProvider.family<List<StandingEntry>, int>((ref, 
     }
   }
 
-  // Sort by points, then point difference, then points for
-  final sortedStandings = standings.values.toList()
-    ..sort((a, b) {
-      final pointsComp = b.classificationPoints.compareTo(a.classificationPoints);
-      if (pointsComp != 0) return pointsComp;
-      final diffComp = b.pointsDiff.compareTo(a.pointsDiff);
-      if (diffComp != 0) return diffComp;
-      return b.pointsFor.compareTo(a.pointsFor);
-    });
+  // Sort and convert to final map
+  final Map<int, List<StandingEntry>> result = {};
+  for (var entry in groupStandings.entries) {
+    final sorted = entry.value.values.toList()
+      ..sort((a, b) {
+        final pointsComp = b.classificationPoints.compareTo(a.classificationPoints);
+        if (pointsComp != 0) return pointsComp;
+        final diffComp = b.pointsDiff.compareTo(a.pointsDiff);
+        if (diffComp != 0) return diffComp;
+        return b.pointsFor.compareTo(a.pointsFor);
+      });
+    result[entry.key] = sorted;
+  }
 
-  return sortedStandings;
+  return result;
 });
 
 class StandingsScreen extends ConsumerWidget {
@@ -115,30 +128,81 @@ class StandingsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final standingsAsync = ref.watch(standingsProvider(tournamentId));
+    final tournamentAsync = ref.watch(tournamentByIdProvider(tournamentId));
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Classifica'),
-      ),
-      body: standingsAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stack) => Center(child: Text('Errore: $error')),
-        data: (standings) {
-          if (standings.isEmpty) {
-            return _buildEmptyState(context);
+    return tournamentAsync.when(
+      loading: () => Scaffold(appBar: AppBar(title: const Text('...')), body: const Center(child: CircularProgressIndicator())),
+      error: (_, __) => Scaffold(appBar: AppBar(title: const Text('Error')), body: const Center(child: Text('Error'))),
+      data: (tournament) {
+        if (tournament == null) return const SizedBox();
+        
+        // Parse group names
+        List<String> groupNames = [];
+        try {
+          if (tournament.groupNames != null) {
+            groupNames = List<String>.from(jsonDecode(tournament.groupNames!));
           }
+        } catch (_) {}
 
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                _buildStandingsTable(context, standings),
-                const SizedBox(height: 24),
-                _buildLegend(context),
-              ],
-            ),
-          );
-        },
+        return standingsAsync.when(
+          loading: () => Scaffold(appBar: AppBar(title: Text(tournament.name)), body: const Center(child: CircularProgressIndicator())),
+          error: (error, __) => Scaffold(appBar: AppBar(title: Text(tournament.name)), body: Center(child: Text('Errore: $error'))),
+          data: (groupedStandings) {
+            if (groupedStandings.isEmpty) {
+              return Scaffold(appBar: AppBar(title: Text(tournament.name)), body: _buildEmptyState(context));
+            }
+
+            final groupNumbers = groupedStandings.keys.toList()..sort();
+            
+            if (groupNumbers.length <= 1) {
+              return Scaffold(
+                appBar: AppBar(title: const Text('Classifica')),
+                body: _buildSingleGroupBody(context, groupedStandings[groupNumbers.first]!, tournament.qualifiersPerGroup),
+              );
+            }
+
+            return DefaultTabController(
+              length: groupNumbers.length,
+              child: Scaffold(
+                appBar: AppBar(
+                  title: const Text('Classifiche'),
+                  actions: [
+                    IconButton(
+                      icon: const Icon(Icons.account_tree),
+                      tooltip: 'Vai al Tabellone',
+                      onPressed: () => context.go('/tournaments/$tournamentId/bracket'),
+                    ),
+                  ],
+                  bottom: TabBar(
+                    isScrollable: true,
+                    tabs: groupNumbers.map((gn) {
+                      final name = groupNames.length >= gn ? groupNames[gn-1] : 'Girone $gn';
+                      return Tab(text: name);
+                    }).toList(),
+                  ),
+                ),
+                body: TabBarView(
+                  children: groupNumbers.map((gn) {
+                    return _buildSingleGroupBody(context, groupedStandings[gn]!, tournament.qualifiersPerGroup);
+                  }).toList(),
+                ),
+              ),
+            );
+          },
+        );
+      }
+    );
+  }
+
+  Widget _buildSingleGroupBody(BuildContext context, List<StandingEntry> standings, int qualifiers) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          _buildStandingsTable(context, standings, qualifiers),
+          const SizedBox(height: 16),
+          _buildLegend(context, qualifiers),
+        ],
       ),
     );
   }
@@ -170,7 +234,7 @@ class StandingsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildStandingsTable(BuildContext context, List<StandingEntry> standings) {
+  Widget _buildStandingsTable(BuildContext context, List<StandingEntry> standings, int qualifiers) {
     return Card(
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
@@ -193,7 +257,7 @@ class StandingsScreen extends ConsumerWidget {
           rows: standings.asMap().entries.map((entry) {
             final index = entry.key;
             final standing = entry.value;
-            final isTop = index < 4; // Playoff zone
+            final isTop = index < qualifiers; // Playoff zone based on config
             
             return DataRow(
               color: WidgetStateProperty.all(
@@ -254,7 +318,7 @@ class StandingsScreen extends ConsumerWidget {
     return Colors.grey.shade700;
   }
 
-  Widget _buildLegend(BuildContext context) {
+  Widget _buildLegend(BuildContext context, int qualifiers) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -262,9 +326,10 @@ class StandingsScreen extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Legenda',
+              'Legenda (Qualificati: $qualifiers)',
               style: Theme.of(context).textTheme.titleSmall?.copyWith(
                 fontWeight: FontWeight.bold,
+                color: Colors.green,
               ),
             ),
             const SizedBox(height: 8),

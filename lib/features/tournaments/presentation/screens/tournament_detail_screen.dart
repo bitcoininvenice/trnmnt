@@ -170,6 +170,17 @@ class _TournamentDetailScreenState extends ConsumerState<TournamentDetailScreen>
                   ),
                 ),
                 actions: [
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: Tooltip(
+                      message: tournament.isPublished ? "Published to Cloud" : "Private on Device",
+                      child: Icon(
+                        tournament.isPublished ? Icons.cloud : Icons.smartphone,
+                        color: tournament.isPublished ? Colors.green : Colors.white60,
+                        size: 22,
+                      ),
+                    ),
+                  ),
                   IconButton(
                     icon: const Icon(Icons.share),
                     tooltip: AppLocalizations.of(context)!.share,
@@ -324,13 +335,16 @@ class _TournamentDetailScreenState extends ConsumerState<TournamentDetailScreen>
       ));
     }
 
-    // Bracket (for elimination modes)
-    if (mode == 'elimination_only' || mode == 'group_and_elimination') {
+    // Bracket (for elimination modes OR multi-group tournaments)
+    final isEliminationMode = mode == 'elimination_only' || mode == 'group_and_elimination';
+    final hasMultiGroups = (tournament.groupCount ?? 1) > 1;
+    
+    if (isEliminationMode || hasMultiGroups) {
       actions.add(_buildActionCard(
         context,
         icon: Icons.account_tree,
         title: AppLocalizations.of(context)!.elimination,
-        subtitle: AppLocalizations.of(context)!.playoffBracket,
+        subtitle: hasMultiGroups && !isEliminationMode ? 'Tabellone Finale' : AppLocalizations.of(context)!.playoffBracket,
         color: Colors.orange,
         onTap: () => context.go('/tournaments/${widget.tournamentId}/bracket'),
       ));
@@ -348,14 +362,14 @@ class _TournamentDetailScreenState extends ConsumerState<TournamentDetailScreen>
       ));
     }
 
-    // Timer
+    // Rules (Mode Legend)
     actions.add(_buildActionCard(
       context,
-      icon: Icons.timer,
-      title: AppLocalizations.of(context)!.timerLabel,
-      subtitle: AppLocalizations.of(context)!.minutesX(tournament.timerMinutes),
-      color: Colors.red,
-      onTap: () => context.go('/timer'),
+      icon: Icons.gavel_outlined, // or Icons.menu_book
+      title: AppLocalizations.of(context)!.rules,
+      subtitle: AppLocalizations.of(context)!.viewTournamentRules,
+      color: Colors.brown,
+      onTap: () => context.push('/settings/legend/$mode'),
     ));
 
     return GridView.count(

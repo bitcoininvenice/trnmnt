@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:trnmnt/generated/l10n/app_localizations.dart';
 import '../../../../core/database/app_database.dart';
 import '../../data/tournaments_repository.dart';
+import '../../data/matches_repository.dart';
 import '../../../teams/data/teams_repository.dart';
 
 class TournamentEditScreen extends ConsumerStatefulWidget {
@@ -22,7 +23,17 @@ class _TournamentEditScreenState extends ConsumerState<TournamentEditScreen> {
   final _searchController = TextEditingController();
 
   DateTime _startDate = DateTime.now();
-  final Set<int> _selectedTeamIds = {};
+  List<int> _selectedTeamIds = [];
+  String _mode = 'group_only';
+  String _scoringSystem = 'win2_loss1';
+  
+  final _winPointsController = TextEditingController(text: '2');
+  final _drawPointsController = TextEditingController(text: '0');
+  final _lossPointsController = TextEditingController(text: '1');
+  final _timerMinutesController = TextEditingController(text: '10');
+  
+  bool _includeConsolationFinals = false;
+  int _timerValue = 10;
   bool _isLoading = false;
   bool _isInit = false;
 
@@ -31,10 +42,12 @@ class _TournamentEditScreenState extends ConsumerState<TournamentEditScreen> {
     _nameController.dispose();
     _locationController.dispose();
     _searchController.dispose();
+    _winPointsController.dispose();
+    _drawPointsController.dispose();
+    _lossPointsController.dispose();
+    _timerMinutesController.dispose();
     super.dispose();
   }
-
-
 
   Future<void> _updateTournament() async {
     if (!_formKey.currentState!.validate()) return;
@@ -54,10 +67,17 @@ class _TournamentEditScreenState extends ConsumerState<TournamentEditScreen> {
         id: widget.tournamentId,
         name: _nameController.text.trim(),
         location: _locationController.text.trim(),
+        mode: _mode,
+        scoringSystem: _scoringSystem,
+        winPoints: int.tryParse(_winPointsController.text) ?? 2,
+        drawPoints: int.tryParse(_drawPointsController.text) ?? 0,
+        lossPoints: int.tryParse(_lossPointsController.text) ?? 1,
+        includeConsolationFinals: _includeConsolationFinals,
+        timerMinutes: int.tryParse(_timerMinutesController.text) ?? 10,
         startDate: _startDate,
       );
 
-      await repo.setTournamentTeams(widget.tournamentId, _selectedTeamIds.toList());
+      await repo.setTournamentTeams(widget.tournamentId, _selectedTeamIds);
 
       if (mounted) {
         context.pop();
@@ -78,44 +98,55 @@ class _TournamentEditScreenState extends ConsumerState<TournamentEditScreen> {
   @override
   Widget build(BuildContext context) {
     final allTeamsAsync = ref.watch(teamsProvider);
-
-    // Initial data loading using a listener to avoid setState in build
-    ref.listen(tournamentByIdProvider(widget.tournamentId), (previous, next) {
-      if (next.hasValue && next.value != null && !_isInit) {
-        final t = next.value!;
-        _nameController.text = t.name;
-        _locationController.text = t.location;
-        _startDate = t.startDate ?? DateTime.now();
-        setState(() {}); // Still need to refresh UI for the date string
-      }
-    });
-
-    ref.listen(tournamentTeamsProvider(widget.tournamentId), (previous, next) {
-      if (next.hasValue && next.value != null && !_isInit) {
-        _selectedTeamIds.clear();
-        _selectedTeamIds.addAll(next.value!.map((e) => e.team.id));
-        _isInit = true; // Mark as initialized ONLY after teams are also loaded
-        setState(() {});
-      }
-    });
-
     final tournamentAsync = ref.watch(tournamentByIdProvider(widget.tournamentId));
-    final isReadOnly = tournamentAsync.value?.isReadOnly ?? false;
+    final teamsAsync = ref.watch(tournamentTeamsProvider(widget.tournamentId));
+    final matchesAsync = ref.watch(tournamentMatchesProvider(widget.tournamentId));
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(AppLocalizations.of(context)!.edit), // Use translation for "Edit"
-        actions: [
-          if (!_isLoading && !isReadOnly)
-            IconButton(
-              icon: const Icon(Icons.check),
-              onPressed: _updateTournament,
-            ),
-        ],
-      ),
-      body: _isLoading 
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
+    return tournamentAsync.when(
+      loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
+      error: (err, stack) => Scaffold(body: Center(child: Text('Error: $err'))),
+      data: (tournament) {
+        if (tournament == null) return const Scaffold(body: Center(child: Text('Tournament not found')));
+
+        return teamsAsync.when(
+          loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
+          error: (err, stack) => Scaffold(body: Center(child: Text('Error: $err'))),
+          data: (teams) {
+            final matches = matchesAsync.value ?? [];
+            final bool isModeLocked = matches.any((m) => m.match.isCompleted || (m.match.homeScore ?? 0) > 0 || (m.match.awayScore ?? 0) > 0);
+
+            if (!_isInit) {
+              _nameController.text = tournament.name;
+              _locationController.text = tournament.location;
+              _startDate = tournament.startDate ?? DateTime.now();
+              _mode = tournament.mode;
+              _scoringSystem = tournament.scoringSystem;
+              _winPointsController.text = tournament.winPoints.toString();
+              _drawPointsController.text = tournament.drawPoints.toString();
+              _lossPointsController.text = tournament.lossPoints.toString();
+              _includeConsolationFinals = tournament.includeConsolationFinals;
+              _timerMinutesController.text = tournament.timerMinutes.toString();
+              _timerValue = tournament.timerMinutes;
+              _selectedTeamIds = teams.map((e) => e.team.id).toList();
+              _isInit = true;
+            }
+
+            final isReadOnly = tournament.isReadOnly;
+
+            return Scaffold(
+              appBar: AppBar(
+                title: Text(AppLocalizations.of(context)!.edit),
+                actions: [
+                  if (!_isLoading && !isReadOnly)
+                    IconButton(
+                      icon: const Icon(Icons.check),
+                      onPressed: _updateTournament,
+                    ),
+                ],
+              ),
+              body: _isLoading 
+                  ? const Center(child: CircularProgressIndicator())
+                  : SingleChildScrollView(
               padding: const EdgeInsets.all(16),
               child: Form(
                 key: _formKey,
@@ -127,9 +158,9 @@ class _TournamentEditScreenState extends ConsumerState<TournamentEditScreen> {
                         padding: const EdgeInsets.all(12),
                         margin: const EdgeInsets.only(bottom: 24),
                         decoration: BoxDecoration(
-                          color: Colors.amber.withValues(alpha: 0.1),
+                          color: Colors.amber.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
+                          border: Border.all(color: Colors.amber.withOpacity(0.3)),
                         ),
                         child: Row(
                           children: [
@@ -158,8 +189,17 @@ class _TournamentEditScreenState extends ConsumerState<TournamentEditScreen> {
                       ),
                       validator: (value) => (value == null || value.trim().isEmpty) ? AppLocalizations.of(context)!.enterTournamentLocation : null,
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 16),
                     _buildDateField(isReadOnly),
+                    
+                    const SizedBox(height: 32),
+                    Text(
+                      AppLocalizations.of(context)!.configStep,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 16),
+                    _buildConfigFields(isReadOnly, isModeLocked),
+
                     const SizedBox(height: 32),
                     Text(
                       AppLocalizations.of(context)!.participatingTeams,
@@ -172,6 +212,10 @@ class _TournamentEditScreenState extends ConsumerState<TournamentEditScreen> {
                 ),
               ),
             ),
+            );
+          },
+        );
+      },
     );
   }
 
@@ -205,16 +249,219 @@ class _TournamentEditScreenState extends ConsumerState<TournamentEditScreen> {
     );
   }
 
+  Widget _buildConfigFields(bool isReadOnly, bool isModeLocked) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(child: Text(AppLocalizations.of(context)!.tournamentMode, style: Theme.of(context).textTheme.titleSmall)),
+            if (isModeLocked && !isReadOnly)
+              const Tooltip(
+                message: 'Modalità bloccata (partite iniziate)',
+                child: Icon(Icons.lock_outline, size: 16, color: Colors.orange),
+              ),
+          ],
+        ),
+        if (isModeLocked && !isReadOnly)
+          Padding(
+            padding: const EdgeInsets.only(top: 8.0, bottom: 8.0),
+            child: Text(
+              AppLocalizations.of(context)!.modeLockedWarning,
+              style: const TextStyle(color: Colors.orange, fontSize: 11, fontWeight: FontWeight.bold),
+            ),
+          ),
+        const SizedBox(height: 8),
+        _buildModeSelector(isReadOnly || isModeLocked),
+        const SizedBox(height: 24),
+        
+        Text(AppLocalizations.of(context)!.scoringSystem, style: Theme.of(context).textTheme.titleSmall),
+        const SizedBox(height: 8),
+        _buildScoringSelector(isReadOnly),
+        
+        if (_scoringSystem == 'custom') ...[
+          const SizedBox(height: 16),
+          _buildCustomScoringInputs(isReadOnly),
+        ],
+        
+        const SizedBox(height: 24),
+        if (_mode != 'group_only') ...[
+          SwitchListTile(
+            title: Text(AppLocalizations.of(context)!.consolationFinals),
+            value: _includeConsolationFinals,
+            onChanged: isReadOnly ? null : (value) => setState(() => _includeConsolationFinals = value),
+          ),
+        ],
+        const SizedBox(height: 16),
+        Text(AppLocalizations.of(context)!.matchTimer(_timerValue), style: Theme.of(context).textTheme.titleSmall),
+        Slider(
+          value: _timerValue.toDouble(),
+          min: 1,
+          max: 20,
+          divisions: 19,
+          label: '$_timerValue min',
+          onChanged: isReadOnly ? null : (value) {
+            setState(() {
+              _timerValue = value.round();
+              _timerMinutesController.text = _timerValue.toString();
+            });
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildModeSelector(bool isDisabled) {
+    return Column(
+      children: [
+        _buildModeOption('group_only', AppLocalizations.of(context)!.groupOnly, AppLocalizations.of(context)!.groupOnlySubtitle, Icons.table_chart, isDisabled),
+        _buildModeOption('elimination_only', AppLocalizations.of(context)!.eliminationOnly, AppLocalizations.of(context)!.eliminationOnlySubtitle, Icons.account_tree, isDisabled),
+        _buildModeOption('group_and_elimination', AppLocalizations.of(context)!.groupAndElimination, AppLocalizations.of(context)!.groupAndEliminationSubtitle, Icons.sports_basketball, isDisabled),
+        _buildModeOption('madness', AppLocalizations.of(context)!.madness, AppLocalizations.of(context)!.madnessSubtitle, Icons.flash_on, isDisabled),
+      ],
+    );
+  }
+
+  Widget _buildModeOption(String value, String title, String subtitle, IconData icon, bool isDisabled) {
+    final isSelected = _mode == value;
+    return Opacity(
+      opacity: (isDisabled && !isSelected) ? 0.5 : 1.0,
+      child: Card(
+        color: isSelected ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.2) : null,
+        child: ListTile(
+          leading: Icon(icon, color: isSelected ? Theme.of(context).colorScheme.primary : (isDisabled ? Colors.grey : null)),
+          title: Text(title, style: TextStyle(fontWeight: isSelected ? FontWeight.bold : null)),
+          subtitle: Text(subtitle),
+          trailing: isSelected ? Icon(Icons.check_circle, color: Theme.of(context).colorScheme.primary) : null,
+          onTap: isDisabled ? null : () => setState(() => _mode = value),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildScoringSelector(bool isReadOnly) {
+    return Column(
+      children: [
+        RadioListTile<String>(
+          title: Text(AppLocalizations.of(context)!.classicBasketball),
+          subtitle: const Text('V=2, S=1'),
+          value: 'win2_loss1',
+          groupValue: _scoringSystem,
+          onChanged: isReadOnly ? null : (value) => setState(() {
+            _scoringSystem = value!;
+            _winPointsController.text = '2';
+            _drawPointsController.text = '0';
+            _lossPointsController.text = '1';
+          }),
+        ),
+        RadioListTile<String>(
+          title: Text(AppLocalizations.of(context)!.standardFootball),
+          subtitle: const Text('V=3, P=1, S=0'),
+          value: 'win3_draw1_loss0',
+          groupValue: _scoringSystem,
+          onChanged: isReadOnly ? null : (value) => setState(() {
+            _scoringSystem = value!;
+            _winPointsController.text = '3';
+            _drawPointsController.text = '1';
+            _lossPointsController.text = '0';
+          }),
+        ),
+        RadioListTile<String>(
+          title: Text(AppLocalizations.of(context)!.custom),
+          subtitle: Text(AppLocalizations.of(context)!.setYourScores),
+          value: 'custom',
+          groupValue: _scoringSystem,
+          onChanged: isReadOnly ? null : (value) => setState(() => _scoringSystem = value!),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCustomScoringInputs(bool isReadOnly) {
+    return Row(
+      children: [
+        Expanded(
+          child: TextFormField(
+            controller: _winPointsController,
+            enabled: !isReadOnly,
+            decoration: InputDecoration(labelText: AppLocalizations.of(context)!.win),
+            keyboardType: TextInputType.number,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: TextFormField(
+            controller: _drawPointsController,
+            enabled: !isReadOnly,
+            decoration: InputDecoration(labelText: AppLocalizations.of(context)!.draw),
+            keyboardType: TextInputType.number,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: TextFormField(
+            controller: _lossPointsController,
+            enabled: !isReadOnly,
+            decoration: InputDecoration(labelText: AppLocalizations.of(context)!.loss),
+            keyboardType: TextInputType.number,
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildTeamsSelection(AsyncValue<List<Team>> allTeamsAsync, bool isReadOnly) {
     return allTeamsAsync.when(
       loading: () => const CircularProgressIndicator(),
       error: (e, s) => Text('Error: $e'),
       data: (teams) {
+        final selectedTeams = _selectedTeamIds.map((id) => teams.firstWhere((t) => t.id == id)).toList();
+
         final searchText = _searchController.text.toLowerCase();
-        final filteredTeams = teams; 
+        final filteredTeams = teams.where((t) => t.name.toLowerCase().contains(searchText)).toList();
 
         return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (_mode == 'madness' && _selectedTeamIds.isNotEmpty) ...[
+              Text(
+                '${AppLocalizations.of(context)!.teamOrder} (${AppLocalizations.of(context)!.dragToReorder})',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(color: Colors.orange, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: ReorderableListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: selectedTeams.length,
+                  itemBuilder: (context, index) {
+                    final team = selectedTeams[index];
+                    return ListTile(
+                      key: ValueKey('ordered_edit_${team.id}'),
+                      leading: CircleAvatar(
+                        backgroundColor: Colors.orange,
+                        child: Text('${index + 1}', style: const TextStyle(color: Colors.white)),
+                      ),
+                      title: Text(team.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                      trailing: isReadOnly ? null : const Icon(Icons.drag_handle),
+                    );
+                  },
+                  onReorder: isReadOnly ? (o, n) {} : (oldIndex, newIndex) {
+                    setState(() {
+                      if (newIndex > oldIndex) newIndex -= 1;
+                      final item = _selectedTeamIds.removeAt(oldIndex);
+                      _selectedTeamIds.insert(newIndex, item);
+                    });
+                  },
+                ),
+              ),
+              const SizedBox(height: 24),
+            ],
+
             if (!isReadOnly) ...[
               TextField(
                 controller: _searchController,
@@ -242,7 +489,9 @@ class _TournamentEditScreenState extends ConsumerState<TournamentEditScreen> {
                   onChanged: (val) {
                     setState(() {
                       if (val == true) {
-                        _selectedTeamIds.add(team.id);
+                        if (!_selectedTeamIds.contains(team.id)) {
+                          _selectedTeamIds.add(team.id);
+                        }
                       } else {
                         _selectedTeamIds.remove(team.id);
                       }

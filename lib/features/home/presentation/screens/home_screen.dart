@@ -6,18 +6,20 @@ import 'package:trnmnt/generated/l10n/app_localizations.dart';
 import 'package:trnmnt/core/providers/icon_provider.dart';
 import 'package:trnmnt/features/stats/presentation/widgets/stats_overview.dart';
 import 'package:trnmnt/features/stats/data/stats_repository.dart';
-import 'package:trnmnt/features/single_match/data/single_match_provider.dart';
 import 'package:trnmnt/features/tournaments/data/tournaments_repository.dart';
 import 'dart:io';
 import 'package:url_launcher/url_launcher.dart';
+import '../../../game/providers/game_provider.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final activeGame = ref.watch(activeGameProvider);
     final customIconPath = ref.watch(customIconProvider);
     final statsAsync = ref.watch(appStatsProvider);
+    final l10n = AppLocalizations.of(context)!;
     
     return Scaffold(
       body: CustomScrollView(
@@ -88,7 +90,7 @@ class HomeScreen extends ConsumerWidget {
                                     ),
                                   ),
                                   Text(
-                                    AppLocalizations.of(context)!.appSubtitle,
+                                    l10n.appSubtitle,
                                     style: const TextStyle(color: Colors.white70, fontSize: 13),
                                   ),
                                 ],
@@ -109,7 +111,71 @@ class HomeScreen extends ConsumerWidget {
             child: _CloudTournamentsSlider(),
           ),
 
-          // Stats Section (Concept 2 integration)
+
+          // Unified Active Match Resume Section
+          if (activeGame.matchId != null || 
+              activeGame.isRunning || 
+              activeGame.homeScore > 0 || 
+              activeGame.awayScore > 0 ||
+              activeGame.isFinished)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                child: Card(
+                  color: (activeGame.matchId != null ? Colors.orange : Colors.purple).withValues(alpha: 0.1),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    side: BorderSide(color: activeGame.matchId != null ? Colors.orange : Colors.purple, width: 1),
+                  ),
+                  child: InkWell(
+                    onTap: () {
+                      if (activeGame.matchId != null) {
+                         context.push('/tournaments/${activeGame.matchData!.match.tournamentId}/match/${activeGame.matchId}');
+                      } else {
+                         context.pushNamed(
+                          'single-match-board',
+                          extra: {
+                            'homeTeamName': activeGame.homeTeamName,
+                            'awayTeamName': activeGame.awayTeamName,
+                          },
+                        );
+                      }
+                    },
+                    borderRadius: BorderRadius.circular(16),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Row(
+                        children: [
+                          Icon(
+                            activeGame.matchId != null ? Icons.flash_on : Icons.sports_basketball, 
+                            color: activeGame.matchId != null ? Colors.orange : Colors.purple, 
+                            size: 32
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  activeGame.matchId != null ? 'PARTITA TORNEO LIVE' : l10n.matchInProgress,
+                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                ),
+                                Text(
+                                  '${activeGame.homeTeamName} ${activeGame.homeScore} - ${activeGame.awayScore} ${activeGame.awayTeamName} (${activeGame.formattedTime})',
+                                  style: const TextStyle(color: Colors.white70),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const Icon(Icons.chevron_right, color: Colors.grey),
+                        ],
+                      ),
+                    ),
+                  ),
+                ).animate().slideY(begin: 0.1, duration: 400.ms).fadeIn(),
+              ),
+            ),
+
           SliverToBoxAdapter(
             child: statsAsync.when(
               data: (stats) {
@@ -126,61 +192,6 @@ class HomeScreen extends ConsumerWidget {
               },
             ),
           ),
-
-          // Active Single Match Resume Section
-          if (ref.watch(singleMatchProvider).isRunning || 
-              ref.watch(singleMatchProvider).homeScore > 0 || 
-              ref.watch(singleMatchProvider).awayScore > 0)
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                child: Card(
-                  color: Colors.purple.withValues(alpha: 0.1),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    side: const BorderSide(color: Colors.purple, width: 1),
-                  ),
-                  child: InkWell(
-                    onTap: () {
-                      final match = ref.read(singleMatchProvider);
-                      context.pushNamed(
-                        'single-match-board',
-                        extra: {
-                          'homeTeamName': match.homeTeamName,
-                          'awayTeamName': match.awayTeamName,
-                        },
-                      );
-                    },
-                    borderRadius: BorderRadius.circular(16),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.sports_basketball, color: Colors.purple, size: 32),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  AppLocalizations.of(context)!.matchInProgress,
-                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                                ),
-                                Text(
-                                  '${ref.watch(singleMatchProvider).homeTeamName} ${ref.watch(singleMatchProvider).homeScore} - ${ref.watch(singleMatchProvider).awayScore} ${ref.watch(singleMatchProvider).awayTeamName}',
-                                  style: const TextStyle(color: Colors.white70),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const Icon(Icons.chevron_right, color: Colors.purple),
-                        ],
-                      ),
-                    ),
-                  ),
-                ).animate().slideY(begin: 1).fadeIn(),
-              ),
-            ),
 
           // Quick Actions Grid
           SliverPadding(
@@ -317,6 +328,28 @@ class HomeScreen extends ConsumerWidget {
       ),
     );
   }
+
+  String _getTranslatedMode(BuildContext context, String? mode) {
+    final l10n = AppLocalizations.of(context)!;
+    String label;
+    switch (mode) {
+      case 'group_only':
+        label = l10n.groupOnly;
+        break;
+      case 'elimination_only':
+        label = l10n.eliminationOnly;
+        break;
+      case 'group_and_elimination':
+        label = l10n.groupAndElimination;
+        break;
+      case 'madness':
+        label = l10n.madness;
+        break;
+      default:
+        label = mode?.replaceAll('_', ' ') ?? l10n.groupOnly;
+    }
+    return label.toUpperCase();
+  }
 }
 
 class _CloudTournamentsSlider extends ConsumerWidget {
@@ -329,7 +362,7 @@ class _CloudTournamentsSlider extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 20, 16, 12),
+          padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
           child: Row(
             children: [
               Text(
@@ -477,7 +510,7 @@ class _CloudTournamentCard extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    _buildStatusBadge(tournament),
+                    _buildStatusBadge(context, tournament),
                     const Icon(Icons.chevron_right, color: Colors.white38),
                   ],
                 ),
@@ -493,7 +526,7 @@ class _CloudTournamentCard extends StatelessWidget {
                           style: TextStyle(color: Colors.orange.withValues(alpha: 0.8), fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1),
                         ),
                         Text(
-                          (tournament['mode'] as String? ?? 'LEAGUE').replaceAll('_', ' ').toUpperCase(),
+                          _getTranslatedMode(context, tournament['mode'] as String?),
                           style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1),
                         ),
                       ],
@@ -534,12 +567,26 @@ class _CloudTournamentCard extends StatelessWidget {
               color: Colors.transparent,
               child: InkWell(
                 onTap: () {
-                  final id = int.tryParse(tournament['id'].toString());
-                  if (id != null) {
-                    context.pushNamed(
-                      'tournament-detail',
-                      pathParameters: {'tournamentId': id.toString()},
-                    );
+                  var webUrl = tournament['webUrl'] as String?;
+                  final tournamentId = tournament['id']?.toString();
+                  
+                  // Fallback: if webUrl is missing from the data, generate it from the ID
+                  if ((webUrl == null || webUrl.isEmpty) && tournamentId != null) {
+                    webUrl = 'https://vesb.vercel.app/tournaments/$tournamentId';
+                  }
+
+                  if (webUrl != null && webUrl.isNotEmpty) {
+                    final Uri url = Uri.parse(webUrl);
+                    launchUrl(url, mode: LaunchMode.externalApplication);
+                  } else {
+                    // This fallback to local detail page probably won't work for cloud tournaments
+                    // without importing them, but we'll leave it as a last resort
+                    if (tournamentId != null) {
+                      context.pushNamed(
+                        'tournament-detail',
+                        pathParameters: {'tournamentId': tournamentId},
+                      );
+                    }
                   }
                 },
               ),
@@ -550,8 +597,7 @@ class _CloudTournamentCard extends StatelessWidget {
     );
   }
 
-  Widget _buildStatusBadge(Map<String, dynamic> tournament) {
-    final isActive = tournament['isActive'] as bool? ?? false;
+  Widget _buildStatusBadge(BuildContext context, Map<String, dynamic> tournament) {
     final dateVal = tournament['startDate'];
     
     DateTime? startDate;
@@ -562,19 +608,36 @@ class _CloudTournamentCard extends StatelessWidget {
     }
     
     final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    
+    // Check if tournament is concluded (has a winner)
+    final winnerTeamId = tournament['winnerTeamId'];
+    final isCompleted = winnerTeamId != null;
 
-    String label = 'Prossimamente';
-    Color color = Colors.blue;
-    IconData icon = Icons.calendar_today;
+    final l10n = AppLocalizations.of(context)!;
+    String label = l10n.live;
+    Color color = Colors.green;
+    IconData icon = Icons.sensors;
 
-    if (isActive) {
-      label = 'Live';
-      color = Colors.green;
-      icon = Icons.sensors;
-    } else if (startDate != null && startDate.isBefore(now)) {
-      label = 'Concluso';
+    if (isCompleted) {
+      label = l10n.concluded;
       color = Colors.grey;
       icon = Icons.check_circle_outline;
+    } else if (startDate != null) {
+      // Create a date-only version of startDate for comparison
+      final startDay = DateTime(startDate.year, startDate.month, startDate.day);
+      
+      if (startDay.isAfter(today)) {
+        label = l10n.upcoming;
+        color = Colors.blue;
+        icon = Icons.calendar_today;
+      } else if (startDay.isBefore(today)) {
+        // If it was in the past and is not completed, it should probably be marked as 'Concluso' 
+        // to reflect it's no longer live as per user request.
+        label = l10n.concluded;
+        color = Colors.grey;
+        icon = Icons.check_circle_outline;
+      }
     }
 
     return Container(
@@ -610,5 +673,27 @@ class _CloudTournamentCard extends StatelessWidget {
 
     if (date == null) return '';
     return '${date.day}/${date.month}/${date.year}';
+  }
+
+  String _getTranslatedMode(BuildContext context, String? mode) {
+    final l10n = AppLocalizations.of(context)!;
+    String label;
+    switch (mode) {
+      case 'group_only':
+        label = l10n.groupOnly;
+        break;
+      case 'elimination_only':
+        label = l10n.eliminationOnly;
+        break;
+      case 'group_and_elimination':
+        label = l10n.groupAndElimination;
+        break;
+      case 'madness':
+        label = l10n.madness;
+        break;
+      default:
+        label = mode?.replaceAll('_', ' ') ?? l10n.groupOnly;
+    }
+    return label.toUpperCase();
   }
 }

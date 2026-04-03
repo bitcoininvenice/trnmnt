@@ -15,7 +15,6 @@ import '../../features/tournaments/presentation/screens/match_screen.dart';
 import '../../features/tournaments/presentation/screens/madness_screen.dart';
 import '../../features/timer/presentation/screens/timer_screen.dart';
 import '../../features/single_match/presentation/screens/single_match_setup_screen.dart';
-import '../../features/single_match/presentation/screens/single_match_screen.dart';
 import '../../features/map/presentation/screens/map_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
 import '../../features/settings/presentation/screens/mode_legend_screen.dart';
@@ -150,13 +149,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/single-match-board',
             name: 'single-match-board',
-            builder: (context, state) {
-              final extra = state.extra as Map<String, String>;
-              return SingleMatchScreen(
-                homeTeamName: extra['homeTeamName']!,
-                awayTeamName: extra['awayTeamName']!,
-              );
-            },
+            builder: (context, state) => const MatchScreen(),
           ),
           GoRoute(
             path: '/settings',

@@ -1117,6 +1117,138 @@ abstract class AppLocalizations {
   /// In it, this message translates to:
   /// **'Apri nel Browser'**
   String get openInBrowser;
+
+  /// No description provided for @teamOrder.
+  ///
+  /// In it, this message translates to:
+  /// **'Ordine Squadre'**
+  String get teamOrder;
+
+  /// No description provided for @dragToReorder.
+  ///
+  /// In it, this message translates to:
+  /// **'Trascina per spostare'**
+  String get dragToReorder;
+
+  /// No description provided for @madnessOrderSubtitle.
+  ///
+  /// In it, this message translates to:
+  /// **'L\'ordine delle squadre determina il bracket Madness.'**
+  String get madnessOrderSubtitle;
+
+  /// No description provided for @live.
+  ///
+  /// In it, this message translates to:
+  /// **'Live'**
+  String get live;
+
+  /// No description provided for @matchDetail.
+  ///
+  /// In it, this message translates to:
+  /// **'Dettaglio Partita'**
+  String get matchDetail;
+
+  /// No description provided for @quit.
+  ///
+  /// In it, this message translates to:
+  /// **'Esci'**
+  String get quit;
+
+  /// No description provided for @rules.
+  ///
+  /// In it, this message translates to:
+  /// **'Regole'**
+  String get rules;
+
+  /// No description provided for @viewTournamentRules.
+  ///
+  /// In it, this message translates to:
+  /// **'Vedi le regole del torneo'**
+  String get viewTournamentRules;
+
+  /// No description provided for @multiGroup.
+  ///
+  /// In it, this message translates to:
+  /// **'Gironi Multipli'**
+  String get multiGroup;
+
+  /// No description provided for @groupCountLabel.
+  ///
+  /// In it, this message translates to:
+  /// **'Numero di Gironi'**
+  String get groupCountLabel;
+
+  /// No description provided for @teamsPerGroup.
+  ///
+  /// In it, this message translates to:
+  /// **'Squadre per Girone'**
+  String get teamsPerGroup;
+
+  /// No description provided for @randomDistribution.
+  ///
+  /// In it, this message translates to:
+  /// **'Distribuzione Casuale'**
+  String get randomDistribution;
+
+  /// No description provided for @manualDistribution.
+  ///
+  /// In it, this message translates to:
+  /// **'Distribuzione Manuale'**
+  String get manualDistribution;
+
+  /// No description provided for @qualifiersPerGroupLabel.
+  ///
+  /// In it, this message translates to:
+  /// **'Qualificati per Girone'**
+  String get qualifiersPerGroupLabel;
+
+  /// No description provided for @hasPlayInLabel.
+  ///
+  /// In it, this message translates to:
+  /// **'Includi Spareggi (Play-In)'**
+  String get hasPlayInLabel;
+
+  /// No description provided for @editGroups.
+  ///
+  /// In it, this message translates to:
+  /// **'Gestisci i Gironi'**
+  String get editGroups;
+
+  /// No description provided for @distributeTeams.
+  ///
+  /// In it, this message translates to:
+  /// **'Distribuisci le squadre nei gironi'**
+  String get distributeTeams;
+
+  /// No description provided for @groupNameHint.
+  ///
+  /// In it, this message translates to:
+  /// **'Nome Girone (es. A, B...)'**
+  String get groupNameHint;
+
+  /// No description provided for @upcoming.
+  ///
+  /// In it, this message translates to:
+  /// **'Prossimamente'**
+  String get upcoming;
+
+  /// No description provided for @concluded.
+  ///
+  /// In it, this message translates to:
+  /// **'Concluso'**
+  String get concluded;
+
+  /// No description provided for @playIn.
+  ///
+  /// In it, this message translates to:
+  /// **'Spareggi'**
+  String get playIn;
+
+  /// No description provided for @modeLockedWarning.
+  ///
+  /// In it, this message translates to:
+  /// **'La modalità non può essere cambiata perché il torneo è già iniziato.'**
+  String get modeLockedWarning;
 }
 
 class _AppLocalizationsDelegate
