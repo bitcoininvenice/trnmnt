@@ -239,7 +239,7 @@
   "testConnection": "Testa Connessione",
   "connectionWorking": "Connessione funzionante!",
   "connectionError": "Errore di connessione",
-  "publishToWeb": "Pubblica sul Web",
+  "publishToWeb": "Sincronizza sul Cloud",
   "openInBrowser": "Apri nel Browser",
   "teamOrder": "Ordine Squadre",
   "dragToReorder": "Trascina per spostare",
@@ -262,5 +262,20 @@
   "upcoming": "Prossimamente",
   "concluded": "Concluso",
   "playIn": "Spareggi",
-  "modeLockedWarning": "La modalità non può essere cambiata perché il torneo è già iniziato."
+  "modeLockedWarning": "La modalità non può essere cambiata perché il torneo è già iniziato.",
+  "cloudCollaboration": "Co-gestione Cloud",
+  "inviteAdmin": "Invita Organizzatore",
+  "cloudSyncActive": "Sincronizzazione Cloud attiva",
+  "tournamentImportedAndSynced": "Torneo importato e sincronizzato! 🤝🏀",
+  "cloudFetching": "Recupero dati dal Cloud...",
+  "syncError": "Errore di sincronizzazione",
+  "cloudIdLabel": "ID Cloud: {id}",
+  "@cloudIdLabel": {
+    "placeholders": {
+      "id": {"type": "String"}
+    }
+  },
+  "publishToCloud_title": "Pubblica sul Cloud",
+  "publishToCloud_desc": "Sincronizza il torneo per abilitare la Dashboard Web e la Co-Gestione.",
+  "publishNow": "Pubblica Ora"
 }

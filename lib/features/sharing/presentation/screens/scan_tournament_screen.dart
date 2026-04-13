@@ -7,6 +7,9 @@ import 'package:go_router/go_router.dart';
 import 'package:drift/drift.dart' as drift;
 import 'package:trnmnt/core/database/app_database.dart';
 import 'package:trnmnt/core/providers/database_provider.dart';
+import '../../data/share_repository.dart';
+import '../../data/sync_repository.dart';
+import 'package:trnmnt/generated/l10n/app_localizations.dart';
 
 class ScanTournamentScreen extends ConsumerStatefulWidget {
   const ScanTournamentScreen({super.key});
@@ -22,82 +25,74 @@ class _ScanTournamentScreenState extends ConsumerState<ScanTournamentScreen> {
 
   Future<void> _handleScan(String? code) async {
     if (code == null || _isProcessing) return;
-    if (!code.startsWith('trnmnt://share')) return;
-
-    final uri = Uri.parse(code.replaceFirst('trnmnt://share', 'http://trnmnt'));
-    final ip = uri.queryParameters['ip'];
-    final port = uri.queryParameters['port'];
-    final id = uri.queryParameters['id'];
-
-    if (ip == null || port == null || id == null) return;
     
-    // Stop scanner immediately to prevent multiple hits
+    // Check for both old and new formats (transition period)
+    final isManageLink = code.startsWith('trnmnt://manage');
+    if (!isManageLink && !code.startsWith('trnmnt://share')) return;
+
+    final uri = Uri.parse(code.replaceFirst('trnmnt://manage', 'http://trnmnt').replaceFirst('trnmnt://share', 'http://trnmnt'));
+    final cloudId = uri.queryParameters['id'];
+
+    if (cloudId == null) return;
+    
     await _controller.stop();
 
     setState(() {
       _isProcessing = true;
-      _status = 'Connecting to transmitter at $ip...';
+      _status = 'Recupero dati dal Cloud...';
     });
 
     try {
-      final response = await http.get(Uri.parse('http://$ip:$port/tournament/$id')).timeout(const Duration(seconds: 10));
+      final repo = ref.read(shareRepositoryProvider);
+      final data = await repo.fetchTournamentByCloudId(cloudId);
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final newId = await _importTournamentBundle(data, ip: ip, port: int.parse(port), remoteId: int.parse(id));
+      if (data != null) {
+        final newId = await _importTournamentBundle(data, cloudId: cloudId);
         if (newId != null && mounted) {
            ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Tournament imported successfully!'), backgroundColor: Colors.green),
+            const SnackBar(content: Text('Torneo importato e sincronizzato! 🤝🏀'), backgroundColor: Colors.green),
           );
           context.go('/tournaments/$newId');
         }
       } else {
         setState(() {
-          _status = 'Error downloading data: ${response.statusCode}';
+          _status = 'Errore: Torneo non trovato sul Cloud o ID invalido.';
           _isProcessing = false;
         });
+        _controller.start();
       }
     } catch (e) {
       if (mounted) {
         setState(() {
-          _status = 'Connection failed. Ensure both devices are on the same WiFi.\n$e';
+          _status = 'Connessione Cloud fallita.\n$e';
           _isProcessing = false;
         });
-        // Restart scanner on failure if user wants to try again?
-        // Actually, we show the error and let them go back or we can add a 'Retry' button.
-        // For now, let's allow them to go back.
+        _controller.start();
       }
     }
   }
 
   Future<int?> _importTournamentBundle(
     Map<String, dynamic> data, {
-    required String ip,
-    required int port,
-    required int remoteId,
+    required String cloudId,
   }) async {
     final db = ref.read(dbProvider);
     final tournamentData = data['tournament'] as Map<String, dynamic>;
     final teamsData = data['teams'] as List<dynamic>;
     final matchesData = data['matches'] as List<dynamic>;
 
-    // Check for duplicates (same name + Import suffix and same location)
-    final importName = tournamentData['name'] + ' (Import)';
+    // Check for duplicates
     final existing = await (db.select(db.tournaments)
-      ..where((t) => t.name.equals(importName) & t.location.equals(tournamentData['location'])))
+      ..where((t) => t.cloudId.equals(cloudId)))
       .getSingleOrNull();
 
     if (existing != null) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Questo torneo è già stato importato!'), backgroundColor: Colors.orange),
-        );
-      }
       return existing.id;
     }
 
-    // 1. Create NEW Tournament record (Copy of receiver's version)
-    // We remove the ID to let it auto-increment
+    final importName = tournamentData['name'] + ' (Sync)';
+    
+    // 1. Create NEW Tournament record
     final tournamentId = await db.into(db.tournaments).insert(
       TournamentsCompanion.insert(
         name: importName,
@@ -110,10 +105,10 @@ class _ScanTournamentScreenState extends ConsumerState<ScanTournamentScreen> {
         includeConsolationFinals: drift.Value(tournamentData['includeConsolationFinals']),
         timerMinutes: drift.Value(tournamentData['timerMinutes']),
         isActive: drift.Value(tournamentData['isActive']),
-        isReadOnly: const drift.Value(true),
-        sourceIp: drift.Value(ip),
-        sourcePort: drift.Value(port),
-        remoteId: drift.Value(remoteId),
+        isReadOnly: const drift.Value(false), // ALLOW EDITING for co-management
+        cloudId: drift.Value(cloudId),
+        isPublished: const drift.Value(true),
+        webUrl: drift.Value(tournamentData['webUrl']),
       )
     );
 

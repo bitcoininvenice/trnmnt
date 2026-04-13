@@ -87,7 +87,7 @@ class BracketScreen extends ConsumerWidget {
           IconButton(
             icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
             tooltip: 'Elimina e ricrea',
-            onPressed: () => _deleteBracket(context, ref),
+            onPressed: () => deleteBracket(context, ref, tournamentId),
           ),
         ],
       ),
@@ -174,43 +174,7 @@ class BracketScreen extends ConsumerWidget {
           ],
         ),
       ),
-    ).animate().fadeIn();
-  }
-
-  Future<void> _deleteBracket(BuildContext context, WidgetRef ref) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Elimina Bracket'),
-        content: const Text('Sei sicuro di voler eliminare tutto il tabellone eliminatorio? I risultati verranno persi.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Annulla')),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Elimina'),
-          ),
-        ],
-      ),
     );
-
-    if (confirm != true) return;
-
-    final repo = ref.read(matchesRepositoryProvider);
-    await repo.deleteMatchesByPhase(tournamentId, 'play_in');
-    await repo.deleteMatchesByPhase(tournamentId, 'round_of_32');
-    await repo.deleteMatchesByPhase(tournamentId, 'round_of_16');
-    await repo.deleteMatchesByPhase(tournamentId, 'quarterfinal');
-    await repo.deleteMatchesByPhase(tournamentId, 'semifinal');
-    await repo.deleteMatchesByPhase(tournamentId, 'final');
-    await repo.deleteMatchesByPhase(tournamentId, 'third_place');
-    await repo.deleteMatchesByPhase(tournamentId, 'fifth_place');
-    await repo.deleteMatchesByPhase(tournamentId, 'seventh_place');
-
-    if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Tabellone eliminato con successo.')));
-    
-    // ignore: unused_result
-    ref.refresh(bracketProvider(tournamentId));
   }
 
   Future<void> _generateFromStandings(BuildContext context, WidgetRef ref) async {
@@ -638,4 +602,44 @@ class BracketScreen extends ConsumerWidget {
         return phase;
     }
   }
+}
+
+Future<void> deleteBracket(BuildContext context, WidgetRef ref, int tournamentId) async {
+  final confirm = await showDialog<bool>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text('Elimina Bracket'),
+      content: const Text('Sei sicuro di voler eliminare tutto il tabellone eliminatorio? I risultati verranno persi.'),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Annulla')),
+        TextButton(
+          onPressed: () => Navigator.pop(context, true),
+          style: TextButton.styleFrom(foregroundColor: Colors.red),
+          child: const Text('Elimina'),
+        ),
+      ],
+    ),
+  );
+
+  if (confirm != true) return;
+
+  final repo = ref.read(matchesRepositoryProvider);
+  await repo.deleteMatchesByPhase(tournamentId, 'play_in');
+  await repo.deleteMatchesByPhase(tournamentId, 'round_of_32');
+  await repo.deleteMatchesByPhase(tournamentId, 'round_of_16');
+  await repo.deleteMatchesByPhase(tournamentId, 'quarterfinal');
+  await repo.deleteMatchesByPhase(tournamentId, 'semifinal');
+  await repo.deleteMatchesByPhase(tournamentId, 'final');
+  await repo.deleteMatchesByPhase(tournamentId, 'third_place');
+  await repo.deleteMatchesByPhase(tournamentId, 'fifth_place');
+  await repo.deleteMatchesByPhase(tournamentId, 'seventh_place');
+
+  if (context.mounted) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Tabellone eliminato con successo.')),
+    );
+  }
+
+  // ignore: unused_result
+  ref.refresh(bracketProvider(tournamentId));
 }

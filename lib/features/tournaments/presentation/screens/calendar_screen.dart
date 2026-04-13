@@ -8,6 +8,7 @@ import '../../../stats/data/stats_repository.dart';
 import '../screens/standings_screen.dart'; // Add this for standingsProvider
 import '../../../../core/database/app_database.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'bracket_screen.dart';
 
 class CalendarScreen extends ConsumerWidget {
   final int tournamentId;
@@ -66,6 +67,40 @@ class CalendarScreen extends ConsumerWidget {
               }
             },
           ),
+          IconButton(
+            icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+            tooltip: 'Elimina e ricrea',
+            onPressed: () => deleteBracket(context, ref, tournamentId),
+          ),
+          IconButton(
+            icon: const Icon(Icons.delete_outline),
+            tooltip: 'Elimina calendario',
+            onPressed: () async {
+              final confirm = await showDialog<bool>(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('Elimina calendario'),
+                  content: const Text('Questo cancellerà il calendario esistente. Continuare?'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: const Text('Annulla'),
+                    ),
+                    ElevatedButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      child: const Text('Elimina'),
+                    ),
+                  ],
+                ),
+              );
+              if (confirm == true) {
+                await ref.read(matchesRepositoryProvider).generateGroupCalendar(tournamentId);
+                // ignore: unused_result
+                ref.refresh(groupMatchesProvider(tournamentId));
+              }
+            },
+          ),
+          
           if (tournament != null && tournament.isActive && (tournament.mode == 'group_only' || tournament.mode == 'madness'))
             IconButton(
               icon: const Icon(FontAwesomeIcons.trophy, color: Colors.orange, size: 20),

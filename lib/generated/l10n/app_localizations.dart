@@ -1109,7 +1109,7 @@ abstract class AppLocalizations {
   /// No description provided for @publishToWeb.
   ///
   /// In it, this message translates to:
-  /// **'Pubblica sul Web'**
+  /// **'Sincronizza sul Cloud'**
   String get publishToWeb;
 
   /// No description provided for @openInBrowser.
@@ -1249,6 +1249,66 @@ abstract class AppLocalizations {
   /// In it, this message translates to:
   /// **'La modalità non può essere cambiata perché il torneo è già iniziato.'**
   String get modeLockedWarning;
+
+  /// No description provided for @cloudCollaboration.
+  ///
+  /// In it, this message translates to:
+  /// **'Co-gestione Cloud'**
+  String get cloudCollaboration;
+
+  /// No description provided for @inviteAdmin.
+  ///
+  /// In it, this message translates to:
+  /// **'Invita Organizzatore'**
+  String get inviteAdmin;
+
+  /// No description provided for @cloudSyncActive.
+  ///
+  /// In it, this message translates to:
+  /// **'Sincronizzazione Cloud attiva'**
+  String get cloudSyncActive;
+
+  /// No description provided for @tournamentImportedAndSynced.
+  ///
+  /// In it, this message translates to:
+  /// **'Torneo importato e sincronizzato! 🤝🏀'**
+  String get tournamentImportedAndSynced;
+
+  /// No description provided for @cloudFetching.
+  ///
+  /// In it, this message translates to:
+  /// **'Recupero dati dal Cloud...'**
+  String get cloudFetching;
+
+  /// No description provided for @syncError.
+  ///
+  /// In it, this message translates to:
+  /// **'Errore di sincronizzazione'**
+  String get syncError;
+
+  /// No description provided for @cloudIdLabel.
+  ///
+  /// In it, this message translates to:
+  /// **'ID Cloud: {id}'**
+  String cloudIdLabel(String id);
+
+  /// No description provided for @publishToCloud_title.
+  ///
+  /// In it, this message translates to:
+  /// **'Pubblica sul Cloud'**
+  String get publishToCloud_title;
+
+  /// No description provided for @publishToCloud_desc.
+  ///
+  /// In it, this message translates to:
+  /// **'Sincronizza il torneo per abilitare la Dashboard Web e la Co-Gestione.'**
+  String get publishToCloud_desc;
+
+  /// No description provided for @publishNow.
+  ///
+  /// In it, this message translates to:
+  /// **'Pubblica Ora'**
+  String get publishNow;
 }
 
 class _AppLocalizationsDelegate

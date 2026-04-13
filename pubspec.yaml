@@ -1,7 +1,7 @@
 name: trnmnt
 description: "Basketball Tournament Manager - Gestione tornei di basket"
 publish_to: 'none'
-version: 3.1.0+301
+version: 3.2.0+302
 
 environment:
   sdk: ^3.8.1
@@ -43,13 +43,10 @@ dependencies:
   font_awesome_flutter: ^10.9.1
   image_picker: ^1.1.2
   
-  # Offline Sharing (P2P)
-  shelf: ^1.4.1
-  shelf_router: ^1.1.4
-  network_info_plus: ^6.0.1
+  # Cloud Sharing & QR
   qr_flutter: ^4.1.0
   http: ^1.2.2
-  mobile_scanner: ^6.0.1
+  mobile_scanner: ^6.0.4
   supabase_flutter: ^2.12.2
   flutter_dotenv: ^6.0.0
   permission_handler: ^11.3.1

@@ -1,61 +1,29 @@
 import 'package:drift/drift.dart';
-import 'dart:convert';
-import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shelf/shelf.dart';
-import 'package:shelf/shelf_io.dart' as io;
-import 'package:shelf_router/shelf_router.dart';
-import 'package:network_info_plus/network_info_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../../../core/providers/database_provider.dart';
 import '../../../core/database/app_database.dart';
-import '../../tournaments/data/tournaments_repository.dart';
-import '../../tournaments/data/matches_repository.dart';
 
 class ShareRepository {
   final AppDatabase _db;
-  HttpServer? _server;
-  String? _localIp;
-  final int _port = 4554; // "TRNMNT" offset port
 
   ShareRepository(this._db);
 
-  Future<String?> getLocalIp() async {
-    _localIp = await NetworkInfo().getWifiIP();
-    return _localIp;
-  }
-
-  Future<void> startServer() async {
-    if (_server != null) return;
-
-    final app = Router();
-
-    // Health check
-    app.get('/health', (Request request) {
-      return Response.ok('TRNMNT Sharing Server Active');
-    });
-
-    // Endpoint to get a specific tournament with all data
-    app.get('/tournament/<id>', (Request request, String id) async {
-      final tournamentId = int.tryParse(id);
-      if (tournamentId == null) return Response.notFound('Invalid ID');
-
-      final data = await getTournamentExport(tournamentId);
-      if (data == null) return Response.notFound('Tournament not found');
-
-      return Response.ok(
-        jsonEncode(data),
-        headers: {'Content-Type': 'application/json'},
-      );
-    });
-
-    _server = await io.serve(app, InternetAddress.anyIPv4, _port);
-  }
-
-  Future<void> stopServer() async {
-    await _server?.close();
-    _server = null;
+  /// Downloads tournament data from Supabase using its Cloud ID
+  Future<Map<String, dynamic>?> fetchTournamentByCloudId(String cloudId) async {
+    try {
+      final supabase = Supabase.instance.client;
+      final response = await supabase
+          .from('published_tournaments')
+          .select('data')
+          .eq('id', cloudId)
+          .single();
+      
+      return response['data'] as Map<String, dynamic>;
+    } catch (e) {
+      return null;
+    }
   }
 
   Future<Map<String, dynamic>?> getTournamentExport(int tournamentId) async {
@@ -82,13 +50,7 @@ class ShareRepository {
       'teams': exportTeams,
       'matches': matches.map((m) => m.toJson()).toList(),
       'exportedAt': DateTime.now().toIso8601String(),
-      'isReadOnly': true,
     };
-  }
-
-  String getShareUrl(int tournamentId) {
-    if (_localIp == null) return '';
-    return 'trnmnt://share?ip=$_localIp&port=$_port&id=$tournamentId';
   }
 
   /// Publishes tournament data to Supabase for global/realtime access
@@ -103,7 +65,7 @@ class ShareRepository {
     
     try {
       if (cloudId == null || cloudId.isEmpty) {
-        // CASE: First publication. Let Supabase trigger generate the pretty slug ID.
+        // CASE: First publication
         final response = await supabase.from('published_tournaments').insert({
           'data': export,
           'last_updated': DateTime.now().toIso8601String(),
@@ -111,7 +73,7 @@ class ShareRepository {
         
         cloudId = response['id'].toString();
       } else {
-        // CASE: Update existing row with preserved cloudId
+        // CASE: Update existing row
         await supabase.from('published_tournaments').upsert({
           'id': cloudId,
           'data': export,
@@ -121,7 +83,7 @@ class ShareRepository {
 
       final finalUrl = '$baseUrl/tournaments/$cloudId';
 
-      // Update local status with the confirmed cloudId and finalUrl
+      // Update local status
       await (_db.update(_db.tournaments)..where((t) => t.id.equals(tournamentId))).write(
         TournamentsCompanion(
           isPublished: const Value(true),
@@ -133,7 +95,6 @@ class ShareRepository {
       
       return finalUrl;
     } catch (e) {
-      // Error handled silently for production
       return null;
     }
   }
@@ -158,31 +119,20 @@ class ShareRepository {
         'home_team_name': homeName,
         'away_team_name': awayName,
         'is_running': isRunning,
-        'last_update': DateTime.now().toIso8601String(),
+        'updated_at': DateTime.now().toIso8601String(),
       });
     } catch (e) {
       // Silent error for production
     }
   }
 
-  /// Removes the tournament from the live_matches table when match ends
   Future<void> clearLiveMatch(String cloudId) async {
     try {
       final supabase = Supabase.instance.client;
       await supabase.from('live_matches').delete().eq('id', cloudId);
     } catch (e) {
-      // Silent error for production
+      // Silent error
     }
-  }
-
-  Future<void> saveWebUrl(int tournamentId, String url) async {
-    await (_db.update(_db.tournaments)..where((t) => t.id.equals(tournamentId))).write(
-      TournamentsCompanion(
-        isPublished: const Value(true),
-        publishedAt: Value(DateTime.now()),
-        webUrl: Value(url),
-      ),
-    );
   }
 }
 

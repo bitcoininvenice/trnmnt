@@ -544,7 +544,7 @@ class AppLocalizationsIt extends AppLocalizations {
   String get connectionError => 'Errore di connessione';
 
   @override
-  String get publishToWeb => 'Pubblica sul Web';
+  String get publishToWeb => 'Sincronizza sul Cloud';
 
   @override
   String get openInBrowser => 'Apri nel Browser';
@@ -616,4 +616,38 @@ class AppLocalizationsIt extends AppLocalizations {
   @override
   String get modeLockedWarning =>
       'La modalità non può essere cambiata perché il torneo è già iniziato.';
+
+  @override
+  String get cloudCollaboration => 'Co-gestione Cloud';
+
+  @override
+  String get inviteAdmin => 'Invita Organizzatore';
+
+  @override
+  String get cloudSyncActive => 'Sincronizzazione Cloud attiva';
+
+  @override
+  String get tournamentImportedAndSynced =>
+      'Torneo importato e sincronizzato! 🤝🏀';
+
+  @override
+  String get cloudFetching => 'Recupero dati dal Cloud...';
+
+  @override
+  String get syncError => 'Errore di sincronizzazione';
+
+  @override
+  String cloudIdLabel(String id) {
+    return 'ID Cloud: $id';
+  }
+
+  @override
+  String get publishToCloud_title => 'Pubblica sul Cloud';
+
+  @override
+  String get publishToCloud_desc =>
+      'Sincronizza il torneo per abilitare la Dashboard Web e la Co-Gestione.';
+
+  @override
+  String get publishNow => 'Pubblica Ora';
 }

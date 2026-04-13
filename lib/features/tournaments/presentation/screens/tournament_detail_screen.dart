@@ -1,14 +1,11 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:http/http.dart' as http;
-import 'package:drift/drift.dart' as drift;
-import '../../../../core/database/app_database.dart';
-import '../../../../core/providers/database_provider.dart';
+import 'package:trnmnt/features/sharing/data/sync_repository.dart';
 import '../../data/tournaments_repository.dart';
 import 'package:trnmnt/generated/l10n/app_localizations.dart';
+
 class TournamentDetailScreen extends ConsumerStatefulWidget {
   final int tournamentId;
   const TournamentDetailScreen({super.key, required this.tournamentId});
@@ -18,108 +15,30 @@ class TournamentDetailScreen extends ConsumerStatefulWidget {
 }
 
 class _TournamentDetailScreenState extends ConsumerState<TournamentDetailScreen> {
-  bool _isSyncing = false;
-  String? _syncError;
-  DateTime? _lastSync;
-
   @override
   void initState() {
     super.initState();
-    _startPolling();
+    _handleSubscription();
   }
 
-  void _startPolling() async {
-    // Wait for the first frame to check it's read-only
-    await Future.delayed(const Duration(seconds: 1));
+  @override
+  void dispose() {
+    ref.read(syncRepositoryProvider).unsubscribe();
+    super.dispose();
+  }
+
+  void _handleSubscription() async {
+    // Wait for the tournament data to see if we have a cloudId
+    await Future.delayed(const Duration(milliseconds: 500));
     if (!mounted) return;
 
     final tournament = await ref.read(tournamentByIdProvider(widget.tournamentId).future);
-    if (tournament != null && tournament.isReadOnly && tournament.sourceIp != null) {
-      // Poll every 30 seconds
-      _syncFromSource(tournament);
-      Future.doWhile(() async {
-        await Future.delayed(const Duration(seconds: 30));
-        if (!mounted) return false;
-        final latest = await ref.read(tournamentByIdProvider(widget.tournamentId).future);
-        if (latest != null && latest.isReadOnly && latest.sourceIp != null) {
-          await _syncFromSource(latest);
-          return true;
-        }
-        return false;
-      });
+    if (tournament != null && tournament.cloudId != null) {
+      ref.read(syncRepositoryProvider).subscribeToTournament(
+        tournament.cloudId!, 
+        widget.tournamentId
+      );
     }
-  }
-
-  Future<void> _syncFromSource(dynamic tournament) async {
-    if (_isSyncing) return;
-    setState(() => _isSyncing = true);
-    
-    try {
-      final response = await http.get(
-        Uri.parse('http://${tournament.sourceIp}:${tournament.sourcePort}/tournament/${tournament.remoteId}')
-      ).timeout(const Duration(seconds: 5));
-
-      if (response.statusCode == 200 && mounted) {
-        final data = jsonDecode(response.body);
-        await _updateTournamentFromBundle(widget.tournamentId, data);
-        setState(() {
-          _lastSync = DateTime.now();
-          _syncError = null;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() => _syncError = 'Sync failed: $e');
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isSyncing = false);
-      }
-    }
-  }
-
-  Future<void> _updateTournamentFromBundle(int localId, Map<String, dynamic> data) async {
-    final db = ref.read(dbProvider);
-    final matchesData = data['matches'] as List<dynamic>;
-    final teamsData = data['teams'] as List<dynamic>;
-
-    // 1. Get local team mapping
-    final tournamentTeams = await (db.select(db.tournamentTeams)
-      ..where((tt) => tt.tournamentId.equals(localId))).get();
-    final teamIds = tournamentTeams.map((tt) => tt.teamId).toList();
-    
-    final localTeams = await (db.select(db.teams)
-      ..where((t) => t.id.isIn(teamIds))).get();
-
-    final Map<int, int> teamMapping = {};
-    for (final remoteTeam in teamsData) {
-      final localTeam = localTeams.firstWhere((lt) => lt.name == remoteTeam['name'], orElse: () => localTeams.first);
-      teamMapping[remoteTeam['id']] = localTeam.id;
-    }
-
-    // 2. Update matches
-    await db.transaction(() async {
-      // Remove old matches (simplest way to sync)
-      await (db.delete(db.matches)..where((m) => m.tournamentId.equals(localId))).go();
-      
-      for (final matchJson in matchesData) {
-        final homeId = matchJson['homeTeamId'] as int?;
-        final awayId = matchJson['awayTeamId'] as int?;
-        
-        await db.into(db.matches).insert(
-          MatchesCompanion.insert(
-            tournamentId: localId,
-            homeTeamId: drift.Value(homeId != null ? teamMapping[homeId] : null),
-            awayTeamId: drift.Value(awayId != null ? teamMapping[awayId] : null),
-            homeScore: drift.Value(matchJson['homeScore']),
-            awayScore: drift.Value(matchJson['awayScore']),
-            round: matchJson['round'],
-            phase: matchJson['phase'],
-            isCompleted: drift.Value(matchJson['isCompleted']),
-          )
-        );
-      }
-    });
   }
 
   @override
@@ -200,25 +119,20 @@ class _TournamentDetailScreenState extends ConsumerState<TournamentDetailScreen>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Sync badge
-                      if (tournament.isReadOnly) ...[
+                      // Cloud Sync badge
+                      if (tournament.cloudId != null) ...[
                         Row(
                           children: [
-                            Icon(_isSyncing ? Icons.sync : Icons.cloud_download, 
-                                 size: 14, 
-                                 color: _syncError != null ? Colors.red : Colors.blue),
+                            const Icon(Icons.cloud_done, size: 16, color: Colors.blueAccent),
                             const SizedBox(width: 8),
                             Text(
-                              _isSyncing ? "Syncing..." : (_syncError != null ? "Sync error" : "Read Only (Sync enabled)"),
-                              style: TextStyle(
-                                fontSize: 11, 
-                                color: _syncError != null ? Colors.red : Colors.blue, 
+                              AppLocalizations.of(context)!.cloudSyncActive,
+                              style: const TextStyle(
+                                fontSize: 12, 
+                                color: Colors.blueAccent, 
                                 fontWeight: FontWeight.bold
                               ),
                             ),
-                            if (_lastSync != null) 
-                               Text(" • Last: ${_lastSync!.hour}:${_lastSync!.minute}:${_lastSync!.second}", 
-                                    style: const TextStyle(fontSize: 10, color: Colors.grey)),
                           ],
                         ),
                         const SizedBox(height: 12),

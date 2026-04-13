@@ -1,16 +1,15 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter/services.dart';
-import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:trnmnt/generated/l10n/app_localizations.dart';
 import 'package:trnmnt/core/providers/api_config_provider.dart';
 import '../../data/share_repository.dart';
 import 'package:trnmnt/features/tournaments/data/tournaments_repository.dart';
+
+enum ShareType { web, manage }
 
 class ShareTournamentScreen extends ConsumerStatefulWidget {
   final int tournamentId;
@@ -27,79 +26,45 @@ class ShareTournamentScreen extends ConsumerStatefulWidget {
 }
 
 class _ShareTournamentScreenState extends ConsumerState<ShareTournamentScreen> {
-  String? _ip;
-  bool _isLoading = true;
-  String? _error;
   bool _isPublishing = false;
   String? _webUrl;
+  String? _cloudId;
+  ShareType _shareType = ShareType.web;
   final _twitchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    _setupServer();
+    _loadInitialData();
   }
 
   @override
   void dispose() {
-    ref.read(shareRepositoryProvider).stopServer();
     _twitchController.dispose();
     super.dispose();
   }
 
-  Future<void> _setupServer() async {
-    final repo = ref.read(shareRepositoryProvider);
+  Future<void> _loadInitialData() async {
     try {
-      // Fetch existing webUrl/twitchChannel from DB
       final tournament = await ref.read(tournamentByIdProvider(widget.tournamentId).future);
       if (tournament != null) {
         setState(() {
           _webUrl = tournament.webUrl;
+          _cloudId = tournament.cloudId;
           if (tournament.twitchChannel != null) {
             _twitchController.text = tournament.twitchChannel!;
           }
         });
       }
-
-      // On Android, getting the WiFi IP requires Location permission
-      if (Theme.of(context).platform == TargetPlatform.android) {
-        final status = await Permission.locationWhenInUse.request();
-        if (status != PermissionStatus.granted) {
-          setState(() {
-            _error = 'Location permission is required to get WiFi IP on Android.';
-            _isLoading = false;
-          });
-          return;
-        }
-      }
-
-      final ip = await repo.getLocalIp();
-      if (ip == null || ip == '0.0.0.0' || ip.isEmpty) {
-        setState(() {
-          _error = 'No WiFi connection found or IP hidden.\nPlease connect to the same network as the receiver.';
-          _isLoading = false;
-        });
-        return;
-      }
-      await repo.startServer();
-      setState(() {
-        _ip = ip;
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _error = 'Error starting server: $e';
-        _isLoading = false;
-      });
-    }
+    } catch (_) {}
   }
 
-  Future<void> _openWebUrl(String url) async {
+  Future<void> _openUrl(String url) async {
     final uri = Uri.parse(url);
     if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not launch $url')),
+          SnackBar(content: Text('Impossibile aprire $url')),
         );
       }
     }
@@ -111,261 +76,156 @@ class _ShareTournamentScreenState extends ConsumerState<ShareTournamentScreen> {
       final repo = ref.read(shareRepositoryProvider);
       final tournamentsRepo = ref.read(tournamentsRepositoryProvider);
       
-      // 1. Save and handle twitch channel
       final twitchChannel = _twitchController.text.trim();
       await tournamentsRepo.updateTwitchChannel(widget.tournamentId, twitchChannel);
 
-      // 2. Use the central repository method that handles Supabase triggers and slugs
       final fullUrl = await repo.publishToSupabase(widget.tournamentId);
 
       if (fullUrl != null) {
-        setState(() {
-          _webUrl = fullUrl;
-          _isPublishing = false;
-        });
-
+        await _loadInitialData();
         if (mounted) {
            ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Pubblicato con successo! 🏀'), backgroundColor: Colors.blue),
+            const SnackBar(content: Text('Sincronizzato sul Cloud! ☁️🏀'), backgroundColor: Colors.blue),
           );
         }
-      } else {
-        throw 'Errore durante la pubblicazione sul cloud Supabase.';
       }
     } catch (e) {
       if (mounted) {
-        setState(() => _isPublishing = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Pubblicazione fallita: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text('Errore: $e'), backgroundColor: Colors.red),
         );
       }
+    } finally {
+      if (mounted) setState(() => _isPublishing = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final repo = ref.watch(shareRepositoryProvider);
     final apiConfig = ref.watch(apiConfigProvider);
-    final qrData = _webUrl ?? (_ip != null ? repo.getShareUrl(widget.tournamentId) : '');
-    final isWebLink = _webUrl != null;
+    final l10n = AppLocalizations.of(context)!;
+
+    final themeColor = _shareType == ShareType.web ? Colors.blueAccent : Colors.orangeAccent;
+    final cloudId = _cloudId;
+    final isCloudActive = cloudId != null;
 
     Widget bodyContent;
-    if (_isLoading) {
-      bodyContent = const CircularProgressIndicator();
-    } else if (_error != null) {
+
+    if (!isCloudActive) {
       bodyContent = Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.wifi_off, size: 64, color: Colors.redAccent),
-          const SizedBox(height: 16),
-          Text(_error!, textAlign: TextAlign.center, style: const TextStyle(fontSize: 16)),
+          const Icon(Icons.cloud_off, size: 80, color: Colors.grey),
           const SizedBox(height: 24),
-          ElevatedButton(onPressed: _setupServer, child: const Text('Retry')),
+          Text(
+            l10n.publishToCloud_title,
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            l10n.publishToCloud_desc,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Colors.grey),
+          ),
+          const SizedBox(height: 32),
+          ElevatedButton.icon(
+            onPressed: _isPublishing ? null : _publishToWeb,
+            icon: _isPublishing ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.cloud_upload),
+            label: Text(l10n.publishNow),
+            style: ElevatedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+            ),
+          ),
         ],
       );
     } else {
+      final qrData = _shareType == ShareType.web 
+          ? _webUrl! 
+          : "trnmnt://manage?id=$cloudId";
+
       bodyContent = Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
         children: [
+          // Tab selector
           Container(
-            margin: const EdgeInsets.only(bottom: 24),
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(4),
             decoration: BoxDecoration(
-              color: Colors.purple.withOpacity(0.08),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.purple.withOpacity(0.25)),
+              color: Colors.white10,
+              borderRadius: BorderRadius.circular(12),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                const Row(
-                  children: [
-                    Icon(Icons.live_tv, color: Colors.purpleAccent, size: 18),
-                    SizedBox(width: 8),
-                    Text(
-                      'Diretta Twitch (opzionale)',
-                      style: TextStyle(
-                        color: Colors.purpleAccent,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: _twitchController,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: InputDecoration(
-                    hintText: 'es. venicestreetball',
-                    hintStyle: TextStyle(color: Colors.white.withOpacity(0.3), fontSize: 13),
-                    prefixText: 'twitch.tv/',
-                    prefixStyle: TextStyle(color: Colors.purple.shade300, fontWeight: FontWeight.bold, fontSize: 13),
-                    filled: true,
-                    fillColor: Colors.black26,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(color: Colors.purple.withOpacity(0.3)),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(color: Colors.purple.withOpacity(0.3)),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: const BorderSide(color: Colors.purpleAccent),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  _webUrl == null 
-                    ? 'Se attivo, verrà mostrato il player video nella pagina web.'
-                    : 'Modifica e ripubblica per cambiare il canale Twitch.',
-                  style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 11),
-                ),
-                if (_webUrl != null) ...[
-                   const SizedBox(height: 8),
-                   SizedBox(
-                     width: double.infinity,
-                     child: TextButton.icon(
-                       onPressed: _isPublishing ? null : _publishToWeb,
-                       icon: const Icon(Icons.sync, size: 16),
-                       label: const Text('Aggiorna Canale Live', style: TextStyle(fontSize: 12)),
-                       style: TextButton.styleFrom(foregroundColor: Colors.purpleAccent, padding: EdgeInsets.zero),
-                     ),
-                   ),
-                ],
+                _buildTabButton(ShareType.web, 'Web Result', Icons.public),
+                _buildTabButton(ShareType.manage, 'Co-Management', Icons.sync),
               ],
             ),
           ),
-
-          // ── QR Code ───────────────────────────────────────────────
-          Text(
-            isWebLink ? 'Web Board QR Code' : 'Scan to Import (Local P2P)',
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            isWebLink
-                ? 'Scansiona per vedere i risultati nel browser'
-                : 'Assicurati che il ricevente sia sulla stessa rete.',
-            style: const TextStyle(color: Colors.grey, fontSize: 13),
-          ),
           const SizedBox(height: 32),
+
+          // QR Area
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 20),
-              ],
             ),
             child: QrImageView(
-              data: qrData.isNotEmpty ? qrData : '',
+              data: qrData,
               version: QrVersions.auto,
-              size: 250.0,
-              backgroundColor: Colors.white,
-              eyeStyle: const QrEyeStyle(eyeShape: QrEyeShape.square, color: Colors.black),
-              dataModuleStyle: const QrDataModuleStyle(dataModuleShape: QrDataModuleShape.square, color: Colors.black),
+              size: 220,
+              foregroundColor: Colors.black,
             ),
-          ).animate(key: ValueKey(isWebLink)).scale(duration: 500.ms, curve: Curves.easeOutBack).fadeIn(),
+          ).animate().scale(),
 
-          const SizedBox(height: 40),
-
-          // ── IP badge (local only) ─────────────────────────────────
-          if (!isWebLink)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.orange.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.orange.withOpacity(0.3)),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.wifi, color: Colors.orange, size: 16),
-                  const SizedBox(width: 8),
-                  Text('IP: $_ip', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.orange)),
-                ],
-              ),
-            ),
-
-          const SizedBox(height: 16),
-
-          
-
-          // ── URL display ───────────────────────────────────────────
-          if (_webUrl != null) ...[
-            const SizedBox(height: 8),
-            SelectableText(
-              _webUrl!,
-              style: const TextStyle(color: Colors.blue, fontSize: 11, decoration: TextDecoration.underline),
-            ),
-          ] else ...[
-            // ── Publish button ────────────────────────────────────────
-          OutlinedButton.icon(
-            onPressed: _isPublishing ? null : _publishToWeb,
-            icon: _isPublishing
-                ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                : const Icon(Icons.public),
-            label: Text(AppLocalizations.of(context)!.publishToWeb),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.blueAccent,
-              side: const BorderSide(color: Colors.blueAccent),
-            ),
+          const SizedBox(height: 24),
+          Text(
+            _shareType == ShareType.web ? 'DASHBOARD PUBBLICA' : 'CO-GESTIONE CLOUD',
+            style: TextStyle(color: themeColor, fontWeight: FontWeight.bold, letterSpacing: 1.2),
           ),
-          ],
+          const SizedBox(height: 8),
+          Text(
+            _shareType == ShareType.web 
+                ? 'Chiunque può vedere i risultati live' 
+                : 'Invita un altro organizzatore a gestire il torneo',
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Colors.grey),
+          ),
 
-          // ── Open in browser & Copy Link ───────────────────────────
-          if (isWebLink) ...[
-                const SizedBox(height: 10),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                OutlinedButton.icon(
-                  onPressed: () {
-                    Clipboard.setData(ClipboardData(text: _webUrl!));
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Link copiato! 📋')),
-                    );
-                  },
-                  icon: const Icon(Icons.copy),
-                  label: const Text('Copia Link'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.white,
-                    side: BorderSide(color: Colors.white.withOpacity(0.3)),
-                  ),
-                ),
-              ],
-            ),
+          const SizedBox(height: 32),
 
-            const SizedBox(height: 15),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
+          // Actions
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              IconButton.filledTonal(
+                onPressed: () => Clipboard.setData(ClipboardData(text: qrData)),
+                icon: const Icon(Icons.copy),
+                tooltip: 'Copia link',
+              ),
+              const SizedBox(width: 16),
+              if (_shareType == ShareType.web)
                 ElevatedButton.icon(
-                  onPressed: () => _openWebUrl(_webUrl!),
-                  icon: const Icon(Icons.open_in_browser),
-                  label: Text(AppLocalizations.of(context)!.openInBrowser),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.orange,
-                    foregroundColor: Colors.white,
-                  ),
+                  onPressed: () => _openUrl(_webUrl!),
+                  icon: const Icon(Icons.open_in_new),
+                  label: const Text('Apri nel Browser'),
+                  style: ElevatedButton.styleFrom(backgroundColor: themeColor, foregroundColor: Colors.white),
+                )
+              else 
+                ElevatedButton.icon(
+                  onPressed: _publishToWeb, // Re-update cloud cache if needed
+                  icon: const Icon(Icons.sync),
+                  label: const Text('Aggiorna Cloud'),
                 ),
-              ],
-            ),
-          ],
+            ],
+          ),
         ],
       );
     }
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('${AppLocalizations.of(context)!.share} ${widget.tournamentName}'),
+        title: Text('${l10n.share} ${widget.tournamentName}'),
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 16),
@@ -388,6 +248,36 @@ class _ShareTournamentScreenState extends ConsumerState<ShareTournamentScreen> {
             padding: const EdgeInsets.all(24.0),
             child: bodyContent,
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTabButton(ShareType type, String label, IconData icon) {
+    final isSelected = _shareType == type;
+    final color = type == ShareType.web ? Colors.blueAccent : Colors.orangeAccent;
+
+    return GestureDetector(
+      onTap: () => setState(() => _shareType = type),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? color : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, size: 16, color: isSelected ? Colors.white : Colors.grey),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? Colors.white : Colors.grey,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+          ],
         ),
       ),
     );
