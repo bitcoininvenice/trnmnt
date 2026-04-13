@@ -27,6 +27,16 @@ void main() async {
     anonKey: dotenv.env['SUPA_KEY']!,
   );
   
+  // Setup Anonymous Auth (Device-as-Account)
+  try {
+    final session = Supabase.instance.client.auth.currentSession;
+    if (session == null) {
+      await Supabase.instance.client.auth.signInAnonymously();
+    }
+  } catch (e) {
+    debugPrint('Supabase Auth error: $e');
+  }
+  
   // Lock to portrait mode
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,

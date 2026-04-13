@@ -26,14 +26,20 @@ class _ScanTournamentScreenState extends ConsumerState<ScanTournamentScreen> {
   Future<void> _handleScan(String? code) async {
     if (code == null || _isProcessing) return;
     
-    // Check for both old and new formats (transition period)
-    final isManageLink = code.startsWith('trnmnt://manage');
-    if (!isManageLink && !code.startsWith('trnmnt://share')) return;
+    final isManageLink = code.startsWith('trnmnt://manage') || code.startsWith('trnmnt://share');
+    final isWebLink = code.startsWith('http') && code.contains('/tournaments/');
+    
+    if (!isManageLink && !isWebLink) return;
 
-    final uri = Uri.parse(code.replaceFirst('trnmnt://manage', 'http://trnmnt').replaceFirst('trnmnt://share', 'http://trnmnt'));
-    final cloudId = uri.queryParameters['id'];
+    String? cloudId;
+    if (isWebLink) {
+        cloudId = Uri.parse(code).pathSegments.last;
+    } else {
+        final uri = Uri.parse(code.replaceFirst('trnmnt://manage', 'http://trnmnt').replaceFirst('trnmnt://share', 'http://trnmnt'));
+        cloudId = uri.queryParameters['id'];
+    }
 
-    if (cloudId == null) return;
+    if (cloudId == null || cloudId.isEmpty) return;
     
     await _controller.stop();
 
@@ -55,18 +61,20 @@ class _ScanTournamentScreenState extends ConsumerState<ScanTournamentScreen> {
           context.go('/tournaments/$newId');
         }
       } else {
-        setState(() {
-          _status = 'Errore: Torneo non trovato sul Cloud o ID invalido.';
-          _isProcessing = false;
-        });
-        _controller.start();
+        if (mounted) {
+           ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Torneo non trovato sul Cloud o ID invalido.'), backgroundColor: Colors.orange),
+          );
+          setState(() => _isProcessing = false);
+          _controller.start();
+        }
       }
     } catch (e) {
       if (mounted) {
-        setState(() {
-          _status = 'Connessione Cloud fallita.\n$e';
-          _isProcessing = false;
-        });
+         ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Connessione Cloud fallita.'), backgroundColor: Colors.red),
+        );
+        setState(() => _isProcessing = false);
         _controller.start();
       }
     }
@@ -152,11 +160,14 @@ class _ScanTournamentScreenState extends ConsumerState<ScanTournamentScreen> {
           tournamentId: tournamentId,
           homeTeamId: drift.Value(homeId != null ? teamMapping[homeId] : null),
           awayTeamId: drift.Value(awayId != null ? teamMapping[awayId] : null),
-          homeScore: drift.Value(matchJson['homeScore']),
-          awayScore: drift.Value(matchJson['awayScore']),
-          round: matchJson['round'],
-          phase: matchJson['phase'],
-          isCompleted: drift.Value(matchJson['isCompleted']),
+          homeScore: drift.Value(matchJson['homeScore'] as int?),
+          awayScore: drift.Value(matchJson['awayScore'] as int?),
+          round: drift.Value(matchJson['round'] as int? ?? 1),
+          groupNumber: drift.Value(matchJson['groupNumber'] as int? ?? 1),
+          phase: drift.Value(matchJson['phase'] as String? ?? 'group'),
+          isBye: drift.Value(matchJson['isBye'] as bool? ?? false),
+          isCompleted: drift.Value(matchJson['isCompleted'] as bool? ?? false),
+          scheduledAt: drift.Value(matchJson['scheduledAt'] != null ? DateTime.tryParse(matchJson['scheduledAt'].toString()) : null),
         )
       );
     }

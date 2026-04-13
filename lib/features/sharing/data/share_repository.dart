@@ -4,11 +4,13 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../../../core/providers/database_provider.dart';
 import '../../../core/database/app_database.dart';
+import '../../community/data/community_repository.dart';
 
 class ShareRepository {
   final AppDatabase _db;
+  final CommunityRepository _communityRepo;
 
-  ShareRepository(this._db);
+  ShareRepository(this._db, this._communityRepo);
 
   /// Downloads tournament data from Supabase using its Cloud ID
   Future<Map<String, dynamic>?> fetchTournamentByCloudId(String cloudId) async {
@@ -61,13 +63,18 @@ class ShareRepository {
 
     final supabase = Supabase.instance.client;
     String? cloudId = tournament.cloudId;
-    final baseUrl = dotenv.env['VESB_BASE_URL'] ?? 'https://vesb.vercel.app';
+    final baseUrl = dotenv.env['BASE_URL'] ?? 'https://trnmnt.vercel.app';
     
     try {
+      // Find the user's active community ID to bind ownership
+      final myCommunity = await _communityRepo.getMyCommunity();
+      final String? communityId = myCommunity?['id'];
+
       if (cloudId == null || cloudId.isEmpty) {
         // CASE: First publication
         final response = await supabase.from('published_tournaments').insert({
           'data': export,
+          'community_id': communityId,
           'last_updated': DateTime.now().toIso8601String(),
         }).select('id').single();
         
@@ -77,11 +84,14 @@ class ShareRepository {
         await supabase.from('published_tournaments').upsert({
           'id': cloudId,
           'data': export,
+          'community_id': communityId,
           'last_updated': DateTime.now().toIso8601String(),
         });
       }
 
-      final finalUrl = '$baseUrl/tournaments/$cloudId';
+      // Generate the URL based on the community slug (if exists) or fallback
+      final String slug = myCommunity?['slug'] ?? 'c';
+      final finalUrl = '$baseUrl/$slug/$cloudId';
 
       // Update local status
       await (_db.update(_db.tournaments)..where((t) => t.id.equals(tournamentId))).write(
@@ -102,6 +112,7 @@ class ShareRepository {
   /// Updates the ultra-fast live_matches table for real-time scoreboard
   Future<void> updateLiveMatch({
     required String cloudId,
+    required int matchId,
     required int homeScore,
     required int awayScore,
     required String timer,
@@ -112,7 +123,7 @@ class ShareRepository {
     try {
       final supabase = Supabase.instance.client;
       await supabase.from('live_matches').upsert({
-        'id': cloudId,
+        'id': '${cloudId}_$matchId',
         'home_score': homeScore,
         'away_score': awayScore,
         'timer': timer,
@@ -126,10 +137,10 @@ class ShareRepository {
     }
   }
 
-  Future<void> clearLiveMatch(String cloudId) async {
+  Future<void> clearLiveMatch(String cloudId, int matchId) async {
     try {
       final supabase = Supabase.instance.client;
-      await supabase.from('live_matches').delete().eq('id', cloudId);
+      await supabase.from('live_matches').delete().eq('id', '${cloudId}_$matchId');
     } catch (e) {
       // Silent error
     }
@@ -138,5 +149,6 @@ class ShareRepository {
 
 final shareRepositoryProvider = Provider((ref) {
   final db = ref.watch(dbProvider);
-  return ShareRepository(db);
+  final communityRepo = ref.watch(communityRepositoryProvider);
+  return ShareRepository(db, communityRepo);
 });

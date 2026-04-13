@@ -258,6 +258,14 @@ class HomeScreen extends ConsumerWidget {
                   color: Colors.indigo,
                   onTap: () => context.push('/scan'),
                 ).animate().fadeIn(delay: 800.ms).scale(),
+                _buildQuickAction(
+                  context,
+                  icon: Icons.storefront,
+                  title: 'La mia Community',
+                  subtitle: 'Gestisci il tuo Brand',
+                  color: Colors.pink,
+                  onTap: () => context.push('/community'),
+                ).animate().fadeIn(delay: 850.ms).scale(),
               ],
             ),
           ),
@@ -572,7 +580,7 @@ class _CloudTournamentCard extends StatelessWidget {
                   
                   // Fallback: if webUrl is missing from the data, generate it from the ID
                   if ((webUrl == null || webUrl.isEmpty) && tournamentId != null) {
-                    webUrl = 'https://vesb.vercel.app/tournaments/$tournamentId';
+                    webUrl = 'https://trnmnt.vercel.app/tournaments/$tournamentId';
                   }
 
                   if (webUrl != null && webUrl.isNotEmpty) {

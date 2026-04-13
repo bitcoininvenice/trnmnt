@@ -235,7 +235,7 @@
   "readOnlyTournament": "This tournament is read-only because it was imported.",
   "apiSettings": "API Settings",
   "apiUrl": "API Server URL",
-  "apiUrlHint": "Example: https://vesb.vercel.app",
+  "apiUrlHint": "Example: https://trnmnt.vercel.app",
   "testConnection": "Test Connection",
   "connectionWorking": "Connection working!",
   "connectionError": "Connection error",

@@ -1085,7 +1085,7 @@ abstract class AppLocalizations {
   /// No description provided for @apiUrlHint.
   ///
   /// In it, this message translates to:
-  /// **'Esempio: https://vesb.vercel.app'**
+  /// **'Esempio: https://trnmnt.vercel.app'**
   String get apiUrlHint;
 
   /// No description provided for @testConnection.

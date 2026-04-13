@@ -530,7 +530,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get apiUrl => 'API Server URL';
 
   @override
-  String get apiUrlHint => 'Example: https://vesb.vercel.app';
+  String get apiUrlHint => 'Example: https://trnmnt.vercel.app';
 
   @override
   String get testConnection => 'Test Connection';

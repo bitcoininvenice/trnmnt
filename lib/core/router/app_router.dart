@@ -22,6 +22,7 @@ import '../../features/settings/presentation/screens/mode_detail_screen.dart';
 import '../../features/stats/presentation/screens/hall_of_fame_screen.dart';
 import '../../features/sharing/presentation/screens/share_tournament_screen.dart';
 import '../../features/sharing/presentation/screens/scan_tournament_screen.dart';
+import '../../features/community/presentation/screens/community_dashboard_screen.dart';
 import '../shell/main_shell.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -200,6 +201,13 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/scan',
             name: 'tournament-scan',
             builder: (context, state) => const ScanTournamentScreen(),
+          ),
+          GoRoute(
+            path: '/community',
+            name: 'community',
+            pageBuilder: (context, state) => const NoTransitionPage(
+              child: CommunityDashboardScreen(),
+            ),
           ),
         ],
       ),

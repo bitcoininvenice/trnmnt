@@ -19,7 +19,13 @@ class TournamentsScreen extends ConsumerWidget {
         title: Text(AppLocalizations.of(context)!.myTournaments),
         actions: [
           IconButton(
+            icon: const Icon(Icons.hub_outlined),
+            tooltip: 'Gestione Community',
+            onPressed: () => context.go('/community'),
+          ),
+          IconButton(
             icon: const Icon(Icons.add),
+            tooltip: 'Nuovo Torneo',
             onPressed: () => context.go('/tournaments/new'),
           ),
         ],
@@ -229,11 +235,16 @@ class TournamentsScreen extends ConsumerWidget {
                   PopupMenuButton<String>(
                     onSelected: (value) async {
                       if (value == 'delete') {
+                        final isCoManager = tournament.name.endsWith('(Sync)');
+                        final titleText = isCoManager ? 'Disconnetti dal Torneo' : AppLocalizations.of(context)!.deleteTournament;
+                        final confirmText = isCoManager ? 'Sei sicuro di volerti disconnettere da "${tournament.name}"? Verrà rimosso dal tuo dispositivo ma non dal cloud.' : AppLocalizations.of(context)!.confirmDeleteTournament(tournament.name);
+                        final actionText = isCoManager ? 'Disconnetti' : AppLocalizations.of(context)!.delete;
+                        
                         final confirm = await showDialog<bool>(
                           context: context,
                           builder: (context) => AlertDialog(
-                            title: Text(AppLocalizations.of(context)!.deleteTournament),
-                            content: Text(AppLocalizations.of(context)!.confirmDeleteTournament(tournament.name)),
+                            title: Text(titleText),
+                            content: Text(confirmText),
                             actions: [
                               TextButton(
                                 onPressed: () => Navigator.pop(context, false),
@@ -242,7 +253,7 @@ class TournamentsScreen extends ConsumerWidget {
                               TextButton(
                                 onPressed: () => Navigator.pop(context, true),
                                 style: TextButton.styleFrom(foregroundColor: Colors.red),
-                                child: Text(AppLocalizations.of(context)!.delete),
+                                child: Text(actionText),
                               ),
                             ],
                           ),
@@ -252,16 +263,19 @@ class TournamentsScreen extends ConsumerWidget {
                         }
                       }
                     },
-                    itemBuilder: (context) => [
-                      PopupMenuItem(
-                        value: 'delete',
-                        child: ListTile(
-                          leading: Icon(Icons.delete, color: Colors.red),
-                          title: Text(AppLocalizations.of(context)!.delete, style: TextStyle(color: Colors.red)),
-                          contentPadding: EdgeInsets.zero,
+                    itemBuilder: (context) {
+                      final isCoManager = tournament.name.endsWith('(Sync)');
+                      return [
+                        PopupMenuItem(
+                          value: 'delete',
+                          child: ListTile(
+                            leading: Icon(isCoManager ? Icons.link_off : Icons.delete, color: Colors.red),
+                            title: Text(isCoManager ? 'Disconnetti' : AppLocalizations.of(context)!.delete, style: const TextStyle(color: Colors.red)),
+                            contentPadding: EdgeInsets.zero,
+                          ),
                         ),
-                      ),
-                    ],
+                      ];
+                    },
                   ),
                 ],
               ),

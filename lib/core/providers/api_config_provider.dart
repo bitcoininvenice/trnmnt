@@ -24,7 +24,7 @@ class ApiConfig {
 
 class ApiConfigNotifier extends StateNotifier<ApiConfig> {
   static const String _key = 'api_base_url';
-  static const String _defaultUrl = 'https://vesb.vercel.app';
+  static const String _defaultUrl = 'https://trnmnt.vercel.app';
 
   ApiConfigNotifier() : super(ApiConfig(baseUrl: _defaultUrl)) {
     _load();

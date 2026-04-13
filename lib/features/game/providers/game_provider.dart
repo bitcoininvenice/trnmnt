@@ -124,10 +124,11 @@ class GameNotifier extends StateNotifier<GameState> {
     
     // Clear live status on server
     final tournamentId = state.matchData?.match.tournamentId;
-    if (tournamentId != null) {
+    final matchId = state.matchId;
+    if (tournamentId != null && matchId != null) {
       _ref.read(tournamentByIdProvider(tournamentId).future).then((t) {
         if (t?.cloudId != null) {
-           _ref.read(shareRepositoryProvider).clearLiveMatch(t!.cloudId!);
+           _ref.read(shareRepositoryProvider).clearLiveMatch(t!.cloudId!, matchId);
         }
       });
     }
@@ -220,6 +221,7 @@ class GameNotifier extends StateNotifier<GameState> {
       
       await repo.updateLiveMatch(
         cloudId: tournament.cloudId!,
+        matchId: state.matchId!,
         homeScore: state.homeScore,
         awayScore: state.awayScore,
         timer: state.formattedTime,
@@ -241,11 +243,11 @@ class GameNotifier extends StateNotifier<GameState> {
     await repo.updateMatchScore(state.matchId!, state.homeScore, state.awayScore);
     
     final tournamentId = state.matchData?.match.tournamentId;
-    if (tournamentId != null) {
+    if (tournamentId != null && state.matchId != null) {
       final tournament = await _ref.read(tournamentByIdProvider(tournamentId).future);
       if (tournament?.cloudId != null) {
         // 2. Clear live board
-        _ref.read(shareRepositoryProvider).clearLiveMatch(tournament!.cloudId!).catchError((_) => null);
+        _ref.read(shareRepositoryProvider).clearLiveMatch(tournament!.cloudId!, state.matchId!).catchError((_) => null);
         
         // 3. One last full re-publish to update the tournament brackets/standings
         _ref.read(shareRepositoryProvider).publishToSupabase(tournamentId).catchError((_) => null);
