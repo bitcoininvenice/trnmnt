@@ -262,5 +262,29 @@
   "upcoming": "Upcoming",
   "concluded": "Concluded",
   "playIn": "Play-In",
-  "modeLockedWarning": "Tournament mode cannot be changed once matches have started."
+  "modeLockedWarning": "The mode cannot be changed because the tournament has already started.",
+  "cloudCollaboration": "Cloud Co-management",
+  "inviteAdmin": "Invite Organizer",
+  "cloudSyncActive": "Cloud Sync Active",
+  "tournamentImportedAndSynced": "Tournament imported and synced! 🤝🏀",
+  "cloudFetching": "Fetching Cloud data...",
+  "syncError": "Sync error",
+  "cloudIdLabel": "Cloud ID: {id}",
+  "@cloudIdLabel": {
+    "placeholders": {
+      "id": {"type": "String"}
+    }
+  },
+  "publishToCloud_title": "Publish to Cloud",
+  "publishToCloud_desc": "Sync the tournament to enable Web Dashboard and Co-Management.",
+  "publishNow": "Publish Now",
+  "myCommunity": "My Community",
+  "manageYourBrand": "Manage your Brand",
+  "liveHighlights": "LIVE HIGHLIGHTS",
+  "noTournamentsAtMoment": "No tournaments at the moment",
+  "activeTournamentMatch": "LIVE TOURNAMENT MATCH",
+  "future": "Future",
+  "past": "Past",
+  "mapDataSourceLocal": "Added in-app",
+  "mapDataSourcePickRoll": "Pick&Roll Source"
 }

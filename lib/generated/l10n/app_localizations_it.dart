@@ -650,4 +650,31 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get publishNow => 'Pubblica Ora';
+
+  @override
+  String get myCommunity => 'La mia Community';
+
+  @override
+  String get manageYourBrand => 'Gestisci il tuo Brand';
+
+  @override
+  String get liveHighlights => 'LIVE HIGHLIGHTS';
+
+  @override
+  String get noTournamentsAtMoment => 'Non ci sono tornei al momento';
+
+  @override
+  String get activeTournamentMatch => 'PARTITA TORNEO LIVE';
+
+  @override
+  String get future => 'Futuri';
+
+  @override
+  String get past => 'Passati';
+
+  @override
+  String get mapDataSourceLocal => 'Aggiunti in app';
+
+  @override
+  String get mapDataSourcePickRoll => 'Fonte Pick&Roll';
 }

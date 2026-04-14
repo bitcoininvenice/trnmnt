@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -6,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:drift/drift.dart' as drift;
 import '../../../../core/database/app_database.dart';
 import '../../data/courts_repository.dart';
+import '../../data/pickroll_repository.dart';
 import 'package:trnmnt/generated/l10n/app_localizations.dart';
 
 class MapScreen extends ConsumerStatefulWidget {
@@ -20,11 +22,22 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   final LatLng _defaultCenter = const LatLng(45.4408, 12.3155); // Venice
   bool _isAddingMode = false;
   bool _isSatellite = false;
+  
+  int _dataSourceIndex = 0; // 0: TRNMNT, 1: Pick&Roll
+  Set<int> _selectedSources = {0}; 
+  LatLng _searchCenter = const LatLng(45.4408, 12.3155);
+  Timer? _debounceTimer;
 
   @override
   void initState() {
     super.initState();
     _loadSavedCenter();
+  }
+
+  @override
+  void dispose() {
+    _debounceTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadSavedCenter() async {
@@ -35,6 +48,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     
     if (lat != null && lng != null && zoom != null) {
        _mapController.move(LatLng(lat, lng), zoom);
+       if (mounted) setState(() => _searchCenter = LatLng(lat, lng));
     }
   }
 
@@ -174,14 +188,90 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     }
   }
 
+  void _showPickrollDetails(PickrollCourt court) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      builder: (context) => Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.public, color: Colors.blue),
+                const SizedBox(width: 8),
+                Text('Pick&Roll Street Court', style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold, fontSize: 12)),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(court.name, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            if (court.address != null) ...[
+              Text(court.address!, style: const TextStyle(fontSize: 16)),
+              const SizedBox(height: 16),
+            ],
+            const SizedBox(height: 32),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _onMapPositionChanged(MapCamera camera, bool hasGesture) {
+    if (!hasGesture || !_selectedSources.contains(1)) return;
+    
+    if (_debounceTimer?.isActive ?? false) _debounceTimer!.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 800), () {
+      if (mounted) {
+        setState(() => _searchCenter = camera.center);
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final courtsAsync = ref.watch(courtsProvider);
+    final pickrollAsync = ref.watch(pickrollCourtsProvider(_searchCenter));
+    
+    ref.listen(pickrollCourtsProvider(_searchCenter), (prev, next) {
+      if (next.hasError && _selectedSources.contains(1)) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Errore connessione API Pick&Roll: ${next.error}'), backgroundColor: Colors.red),
+          );
+        }
+      }
+    });
 
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(
         title: Text(AppLocalizations.of(context)!.courtsMap),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(60),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: SegmentedButton<int>(
+              segments: [
+                ButtonSegment(value: 0, label: Text(AppLocalizations.of(context)!.mapDataSourceLocal), icon: const Icon(Icons.people)),
+                ButtonSegment(value: 1, label: Text(AppLocalizations.of(context)!.mapDataSourcePickRoll), icon: const Icon(Icons.public)),
+              ],
+              selected: _selectedSources,
+              multiSelectionEnabled: true,
+              onSelectionChanged: (set) {
+                if (set.isEmpty) return; // Must select at least one
+                setState(() {
+                  _selectedSources = set;
+                  if (_selectedSources.contains(1)) {
+                    _searchCenter = _mapController.camera.center;
+                  }
+                });
+              },
+            ),
+          ),
+        ),
       ),
       body: Stack(
         children: [
@@ -192,6 +282,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
               initialCenter: _defaultCenter,
               initialZoom: 13.0,
               onTap: (tapPosition, point) => _showAddCourtForm(point),
+              onPositionChanged: _onMapPositionChanged,
             ),
             children: [
               TileLayer(
@@ -200,27 +291,68 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                   : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                 userAgentPackageName: 'com.trnmnt.app',
               ),
-              courtsAsync.when(
-                data: (courts) => MarkerLayer(
-                  markers: courts.map((c) => Marker(
-                    point: LatLng(c.latitude, c.longitude),
-                    width: 40,
-                    height: 40,
-                    child: GestureDetector(
-                      onTap: () => _showCourtDetails(c),
-                      child: const Icon(
-                        Icons.location_on,
-                        color: Colors.orange,
-                        size: 40,
+              if (_selectedSources.contains(0))
+                courtsAsync.when(
+                  data: (courts) => MarkerLayer(
+                    markers: courts.map((c) => Marker(
+                      point: LatLng(c.latitude, c.longitude),
+                      width: 40,
+                      height: 40,
+                      child: GestureDetector(
+                        onTap: () => _showCourtDetails(c),
+                        child: const Icon(
+                          Icons.location_on,
+                          color: Colors.orange,
+                          size: 40,
+                        ),
                       ),
-                    ),
-                  )).toList(),
+                    )).toList(),
+                  ),
+                  loading: () => const MarkerLayer(markers: []),
+                  error: (e, s) => const MarkerLayer(markers: []),
                 ),
-                loading: () => const MarkerLayer(markers: []),
-                error: (e, s) => const MarkerLayer(markers: []),
-              ),
+              if (_selectedSources.contains(1))
+                pickrollAsync.when(
+                  data: (courts) => MarkerLayer(
+                    markers: courts.map((c) => Marker(
+                      point: LatLng(c.lat, c.lng),
+                      width: 50,
+                      height: 50,
+                      child: GestureDetector(
+                        onTap: () => _showPickrollDetails(c),
+                        child: const Icon(
+                          Icons.location_on,
+                          color: Colors.orange,
+                          size: 40,
+                        ),
+                      ),
+                    )).toList(),
+                  ),
+                  loading: () => const MarkerLayer(markers: []),
+                  error: (e, s) => const MarkerLayer(markers: []),
+                ),
             ],
           ),
+          if (_selectedSources.contains(1) && pickrollAsync.isLoading)
+            const Positioned(
+              bottom: 100,
+              left: 40,
+              right: 40,
+              child: Card(
+                elevation: 4,
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
+                      SizedBox(width: 16),
+                      Text('Sincronizzazione Pick&Roll...', style: TextStyle(fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                ),
+              ),
+            ),
           if (_isAddingMode)
             Positioned(
               top: 16,

@@ -385,35 +385,36 @@ class _TournamentSetupScreenState extends ConsumerState<TournamentSetupScreen> {
   }
 
   void _showCourtsPicker() {
-    final courtsAsync = ref.read(courtsProvider);
-    
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        decoration: BoxDecoration(
-          color: Theme.of(context).scaffoldBackgroundColor,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        child: Column(
-          children: [
-            Container(
-              width: 40, height: 4,
-              margin: const EdgeInsets.symmetric(vertical: 12),
-              decoration: BoxDecoration(color: Colors.grey[600], borderRadius: BorderRadius.circular(2)),
+      builder: (context) => Consumer(
+        builder: (context, ref, _) {
+          final courtsAsync = ref.watch(courtsProvider);
+          return Container(
+            decoration: BoxDecoration(
+              color: Theme.of(context).scaffoldBackgroundColor,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
             ),
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  const Icon(FontAwesomeIcons.basketball, color: Colors.orange, size: 20),
-                  const SizedBox(width: 12),
-                  Text('SCEGLI UN CAMPETTO', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-                ],
-              ),
-            ),
-            Expanded(
-              child: courtsAsync.when(
+            child: Column(
+              children: [
+                Container(
+                  width: 40, height: 4,
+                  margin: const EdgeInsets.symmetric(vertical: 12),
+                  decoration: BoxDecoration(color: Colors.grey[600], borderRadius: BorderRadius.circular(2)),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      const Icon(FontAwesomeIcons.basketball, color: Colors.orange, size: 20),
+                      const SizedBox(width: 12),
+                      Text('SCEGLI UN CAMPETTO', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: courtsAsync.when(
                 data: (courts) {
                   if (courts.isEmpty) {
                     return Center(child: Text('Nessun campetto salvato sulla mappa.'));
@@ -440,7 +441,8 @@ class _TournamentSetupScreenState extends ConsumerState<TournamentSetupScreen> {
             ),
           ],
         ),
-      ),
+      );
+    }),
     );
   }
 

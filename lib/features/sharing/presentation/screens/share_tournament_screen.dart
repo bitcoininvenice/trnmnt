@@ -31,6 +31,8 @@ class _ShareTournamentScreenState extends ConsumerState<ShareTournamentScreen> {
   String? _cloudId;
   ShareType _shareType = ShareType.web;
   final _twitchController = TextEditingController();
+  final _tickerController = TextEditingController();
+  final _locationController = TextEditingController();
 
   @override
   void initState() {
@@ -41,6 +43,8 @@ class _ShareTournamentScreenState extends ConsumerState<ShareTournamentScreen> {
   @override
   void dispose() {
     _twitchController.dispose();
+    _tickerController.dispose();
+    _locationController.dispose();
     super.dispose();
   }
 
@@ -51,8 +55,12 @@ class _ShareTournamentScreenState extends ConsumerState<ShareTournamentScreen> {
         setState(() {
           _webUrl = tournament.webUrl;
           _cloudId = tournament.cloudId;
+          _locationController.text = tournament.location;
           if (tournament.twitchChannel != null) {
             _twitchController.text = tournament.twitchChannel!;
+          }
+          if (tournament.customTicker != null) {
+            _tickerController.text = tournament.customTicker!;
           }
         });
       }
@@ -77,7 +85,15 @@ class _ShareTournamentScreenState extends ConsumerState<ShareTournamentScreen> {
       final tournamentsRepo = ref.read(tournamentsRepositoryProvider);
       
       final twitchChannel = _twitchController.text.trim();
-      await tournamentsRepo.updateTwitchChannel(widget.tournamentId, twitchChannel);
+      final customTicker = _tickerController.text.trim();
+      final location = _locationController.text.trim();
+      
+      await tournamentsRepo.updateTournament(
+        id: widget.tournamentId, 
+        twitchChannel: twitchChannel,
+        customTicker: customTicker,
+        location: location.isNotEmpty ? location : null,
+      );
 
       final fullUrl = await repo.publishToSupabase(widget.tournamentId);
 
@@ -191,6 +207,72 @@ class _ShareTournamentScreenState extends ConsumerState<ShareTournamentScreen> {
             textAlign: TextAlign.center,
             style: const TextStyle(color: Colors.grey),
           ),
+          
+          const SizedBox(height: 32),
+          
+          // Cloud Settings Section
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white10,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: Colors.white10),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Row(
+                  children: [
+                    Icon(Icons.settings_suggest, size: 18, color: Colors.blueAccent),
+                    SizedBox(width: 8),
+                    Text(
+                      'IMPOSTAZIONI CLOUD',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1.5,
+                        color: Colors.blueAccent,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                
+                // Location Adjustment
+                _buildField(
+                  controller: _locationController,
+                  label: 'LOCATION LIVE',
+                  hint: 'Es: Playground San Alvise',
+                  icon: Icons.location_on_outlined,
+                ),
+                const SizedBox(height: 16),
+
+                // Twitch integration
+                _buildField(
+                  controller: _twitchController,
+                  label: 'TWITCH CHANNEL',
+                  hint: 'Es: venicestreetball',
+                  icon: Icons.live_tv_rounded,
+                ),
+                const SizedBox(height: 16),
+
+                // Custom Ticker
+                _buildField(
+                  controller: _tickerController,
+                  label: 'TESTO SCORREVOLE (TICKER)',
+                  hint: 'Sponsor, annunci community...',
+                  icon: Icons.message_outlined,
+                  maxLines: 2,
+                ),
+                
+                const SizedBox(height: 12),
+                Text(
+                  'Lascia vuoto per utilizzare il testo generato automaticamente dal sistema.',
+                  style: TextStyle(fontSize: 10, color: Colors.grey.shade600, fontStyle: FontStyle.italic),
+                ),
+              ],
+            ),
+          ),
 
           const SizedBox(height: 32),
 
@@ -208,14 +290,23 @@ class _ShareTournamentScreenState extends ConsumerState<ShareTournamentScreen> {
                 ElevatedButton.icon(
                   onPressed: () => _openUrl(_webUrl!),
                   icon: const Icon(Icons.open_in_new),
-                  label: const Text('Apri nel Browser'),
-                  style: ElevatedButton.styleFrom(backgroundColor: themeColor, foregroundColor: Colors.white),
+                  label: const Text('Apri Risultati'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: themeColor, 
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  ),
                 )
               else 
                 ElevatedButton.icon(
-                  onPressed: _publishToWeb, // Re-update cloud cache if needed
-                  icon: const Icon(Icons.sync),
+                  onPressed: _publishToWeb, // Re-update cloud cache
+                  icon: _isPublishing 
+                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : const Icon(Icons.sync),
                   label: const Text('Aggiorna Cloud'),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  ),
                 ),
             ],
           ),
@@ -250,6 +341,46 @@ class _ShareTournamentScreenState extends ConsumerState<ShareTournamentScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildField({
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+    required IconData icon,
+    int maxLines = 1,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.grey, letterSpacing: 1),
+        ),
+        const SizedBox(height: 6),
+        TextFormField(
+          controller: controller,
+          maxLines: maxLines,
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: const TextStyle(fontSize: 14, color: Colors.white24),
+            prefixIcon: Icon(icon, size: 18, color: Colors.white70),
+            filled: true,
+            fillColor: Colors.black26,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Colors.blueAccent, width: 1),
+            ),
+          ),
+        ),
+      ],
     );
   }
 

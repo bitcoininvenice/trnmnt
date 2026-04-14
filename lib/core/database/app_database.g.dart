@@ -629,6 +629,17 @@ class $TournamentsTable extends Tournaments
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _customTickerMeta = const VerificationMeta(
+    'customTicker',
+  );
+  @override
+  late final GeneratedColumn<String> customTicker = GeneratedColumn<String>(
+    'custom_ticker',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -669,6 +680,7 @@ class $TournamentsTable extends Tournaments
     groupNames,
     twitchChannel,
     cloudId,
+    customTicker,
     createdAt,
   ];
   @override
@@ -867,6 +879,15 @@ class $TournamentsTable extends Tournaments
         cloudId.isAcceptableOrUnknown(data['cloud_id']!, _cloudIdMeta),
       );
     }
+    if (data.containsKey('custom_ticker')) {
+      context.handle(
+        _customTickerMeta,
+        customTicker.isAcceptableOrUnknown(
+          data['custom_ticker']!,
+          _customTickerMeta,
+        ),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -986,6 +1007,10 @@ class $TournamentsTable extends Tournaments
         DriftSqlType.string,
         data['${effectivePrefix}cloud_id'],
       ),
+      customTicker: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}custom_ticker'],
+      ),
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -1030,6 +1055,7 @@ class Tournament extends DataClass implements Insertable<Tournament> {
   final String? groupNames;
   final String? twitchChannel;
   final String? cloudId;
+  final String? customTicker;
   final DateTime createdAt;
   const Tournament({
     required this.id,
@@ -1058,6 +1084,7 @@ class Tournament extends DataClass implements Insertable<Tournament> {
     this.groupNames,
     this.twitchChannel,
     this.cloudId,
+    this.customTicker,
     required this.createdAt,
   });
   @override
@@ -1111,6 +1138,9 @@ class Tournament extends DataClass implements Insertable<Tournament> {
     if (!nullToAbsent || cloudId != null) {
       map['cloud_id'] = Variable<String>(cloudId);
     }
+    if (!nullToAbsent || customTicker != null) {
+      map['custom_ticker'] = Variable<String>(customTicker);
+    }
     map['created_at'] = Variable<DateTime>(createdAt);
     return map;
   }
@@ -1163,6 +1193,9 @@ class Tournament extends DataClass implements Insertable<Tournament> {
       cloudId: cloudId == null && nullToAbsent
           ? const Value.absent()
           : Value(cloudId),
+      customTicker: customTicker == null && nullToAbsent
+          ? const Value.absent()
+          : Value(customTicker),
       createdAt: Value(createdAt),
     );
   }
@@ -1201,6 +1234,7 @@ class Tournament extends DataClass implements Insertable<Tournament> {
       groupNames: serializer.fromJson<String?>(json['groupNames']),
       twitchChannel: serializer.fromJson<String?>(json['twitchChannel']),
       cloudId: serializer.fromJson<String?>(json['cloudId']),
+      customTicker: serializer.fromJson<String?>(json['customTicker']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
     );
   }
@@ -1236,6 +1270,7 @@ class Tournament extends DataClass implements Insertable<Tournament> {
       'groupNames': serializer.toJson<String?>(groupNames),
       'twitchChannel': serializer.toJson<String?>(twitchChannel),
       'cloudId': serializer.toJson<String?>(cloudId),
+      'customTicker': serializer.toJson<String?>(customTicker),
       'createdAt': serializer.toJson<DateTime>(createdAt),
     };
   }
@@ -1267,6 +1302,7 @@ class Tournament extends DataClass implements Insertable<Tournament> {
     Value<String?> groupNames = const Value.absent(),
     Value<String?> twitchChannel = const Value.absent(),
     Value<String?> cloudId = const Value.absent(),
+    Value<String?> customTicker = const Value.absent(),
     DateTime? createdAt,
   }) => Tournament(
     id: id ?? this.id,
@@ -1298,6 +1334,7 @@ class Tournament extends DataClass implements Insertable<Tournament> {
         ? twitchChannel.value
         : this.twitchChannel,
     cloudId: cloudId.present ? cloudId.value : this.cloudId,
+    customTicker: customTicker.present ? customTicker.value : this.customTicker,
     createdAt: createdAt ?? this.createdAt,
   );
   Tournament copyWithCompanion(TournamentsCompanion data) {
@@ -1356,6 +1393,9 @@ class Tournament extends DataClass implements Insertable<Tournament> {
           ? data.twitchChannel.value
           : this.twitchChannel,
       cloudId: data.cloudId.present ? data.cloudId.value : this.cloudId,
+      customTicker: data.customTicker.present
+          ? data.customTicker.value
+          : this.customTicker,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
     );
   }
@@ -1389,6 +1429,7 @@ class Tournament extends DataClass implements Insertable<Tournament> {
           ..write('groupNames: $groupNames, ')
           ..write('twitchChannel: $twitchChannel, ')
           ..write('cloudId: $cloudId, ')
+          ..write('customTicker: $customTicker, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
@@ -1422,6 +1463,7 @@ class Tournament extends DataClass implements Insertable<Tournament> {
     groupNames,
     twitchChannel,
     cloudId,
+    customTicker,
     createdAt,
   ]);
   @override
@@ -1454,6 +1496,7 @@ class Tournament extends DataClass implements Insertable<Tournament> {
           other.groupNames == this.groupNames &&
           other.twitchChannel == this.twitchChannel &&
           other.cloudId == this.cloudId &&
+          other.customTicker == this.customTicker &&
           other.createdAt == this.createdAt);
 }
 
@@ -1484,6 +1527,7 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
   final Value<String?> groupNames;
   final Value<String?> twitchChannel;
   final Value<String?> cloudId;
+  final Value<String?> customTicker;
   final Value<DateTime> createdAt;
   const TournamentsCompanion({
     this.id = const Value.absent(),
@@ -1512,6 +1556,7 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
     this.groupNames = const Value.absent(),
     this.twitchChannel = const Value.absent(),
     this.cloudId = const Value.absent(),
+    this.customTicker = const Value.absent(),
     this.createdAt = const Value.absent(),
   });
   TournamentsCompanion.insert({
@@ -1541,6 +1586,7 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
     this.groupNames = const Value.absent(),
     this.twitchChannel = const Value.absent(),
     this.cloudId = const Value.absent(),
+    this.customTicker = const Value.absent(),
     this.createdAt = const Value.absent(),
   }) : name = Value(name),
        location = Value(location);
@@ -1571,6 +1617,7 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
     Expression<String>? groupNames,
     Expression<String>? twitchChannel,
     Expression<String>? cloudId,
+    Expression<String>? customTicker,
     Expression<DateTime>? createdAt,
   }) {
     return RawValuesInsertable({
@@ -1602,6 +1649,7 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
       if (groupNames != null) 'group_names': groupNames,
       if (twitchChannel != null) 'twitch_channel': twitchChannel,
       if (cloudId != null) 'cloud_id': cloudId,
+      if (customTicker != null) 'custom_ticker': customTicker,
       if (createdAt != null) 'created_at': createdAt,
     });
   }
@@ -1633,6 +1681,7 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
     Value<String?>? groupNames,
     Value<String?>? twitchChannel,
     Value<String?>? cloudId,
+    Value<String?>? customTicker,
     Value<DateTime>? createdAt,
   }) {
     return TournamentsCompanion(
@@ -1663,6 +1712,7 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
       groupNames: groupNames ?? this.groupNames,
       twitchChannel: twitchChannel ?? this.twitchChannel,
       cloudId: cloudId ?? this.cloudId,
+      customTicker: customTicker ?? this.customTicker,
       createdAt: createdAt ?? this.createdAt,
     );
   }
@@ -1750,6 +1800,9 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
     if (cloudId.present) {
       map['cloud_id'] = Variable<String>(cloudId.value);
     }
+    if (customTicker.present) {
+      map['custom_ticker'] = Variable<String>(customTicker.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -1785,6 +1838,7 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
           ..write('groupNames: $groupNames, ')
           ..write('twitchChannel: $twitchChannel, ')
           ..write('cloudId: $cloudId, ')
+          ..write('customTicker: $customTicker, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
@@ -4060,6 +4114,7 @@ typedef $$TournamentsTableCreateCompanionBuilder =
       Value<String?> groupNames,
       Value<String?> twitchChannel,
       Value<String?> cloudId,
+      Value<String?> customTicker,
       Value<DateTime> createdAt,
     });
 typedef $$TournamentsTableUpdateCompanionBuilder =
@@ -4090,6 +4145,7 @@ typedef $$TournamentsTableUpdateCompanionBuilder =
       Value<String?> groupNames,
       Value<String?> twitchChannel,
       Value<String?> cloudId,
+      Value<String?> customTicker,
       Value<DateTime> createdAt,
     });
 
@@ -4290,6 +4346,11 @@ class $$TournamentsTableFilterComposer
 
   ColumnFilters<String> get cloudId => $composableBuilder(
     column: $table.cloudId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get customTicker => $composableBuilder(
+    column: $table.customTicker,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -4506,6 +4567,11 @@ class $$TournamentsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get customTicker => $composableBuilder(
+    column: $table.customTicker,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -4645,6 +4711,11 @@ class $$TournamentsTableAnnotationComposer
   GeneratedColumn<String> get cloudId =>
       $composableBuilder(column: $table.cloudId, builder: (column) => column);
 
+  GeneratedColumn<String> get customTicker => $composableBuilder(
+    column: $table.customTicker,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
 
@@ -4780,6 +4851,7 @@ class $$TournamentsTableTableManager
                 Value<String?> groupNames = const Value.absent(),
                 Value<String?> twitchChannel = const Value.absent(),
                 Value<String?> cloudId = const Value.absent(),
+                Value<String?> customTicker = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => TournamentsCompanion(
                 id: id,
@@ -4808,6 +4880,7 @@ class $$TournamentsTableTableManager
                 groupNames: groupNames,
                 twitchChannel: twitchChannel,
                 cloudId: cloudId,
+                customTicker: customTicker,
                 createdAt: createdAt,
               ),
           createCompanionCallback:
@@ -4838,6 +4911,7 @@ class $$TournamentsTableTableManager
                 Value<String?> groupNames = const Value.absent(),
                 Value<String?> twitchChannel = const Value.absent(),
                 Value<String?> cloudId = const Value.absent(),
+                Value<String?> customTicker = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => TournamentsCompanion.insert(
                 id: id,
@@ -4866,6 +4940,7 @@ class $$TournamentsTableTableManager
                 groupNames: groupNames,
                 twitchChannel: twitchChannel,
                 cloudId: cloudId,
+                customTicker: customTicker,
                 createdAt: createdAt,
               ),
           withReferenceMapper: (p0) => p0

@@ -1,7 +1,7 @@
 name: trnmnt
 description: "Basketball Tournament Manager - Gestione tornei di basket"
 publish_to: 'none'
-version: 3.3.0+303
+version: 3.4.0+304
 
 environment:
   sdk: ^3.8.1
@@ -71,3 +71,10 @@ flutter:
     - assets/icon/
     - assets/sounds/
     - .env
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/icon/logo.png"
+  min_sdk_android: 21 # flutter_launcher_icons 0.13.1+ requires this
+  remove_alpha_ios: true

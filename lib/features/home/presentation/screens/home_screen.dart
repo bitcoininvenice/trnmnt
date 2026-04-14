@@ -75,7 +75,7 @@ class HomeScreen extends ConsumerWidget {
                                 clipBehavior: Clip.antiAlias,
                                 child: customIconPath != null
                                   ? Image.file(File(customIconPath), fit: BoxFit.cover)
-                                  : Image.asset('assets/icon/app_icon.png', fit: BoxFit.cover, errorBuilder: (c, e, s) => const Icon(Icons.apps, color: Colors.orange)),
+                                  : Image.asset('assets/icon/logo.png', fit: BoxFit.cover, errorBuilder: (c, e, s) => const Icon(Icons.apps, color: Colors.orange)),
                               ),
                               const SizedBox(width: 16),
                               Column(
@@ -157,7 +157,7 @@ class HomeScreen extends ConsumerWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  activeGame.matchId != null ? 'PARTITA TORNEO LIVE' : l10n.matchInProgress,
+                                  activeGame.matchId != null ? l10n.activeTournamentMatch : l10n.matchInProgress,
                                   style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                                 ),
                                 Text(
@@ -204,12 +204,20 @@ class HomeScreen extends ConsumerWidget {
               children: [
                 _buildQuickAction(
                   context,
+                  icon: Icons.storefront,
+                  title: l10n.myCommunity,
+                  subtitle: l10n.manageYourBrand,
+                  color: Colors.pink,
+                  onTap: () => context.push('/community'),
+                ).animate().fadeIn(delay: 500.ms).scale(),
+                _buildQuickAction(
+                  context,
                   icon: Icons.sports_basketball,
                   title: AppLocalizations.of(context)!.singleMatch,
                   subtitle: AppLocalizations.of(context)!.manageSingleMatch,
                   color: Colors.purple,
                   onTap: () => context.go('/single-match-setup'),
-                ).animate().fadeIn(delay: 500.ms).scale(),
+                ).animate().fadeIn(delay: 550.ms).scale(),
                 _buildQuickAction(
                   context,
                   icon: Icons.emoji_events,
@@ -217,7 +225,7 @@ class HomeScreen extends ConsumerWidget {
                   subtitle: AppLocalizations.of(context)!.createAndManage,
                   color: Colors.orange,
                   onTap: () => context.go('/tournaments'),
-                ).animate().fadeIn(delay: 550.ms).scale(),
+                ).animate().fadeIn(delay: 600.ms).scale(),
                 _buildQuickAction(
                   context,
                   icon: Icons.groups,
@@ -225,31 +233,7 @@ class HomeScreen extends ConsumerWidget {
                   subtitle: AppLocalizations.of(context)!.manageTeams,
                   color: Colors.blue,
                   onTap: () => context.go('/teams'),
-                ).animate().fadeIn(delay: 600.ms).scale(),
-                _buildQuickAction(
-                  context,
-                  icon: Icons.emoji_events,
-                  title: AppLocalizations.of(context)!.hallOfFame,
-                  subtitle: AppLocalizations.of(context)!.viewWinners,
-                  color: Colors.amber,
-                  onTap: () => context.go('/stats'),
                 ).animate().fadeIn(delay: 650.ms).scale(),
-                _buildQuickAction(
-                  context,
-                  icon: Icons.map,
-                  title: AppLocalizations.of(context)!.map,
-                  subtitle: AppLocalizations.of(context)!.courtsMap,
-                  color: Colors.teal,
-                  onTap: () => context.go('/map'),
-                ).animate().fadeIn(delay: 700.ms).scale(),
-                _buildQuickAction(
-                  context,
-                  icon: Icons.settings,
-                  title: AppLocalizations.of(context)!.settings,
-                  subtitle: AppLocalizations.of(context)!.appOptions,
-                  color: Colors.grey,
-                  onTap: () => context.go('/settings'),
-                ).animate().fadeIn(delay: 750.ms).scale(),
                 _buildQuickAction(
                   context,
                   icon: Icons.qr_code_scanner,
@@ -257,14 +241,30 @@ class HomeScreen extends ConsumerWidget {
                   subtitle: AppLocalizations.of(context)!.syncFromScout,
                   color: Colors.indigo,
                   onTap: () => context.push('/scan'),
+                ).animate().fadeIn(delay: 700.ms).scale(),
+                _buildQuickAction(
+                  context,
+                  icon: Icons.emoji_events,
+                  title: AppLocalizations.of(context)!.hallOfFame,
+                  subtitle: AppLocalizations.of(context)!.viewWinners,
+                  color: Colors.amber,
+                  onTap: () => context.go('/stats'),
+                ).animate().fadeIn(delay: 750.ms).scale(),
+                _buildQuickAction(
+                  context,
+                  icon: Icons.map,
+                  title: AppLocalizations.of(context)!.map,
+                  subtitle: AppLocalizations.of(context)!.courtsMap,
+                  color: Colors.teal,
+                  onTap: () => context.go('/map'),
                 ).animate().fadeIn(delay: 800.ms).scale(),
                 _buildQuickAction(
                   context,
-                  icon: Icons.storefront,
-                  title: 'La mia Community',
-                  subtitle: 'Gestisci il tuo Brand',
-                  color: Colors.pink,
-                  onTap: () => context.push('/community'),
+                  icon: Icons.settings,
+                  title: AppLocalizations.of(context)!.settings,
+                  subtitle: AppLocalizations.of(context)!.appOptions,
+                  color: Colors.grey,
+                  onTap: () => context.go('/settings'),
                 ).animate().fadeIn(delay: 850.ms).scale(),
               ],
             ),
@@ -365,6 +365,7 @@ class _CloudTournamentsSlider extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final cloudTournamentsAsync = ref.watch(cloudTournamentsProvider);
     final currentFilters = ref.watch(cloudFilterProvider);
+    final l10n = AppLocalizations.of(context)!;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -374,7 +375,7 @@ class _CloudTournamentsSlider extends ConsumerWidget {
           child: Row(
             children: [
               Text(
-                'LIVE HIGHLIGHTS',
+                l10n.liveHighlights,
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w900,
@@ -406,9 +407,9 @@ class _CloudTournamentsSlider extends ConsumerWidget {
                   ref.read(cloudFilterProvider.notifier).state = newFilters;
                 },
                 itemBuilder: (context) => [
-                  _buildPopupItem(CloudFilter.inProgress, 'In Corso', currentFilters.contains(CloudFilter.inProgress)),
-                  _buildPopupItem(CloudFilter.future, 'Futuri', currentFilters.contains(CloudFilter.future)),
-                  _buildPopupItem(CloudFilter.past, 'Passati', currentFilters.contains(CloudFilter.past)),
+                  _buildPopupItem(CloudFilter.inProgress, l10n.inProgress, currentFilters.contains(CloudFilter.inProgress)),
+                  _buildPopupItem(CloudFilter.future, l10n.future, currentFilters.contains(CloudFilter.future)),
+                  _buildPopupItem(CloudFilter.past, l10n.past, currentFilters.contains(CloudFilter.past)),
                 ],
               ),
             ],
@@ -422,7 +423,7 @@ class _CloudTournamentsSlider extends ConsumerWidget {
                 height: 100,
                 child: Center(
                   child: Text(
-                    'Non ci sono tornei al momento',
+                    l10n.noTournamentsAtMoment,
                     style: TextStyle(color: Colors.grey.shade600, fontSize: 13, fontStyle: FontStyle.italic),
                   ),
                 ),

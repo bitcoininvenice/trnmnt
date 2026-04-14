@@ -613,39 +613,66 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get modeLockedWarning =>
-      'Tournament mode cannot be changed once matches have started.';
+      'The mode cannot be changed because the tournament has already started.';
 
   @override
-  String get cloudCollaboration => 'Co-gestione Cloud';
+  String get cloudCollaboration => 'Cloud Co-management';
 
   @override
-  String get inviteAdmin => 'Invita Organizzatore';
+  String get inviteAdmin => 'Invite Organizer';
 
   @override
-  String get cloudSyncActive => 'Sincronizzazione Cloud attiva';
+  String get cloudSyncActive => 'Cloud Sync Active';
 
   @override
   String get tournamentImportedAndSynced =>
-      'Torneo importato e sincronizzato! 🤝🏀';
+      'Tournament imported and synced! 🤝🏀';
 
   @override
-  String get cloudFetching => 'Recupero dati dal Cloud...';
+  String get cloudFetching => 'Fetching Cloud data...';
 
   @override
-  String get syncError => 'Errore di sincronizzazione';
+  String get syncError => 'Sync error';
 
   @override
   String cloudIdLabel(String id) {
-    return 'ID Cloud: $id';
+    return 'Cloud ID: $id';
   }
 
   @override
-  String get publishToCloud_title => 'Pubblica sul Cloud';
+  String get publishToCloud_title => 'Publish to Cloud';
 
   @override
   String get publishToCloud_desc =>
-      'Sincronizza il torneo per abilitare la Dashboard Web e la Co-Gestione.';
+      'Sync the tournament to enable Web Dashboard and Co-Management.';
 
   @override
-  String get publishNow => 'Pubblica Ora';
+  String get publishNow => 'Publish Now';
+
+  @override
+  String get myCommunity => 'My Community';
+
+  @override
+  String get manageYourBrand => 'Manage your Brand';
+
+  @override
+  String get liveHighlights => 'LIVE HIGHLIGHTS';
+
+  @override
+  String get noTournamentsAtMoment => 'No tournaments at the moment';
+
+  @override
+  String get activeTournamentMatch => 'LIVE TOURNAMENT MATCH';
+
+  @override
+  String get future => 'Future';
+
+  @override
+  String get past => 'Past';
+
+  @override
+  String get mapDataSourceLocal => 'Added in-app';
+
+  @override
+  String get mapDataSourcePickRoll => 'Pick&Roll Source';
 }

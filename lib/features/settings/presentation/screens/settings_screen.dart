@@ -22,7 +22,7 @@ class SettingsScreen extends ConsumerStatefulWidget {
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   String _version = '...';
   String _baseVersion = '1.0.0';
-  final String _assetIconPath = 'assets/icon/app_icon.png';
+  final String _assetIconPath = 'assets/icon/logo.png';
 
   @override
   void initState() {

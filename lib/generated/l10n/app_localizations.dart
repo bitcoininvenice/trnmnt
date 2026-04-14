@@ -1309,6 +1309,60 @@ abstract class AppLocalizations {
   /// In it, this message translates to:
   /// **'Pubblica Ora'**
   String get publishNow;
+
+  /// No description provided for @myCommunity.
+  ///
+  /// In it, this message translates to:
+  /// **'La mia Community'**
+  String get myCommunity;
+
+  /// No description provided for @manageYourBrand.
+  ///
+  /// In it, this message translates to:
+  /// **'Gestisci il tuo Brand'**
+  String get manageYourBrand;
+
+  /// No description provided for @liveHighlights.
+  ///
+  /// In it, this message translates to:
+  /// **'LIVE HIGHLIGHTS'**
+  String get liveHighlights;
+
+  /// No description provided for @noTournamentsAtMoment.
+  ///
+  /// In it, this message translates to:
+  /// **'Non ci sono tornei al momento'**
+  String get noTournamentsAtMoment;
+
+  /// No description provided for @activeTournamentMatch.
+  ///
+  /// In it, this message translates to:
+  /// **'PARTITA TORNEO LIVE'**
+  String get activeTournamentMatch;
+
+  /// No description provided for @future.
+  ///
+  /// In it, this message translates to:
+  /// **'Futuri'**
+  String get future;
+
+  /// No description provided for @past.
+  ///
+  /// In it, this message translates to:
+  /// **'Passati'**
+  String get past;
+
+  /// No description provided for @mapDataSourceLocal.
+  ///
+  /// In it, this message translates to:
+  /// **'Aggiunti in app'**
+  String get mapDataSourceLocal;
+
+  /// No description provided for @mapDataSourcePickRoll.
+  ///
+  /// In it, this message translates to:
+  /// **'Fonte Pick&Roll'**
+  String get mapDataSourcePickRoll;
 }
 
 class _AppLocalizationsDelegate

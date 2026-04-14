@@ -236,6 +236,7 @@ class TournamentsRepository {
     bool? hasPlayIn,
     String? groupNames,
     String? twitchChannel,
+    String? customTicker,
   }) async {
     return await (_db.update(_db.tournaments)..where((t) => t.id.equals(id))).write(
       TournamentsCompanion(
@@ -255,6 +256,7 @@ class TournamentsRepository {
         hasPlayIn: hasPlayIn != null ? Value(hasPlayIn) : const Value.absent(),
         groupNames: groupNames != null ? Value(groupNames) : const Value.absent(),
         twitchChannel: twitchChannel != null ? Value(twitchChannel) : const Value.absent(),
+        customTicker: customTicker != null ? Value(customTicker) : const Value.absent(),
       ),
     ) > 0;
   }

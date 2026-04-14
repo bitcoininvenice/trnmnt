@@ -53,6 +53,7 @@ class Tournaments extends Table {
   TextColumn get groupNames => text().nullable()(); // JSON list of names
   TextColumn get twitchChannel => text().nullable()(); // Optional: "venicestreetball"
   TextColumn get cloudId => text().nullable()(); // Unique ID for Supabase link
+  TextColumn get customTicker => text().nullable()(); // Optional custom scrolling text
 
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 }
@@ -115,9 +116,7 @@ class Courts extends Table {
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 }
 
-// ==================== DATABASE ====================
-
-// ==================== DATABASE ====================
+// ... (existing code omitted)
 
 @DriftDatabase(tables: [Teams, Tournaments, TournamentTeams, Matches, Courts])
 class AppDatabase extends _$AppDatabase {
@@ -138,7 +137,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 9;
 
   @override
   MigrationStrategy get migration {
@@ -161,6 +160,9 @@ class AppDatabase extends _$AppDatabase {
         }
         if (from < 8) {
           await m.addColumn(this.tournaments, this.tournaments.cloudId);
+        }
+        if (from < 9) {
+          await m.addColumn(this.tournaments, this.tournaments.customTicker);
         }
       },
     );
