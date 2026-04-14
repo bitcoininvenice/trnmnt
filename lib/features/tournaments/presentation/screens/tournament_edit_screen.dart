@@ -120,7 +120,7 @@ class _TournamentEditScreenState extends ConsumerState<TournamentEditScreen> {
               _locationController.text = tournament.location;
               _startDate = tournament.startDate ?? DateTime.now();
               _mode = tournament.mode;
-              _scoringSystem = tournament.scoringSystem;
+              _scoringSystem = tournament.scoringSystem ?? 'standard';
               _winPointsController.text = tournament.winPoints.toString();
               _drawPointsController.text = tournament.drawPoints.toString();
               _lossPointsController.text = tournament.lossPoints.toString();

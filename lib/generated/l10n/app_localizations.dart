@@ -152,6 +152,108 @@ abstract class AppLocalizations {
   /// **'Statistiche App'**
   String get appStatistics;
 
+  /// No description provided for @myCommunity.
+  ///
+  /// In it, this message translates to:
+  /// **'La mia Community'**
+  String get myCommunity;
+
+  /// No description provided for @communityManagement.
+  ///
+  /// In it, this message translates to:
+  /// **'Gestione Community'**
+  String get communityManagement;
+
+  /// No description provided for @manageBrandsLogos.
+  ///
+  /// In it, this message translates to:
+  /// **'Gestisci brand, loghi e team'**
+  String get manageBrandsLogos;
+
+  /// No description provided for @joinCommunity.
+  ///
+  /// In it, this message translates to:
+  /// **'Unisciti a una Community'**
+  String get joinCommunity;
+
+  /// No description provided for @scanQrInvitation.
+  ///
+  /// In it, this message translates to:
+  /// **'Scansiona QR Invito'**
+  String get scanQrInvitation;
+
+  /// No description provided for @createNewGroup.
+  ///
+  /// In it, this message translates to:
+  /// **'CREA NUOVA COMMUNITY'**
+  String get createNewGroup;
+
+  /// No description provided for @adminStatus.
+  ///
+  /// In it, this message translates to:
+  /// **'Sei l\'amministratore di questa community.'**
+  String get adminStatus;
+
+  /// No description provided for @collaboratorStatus.
+  ///
+  /// In it, this message translates to:
+  /// **'Sei un collaboratore di questa community.'**
+  String get collaboratorStatus;
+
+  /// No description provided for @shareInvitation.
+  ///
+  /// In it, this message translates to:
+  /// **'Condividi Invito'**
+  String get shareInvitation;
+
+  /// No description provided for @scanQrInstructions.
+  ///
+  /// In it, this message translates to:
+  /// **'Inquadra il QR Code fornito dall\'organizzatore'**
+  String get scanQrInstructions;
+
+  /// No description provided for @scanQrTitle.
+  ///
+  /// In it, this message translates to:
+  /// **'Scansiona QR Community'**
+  String get scanQrTitle;
+
+  /// No description provided for @joinedCommunitySuccess.
+  ///
+  /// In it, this message translates to:
+  /// **'Ti sei unito alla community! 🏀'**
+  String get joinedCommunitySuccess;
+
+  /// No description provided for @errorJoiningCommunity.
+  ///
+  /// In it, this message translates to:
+  /// **'Errore durante l\'unione. Riprova.'**
+  String get errorJoiningCommunity;
+
+  /// No description provided for @onlyAdminCanEdit.
+  ///
+  /// In it, this message translates to:
+  /// **'Solo l\'amministratore può modificare l\'identità della community.'**
+  String get onlyAdminCanEdit;
+
+  /// No description provided for @communityIdentityDesc.
+  ///
+  /// In it, this message translates to:
+  /// **'Crea la tua identità per organizzare tornei sotto il tuo brand, o scansiona il QR di un collega per collaborare.'**
+  String get communityIdentityDesc;
+
+  /// No description provided for @updateData.
+  ///
+  /// In it, this message translates to:
+  /// **'AGGIORNA DATI'**
+  String get updateData;
+
+  /// No description provided for @saveCommunity.
+  ///
+  /// In it, this message translates to:
+  /// **'SALVA COMMUNITY'**
+  String get saveCommunity;
+
   /// No description provided for @totalTeams.
   ///
   /// In it, this message translates to:
@@ -1309,12 +1411,6 @@ abstract class AppLocalizations {
   /// In it, this message translates to:
   /// **'Pubblica Ora'**
   String get publishNow;
-
-  /// No description provided for @myCommunity.
-  ///
-  /// In it, this message translates to:
-  /// **'La mia Community'**
-  String get myCommunity;
 
   /// No description provided for @manageYourBrand.
   ///

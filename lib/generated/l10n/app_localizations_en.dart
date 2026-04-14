@@ -36,6 +36,59 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appStatistics => 'App Statistics';
 
   @override
+  String get myCommunity => 'My Community';
+
+  @override
+  String get communityManagement => 'Community Management';
+
+  @override
+  String get manageBrandsLogos => 'Manage brands, logos and teams';
+
+  @override
+  String get joinCommunity => 'Join a Community';
+
+  @override
+  String get scanQrInvitation => 'Scan QR Invitation';
+
+  @override
+  String get createNewGroup => 'CREATE NEW COMMUNITY';
+
+  @override
+  String get adminStatus => 'You are the admin of this community.';
+
+  @override
+  String get collaboratorStatus => 'You are a collaborator of this community.';
+
+  @override
+  String get shareInvitation => 'Share Invitation';
+
+  @override
+  String get scanQrInstructions => 'Scan the QR Code provided by the organizer';
+
+  @override
+  String get scanQrTitle => 'Scan Community QR';
+
+  @override
+  String get joinedCommunitySuccess => 'You\'ve joined the community! 🏀';
+
+  @override
+  String get errorJoiningCommunity => 'Error joining. Try again.';
+
+  @override
+  String get onlyAdminCanEdit =>
+      'Only the administrator can edit the community identity.';
+
+  @override
+  String get communityIdentityDesc =>
+      'Create your identity to host tournaments under your brand, or scan a colleague\'s QR to collaborate.';
+
+  @override
+  String get updateData => 'UPDATE DATA';
+
+  @override
+  String get saveCommunity => 'SAVE COMMUNITY';
+
+  @override
   String get totalTeams => 'Total Teams';
 
   @override
@@ -648,9 +701,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get publishNow => 'Publish Now';
-
-  @override
-  String get myCommunity => 'My Community';
 
   @override
   String get manageYourBrand => 'Manage your Brand';

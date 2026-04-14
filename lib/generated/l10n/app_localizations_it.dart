@@ -36,6 +36,60 @@ class AppLocalizationsIt extends AppLocalizations {
   String get appStatistics => 'Statistiche App';
 
   @override
+  String get myCommunity => 'La mia Community';
+
+  @override
+  String get communityManagement => 'Gestione Community';
+
+  @override
+  String get manageBrandsLogos => 'Gestisci brand, loghi e team';
+
+  @override
+  String get joinCommunity => 'Unisciti a una Community';
+
+  @override
+  String get scanQrInvitation => 'Scansiona QR Invito';
+
+  @override
+  String get createNewGroup => 'CREA NUOVA COMMUNITY';
+
+  @override
+  String get adminStatus => 'Sei l\'amministratore di questa community.';
+
+  @override
+  String get collaboratorStatus => 'Sei un collaboratore di questa community.';
+
+  @override
+  String get shareInvitation => 'Condividi Invito';
+
+  @override
+  String get scanQrInstructions =>
+      'Inquadra il QR Code fornito dall\'organizzatore';
+
+  @override
+  String get scanQrTitle => 'Scansiona QR Community';
+
+  @override
+  String get joinedCommunitySuccess => 'Ti sei unito alla community! 🏀';
+
+  @override
+  String get errorJoiningCommunity => 'Errore durante l\'unione. Riprova.';
+
+  @override
+  String get onlyAdminCanEdit =>
+      'Solo l\'amministratore può modificare l\'identità della community.';
+
+  @override
+  String get communityIdentityDesc =>
+      'Crea la tua identità per organizzare tornei sotto il tuo brand, o scansiona il QR di un collega per collaborare.';
+
+  @override
+  String get updateData => 'AGGIORNA DATI';
+
+  @override
+  String get saveCommunity => 'SALVA COMMUNITY';
+
+  @override
   String get totalTeams => 'Squadre Totali';
 
   @override
@@ -650,9 +704,6 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get publishNow => 'Pubblica Ora';
-
-  @override
-  String get myCommunity => 'La mia Community';
 
   @override
   String get manageYourBrand => 'Gestisci il tuo Brand';

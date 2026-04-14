@@ -23,6 +23,7 @@ import '../../features/stats/presentation/screens/hall_of_fame_screen.dart';
 import '../../features/sharing/presentation/screens/share_tournament_screen.dart';
 import '../../features/sharing/presentation/screens/scan_tournament_screen.dart';
 import '../../features/community/presentation/screens/community_dashboard_screen.dart';
+import '../../features/community/presentation/screens/join_community_screen.dart';
 import '../shell/main_shell.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -208,6 +209,13 @@ final routerProvider = Provider<GoRouter>((ref) {
             pageBuilder: (context, state) => const NoTransitionPage(
               child: CommunityDashboardScreen(),
             ),
+            routes: [
+              GoRoute(
+                path: 'join',
+                name: 'community-join',
+                builder: (context, state) => const JoinCommunityScreen(),
+              ),
+            ],
           ),
         ],
       ),

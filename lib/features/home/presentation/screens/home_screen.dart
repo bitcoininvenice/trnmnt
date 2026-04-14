@@ -7,6 +7,7 @@ import 'package:trnmnt/core/providers/icon_provider.dart';
 import 'package:trnmnt/features/stats/presentation/widgets/stats_overview.dart';
 import 'package:trnmnt/features/stats/data/stats_repository.dart';
 import 'package:trnmnt/features/tournaments/data/tournaments_repository.dart';
+import 'package:trnmnt/features/community/data/community_repository.dart';
 import 'dart:io';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../game/providers/game_provider.dart';
@@ -28,6 +29,10 @@ class HomeScreen extends ConsumerWidget {
           SliverAppBar(
             expandedHeight: 150,
             pinned: true,
+            leading: IconButton(
+              icon: const Icon(Icons.menu, color: Colors.white),
+              onPressed: () => Scaffold.of(context).openDrawer(),
+            ),
             flexibleSpace: FlexibleSpaceBar(
               background: Container(
                 decoration: BoxDecoration(
@@ -206,7 +211,11 @@ class HomeScreen extends ConsumerWidget {
                   context,
                   icon: Icons.storefront,
                   title: l10n.myCommunity,
-                  subtitle: l10n.manageYourBrand,
+                  subtitle: ref.watch(currentCommunityProvider).when(
+                    data: (c) => c?.name ?? l10n.manageYourBrand,
+                    loading: () => '...',
+                    error: (_, __) => l10n.manageYourBrand,
+                  ),
                   color: Colors.pink,
                   onTap: () => context.push('/community'),
                 ).animate().fadeIn(delay: 500.ms).scale(),

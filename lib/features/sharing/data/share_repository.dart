@@ -66,17 +66,23 @@ class ShareRepository {
     final baseUrl = dotenv.env['BASE_URL'] ?? 'https://trnmnt.vercel.app';
     
     try {
-      // Find the user's active community ID and slug (default to 'hub')
-      final myCommunity = await _communityRepo.getMyCommunity();
-      final String? communityId = myCommunity?['id'];
-      final String slug = myCommunity?['slug'] ?? 'hub';
-      final String? currentCloudId = tournament.cloudId;
+      // Find the community for this tournament
+      final String? tournamentCommunityId = tournament.communityId;
+      final activeCommunity = await _communityRepo.getActiveCommunity();
+      
+      final String? communityId = tournamentCommunityId ?? activeCommunity?.id;
+      final String slug = (tournamentCommunityId != null && activeCommunity?.id == tournamentCommunityId) 
+          ? activeCommunity!.slug 
+          : (activeCommunity?.slug ?? 'hub');
 
-      // Prepare final URL with standardized /tournaments/ path
+      final String? currentCloudId = tournament.cloudId;
+      final String initialUrl = currentCloudId != null && currentCloudId.isNotEmpty 
+          ? '$baseUrl/it/tournaments/$currentCloudId' 
+          : '';
+
       if (currentCloudId != null && currentCloudId.isNotEmpty) {
-        final String finalUrl = '$baseUrl/it/tournaments/$currentCloudId';
         if (export['tournament'] != null) {
-          (export['tournament'] as Map<String, dynamic>)['webUrl'] = finalUrl;
+          (export['tournament'] as Map<String, dynamic>)['webUrl'] = initialUrl;
           (export['tournament'] as Map<String, dynamic>)['communitySlug'] = slug;
         }
       }
