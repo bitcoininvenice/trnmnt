@@ -438,8 +438,18 @@ class _CloudTournamentsSlider extends ConsumerWidget {
                 itemCount: tournaments.length,
                 itemBuilder: (context, index) {
                   final data = tournaments[index];
-                  final tournament = data['tournament'] as Map<String, dynamic>;
-                  return _CloudTournamentCard(tournament: tournament);
+                  final tournamentRaw = data['tournament'];
+                  if (tournamentRaw == null || tournamentRaw is! Map) return const SizedBox.shrink();
+                  
+                  final tournament = Map<String, dynamic>.from(tournamentRaw);
+                  final dbSlug = data['community_slug']?.toString();
+                  final dbId = data['id']?.toString();
+                  
+                  return _CloudTournamentCard(
+                    tournament: tournament, 
+                    communitySlug: dbSlug,
+                    tournamentId: dbId,
+                  );
                 },
               ),
             );
@@ -471,8 +481,14 @@ class _CloudTournamentsSlider extends ConsumerWidget {
 
 class _CloudTournamentCard extends StatelessWidget {
   final Map<String, dynamic> tournament;
+  final String? communitySlug;
+  final String? tournamentId;
 
-  const _CloudTournamentCard({required this.tournament});
+  const _CloudTournamentCard({
+    required this.tournament,
+    this.communitySlug,
+    this.tournamentId,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -542,7 +558,7 @@ class _CloudTournamentCard extends StatelessWidget {
                     ),
                   ),
                 Text(
-                  (tournament['name'] as String).toUpperCase(),
+                  (tournament['name']?.toString() ?? 'TRNMNT').toUpperCase(),
                   maxLines: 2,
                   style: const TextStyle(
                     color: Colors.white,
@@ -559,7 +575,7 @@ class _CloudTournamentCard extends StatelessWidget {
                     const SizedBox(width: 4),
                     Expanded(
                       child: Text(
-                        tournament['location'] as String,
+                        tournament['location']?.toString() ?? '',
                         style: const TextStyle(color: Colors.white60, fontSize: 12),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -577,23 +593,23 @@ class _CloudTournamentCard extends StatelessWidget {
               child: InkWell(
                 onTap: () {
                   var webUrl = tournament['webUrl'] as String?;
-                  final tournamentId = tournament['id']?.toString();
+                  final String? effectiveId = tournamentId ?? tournament['id']?.toString();
                   
-                  // Fallback: if webUrl is missing from the data, generate it from the ID
-                  if ((webUrl == null || webUrl.isEmpty) && tournamentId != null) {
-                    webUrl = 'https://trnmnt.vercel.app/tournaments/$tournamentId';
+                  // Use standardized fallback matching frontend logic
+                  // Use tournaments/ path as requested definitively
+                  if ((webUrl == null || webUrl.isEmpty) && effectiveId != null) {
+                    webUrl = 'https://trnmnt.vercel.app/it/tournaments/$effectiveId';
                   }
 
                   if (webUrl != null && webUrl.isNotEmpty) {
+                    print('--- DEBUG: GENERATED URL: $webUrl ---');
                     final Uri url = Uri.parse(webUrl);
                     launchUrl(url, mode: LaunchMode.externalApplication);
                   } else {
-                    // This fallback to local detail page probably won't work for cloud tournaments
-                    // without importing them, but we'll leave it as a last resort
-                    if (tournamentId != null) {
+                    if (effectiveId != null) {
                       context.pushNamed(
                         'tournament-detail',
-                        pathParameters: {'tournamentId': tournamentId},
+                        pathParameters: {'tournamentId': effectiveId},
                       );
                     }
                   }

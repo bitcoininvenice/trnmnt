@@ -32,6 +32,11 @@ final cloudTournamentsProvider = StreamProvider<List<Map<String, dynamic>>>((ref
         try {
           final tournamentData = item['data'] as Map<String, dynamic>?;
           if (tournamentData != null) {
+            // CRITICAL: Merge DB metadata into the map so UI can access it
+            tournamentData['id'] = item['id'];
+            tournamentData['community_slug'] = item['community_slug'];
+            tournamentData['community_id'] = item['community_id'];
+            
             allTournaments.add(tournamentData);
           }
         } catch (_) {

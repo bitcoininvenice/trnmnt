@@ -66,34 +66,53 @@ class ShareRepository {
     final baseUrl = dotenv.env['BASE_URL'] ?? 'https://trnmnt.vercel.app';
     
     try {
-      // Find the user's active community ID to bind ownership
+      // Find the user's active community ID and slug (default to 'hub')
       final myCommunity = await _communityRepo.getMyCommunity();
       final String? communityId = myCommunity?['id'];
+      final String slug = myCommunity?['slug'] ?? 'hub';
+      final String? currentCloudId = tournament.cloudId;
+
+      // Prepare final URL with standardized /tournaments/ path
+      if (currentCloudId != null && currentCloudId.isNotEmpty) {
+        final String finalUrl = '$baseUrl/it/tournaments/$currentCloudId';
+        if (export['tournament'] != null) {
+          (export['tournament'] as Map<String, dynamic>)['webUrl'] = finalUrl;
+          (export['tournament'] as Map<String, dynamic>)['communitySlug'] = slug;
+        }
+      }
 
       if (cloudId == null || cloudId.isEmpty) {
         // CASE: First publication
         final response = await supabase.from('published_tournaments').insert({
           'data': export,
           'community_id': communityId,
+          'community_slug': slug,
           'last_updated': DateTime.now().toIso8601String(),
         }).select('id').single();
         
         cloudId = response['id'].toString();
+        
+        // After first insert, update data with correct URLs and slugs
+        final String firstTimeUrl = '$baseUrl/it/tournaments/$cloudId';
+        if (export['tournament'] != null) {
+          (export['tournament'] as Map<String, dynamic>)['webUrl'] = firstTimeUrl;
+          (export['tournament'] as Map<String, dynamic>)['communitySlug'] = slug;
+        }
+        await supabase.from('published_tournaments').update({ 'data': export }).eq('id', cloudId);
       } else {
         // CASE: Update existing row
         await supabase.from('published_tournaments').upsert({
           'id': cloudId,
           'data': export,
           'community_id': communityId,
+          'community_slug': slug,
           'last_updated': DateTime.now().toIso8601String(),
         });
       }
 
-      // Generate the URL based on the community slug (if exists) or fallback
-      final String slug = myCommunity?['slug'] ?? 'c';
-      final finalUrl = '$baseUrl/$slug/$cloudId';
+      final String finalUrl = '$baseUrl/it/tournaments/$cloudId';
 
-      // Update local status
+      // Update local status with the NEW definitive URL
       await (_db.update(_db.tournaments)..where((t) => t.id.equals(tournamentId))).write(
         TournamentsCompanion(
           isPublished: const Value(true),

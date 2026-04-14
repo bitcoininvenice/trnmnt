@@ -98,7 +98,23 @@ class _ShareTournamentScreenState extends ConsumerState<ShareTournamentScreen> {
       final fullUrl = await repo.publishToSupabase(widget.tournamentId);
 
       if (fullUrl != null) {
+        // After publication, we need to extract the cloudId for the QR code
+        // The share_repository also updates the local DB, so we reload
         await _loadInitialData();
+        
+        // If for some reason _loadInitialData doesn't see the update yet (cache),
+        // we force the cloud_id from the URL to ensure the UI switches
+        if (mounted && _cloudId == null) {
+          final uri = Uri.parse(fullUrl);
+          final segments = uri.pathSegments;
+          if (segments.length >= 3 && segments[1] == 'tournaments') {
+            setState(() {
+              _webUrl = fullUrl;
+              _cloudId = segments[2];
+            });
+          }
+        }
+        
         if (mounted) {
            ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Sincronizzato sul Cloud! ☁️🏀'), backgroundColor: Colors.blue),
@@ -277,37 +293,41 @@ class _ShareTournamentScreenState extends ConsumerState<ShareTournamentScreen> {
           const SizedBox(height: 32),
 
           // Actions
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            alignment: WrapAlignment.center,
             children: [
               IconButton.filledTonal(
                 onPressed: () => Clipboard.setData(ClipboardData(text: qrData)),
                 icon: const Icon(Icons.copy),
                 tooltip: 'Copia link',
               ),
-              const SizedBox(width: 16),
               if (_shareType == ShareType.web)
                 ElevatedButton.icon(
                   onPressed: () => _openUrl(_webUrl!),
                   icon: const Icon(Icons.open_in_new),
-                  label: const Text('Apri Risultati'),
+                  label: const Text('Apri Pagina'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: themeColor, 
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                  ),
-                )
-              else 
-                ElevatedButton.icon(
-                  onPressed: _publishToWeb, // Re-update cloud cache
-                  icon: _isPublishing 
-                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                    : const Icon(Icons.sync),
-                  label: const Text('Aggiorna Cloud'),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   ),
                 ),
+              ElevatedButton.icon(
+                onPressed: _isPublishing ? null : _publishToWeb,
+                icon: _isPublishing 
+                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.blueAccent))
+                  : Icon(Icons.sync, color: _isPublishing ? Colors.grey : Colors.blueAccent),
+                label: Text(
+                  _isPublishing ? 'Sincronizzazione...' : 'Sincronizza Cloud',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  side: BorderSide(color: Colors.blueAccent.withValues(alpha: 0.5)),
+                ),
+              ),
             ],
           ),
         ],
