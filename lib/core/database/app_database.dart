@@ -12,6 +12,9 @@ class Communities extends Table {
   TextColumn get name => text().withLength(min: 1, max: 100)();
   TextColumn get slug => text().withLength(min: 1, max: 50)();
   TextColumn get logoUrl => text().nullable()();
+  TextColumn get location => text().nullable()();
+  TextColumn get instagramUrl => text().nullable()();
+  TextColumn get tiktokUrl => text().nullable()();
   BoolColumn get isOwner => boolean().withDefault(const Constant(true))();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 
@@ -24,6 +27,7 @@ class Teams extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get name => text().withLength(min: 1, max: 50)();
   TextColumn get logoPath => text().nullable()();
+  TextColumn get communityId => text().nullable().references(Communities, #id)();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 }
 
@@ -119,7 +123,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 10;
+  int get schemaVersion => 11;
 
   @override
   MigrationStrategy get migration {
@@ -140,9 +144,22 @@ class AppDatabase extends _$AppDatabase {
         if (from < 9) await m.addColumn(this.tournaments, this.tournaments.customTicker);
         if (from < 10) {
           await m.createTable(communities);
-          await m.addColumn(tournaments, tournaments.communityId);
-          await m.addColumn(tournaments, tournaments.isReadOnly);
-          await m.addColumn(matches, matches.scheduledAt);
+          await m.addColumn(this.tournaments, this.tournaments.communityId);
+          await m.addColumn(this.teams, this.teams.communityId);
+          await m.addColumn(this.tournaments, this.tournaments.isReadOnly);
+          await m.addColumn(this.matches, this.matches.scheduledAt);
+          
+          // Data Migration: Create a default community for legacy data
+          await customStatement('INSERT INTO communities (id, name, slug, is_owner, created_at) VALUES (?, ?, ?, ?, ?)', 
+            ['legacy-id', 'La mia Community', 'my-community', 1, DateTime.now().millisecondsSinceEpoch]);
+            
+          // Link all existing tournaments to this community
+          await customStatement('UPDATE tournaments SET community_id = ?', ['legacy-id']);
+        }
+        if (from < 11) {
+          await m.addColumn(communities, communities.location);
+          await m.addColumn(communities, communities.instagramUrl);
+          await m.addColumn(communities, communities.tiktokUrl);
         }
       },
     );

@@ -68,7 +68,7 @@ class ShareRepository {
     try {
       // Find the community for this tournament
       final String? tournamentCommunityId = tournament.communityId;
-      final activeCommunity = await _communityRepo.getActiveCommunity();
+      final activeCommunity = await _communityRepo.getActiveCommunity(null);
       
       final String? communityId = tournamentCommunityId ?? activeCommunity?.id;
       final String slug = (tournamentCommunityId != null && activeCommunity?.id == tournamentCommunityId) 

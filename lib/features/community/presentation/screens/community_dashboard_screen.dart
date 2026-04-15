@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:trnmnt/generated/l10n/app_localizations.dart';
 import '../../data/community_repository.dart';
+import '../../data/selected_community_provider.dart';
 import '../../../../core/database/app_database.dart';
 
 class CommunityDashboardScreen extends ConsumerStatefulWidget {
@@ -82,13 +83,38 @@ class _CommunityDashboardScreenState extends ConsumerState<CommunityDashboardScr
         title: Text(l10n.communityManagement),
         actions: [
           activeCommunityAsync.when(
-            data: (community) => community != null && community.isOwner
-                ? IconButton(
+            data: (community) {
+              if (community == null) return const SizedBox.shrink();
+              if (community.isOwner) {
+                // Owner: can scan to join another community
+                return Row(mainAxisSize: MainAxisSize.min, children: [
+                  IconButton(
+                    icon: const Icon(Icons.qr_code_scanner),
+                    tooltip: l10n.scanQrInvitation,
+                    onPressed: () => context.push('/community/join'),
+                  ),
+                  IconButton(
                     icon: const Icon(Icons.qr_code_2),
                     tooltip: l10n.shareInvitation,
                     onPressed: () => _showShareQr(context, community),
-                  )
-                : const SizedBox.shrink(),
+                  ),
+                ]);
+              } else {
+                // Member: can scan another community OR create their own
+                return Row(mainAxisSize: MainAxisSize.min, children: [
+                  IconButton(
+                    icon: const Icon(Icons.qr_code_scanner),
+                    tooltip: l10n.scanQrInvitation,
+                    onPressed: () => context.push('/community/join'),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.add_circle_outline),
+                    tooltip: l10n.createNewGroup,
+                    onPressed: () => setState(() => _showInitialForm = true),
+                  ),
+                ]);
+              }
+            },
             loading: () => const SizedBox.shrink(),
             error: (_, __) => const SizedBox.shrink(),
           ),
@@ -98,115 +124,277 @@ class _CommunityDashboardScreenState extends ConsumerState<CommunityDashboardScr
         loading: () => const Center(child: CircularProgressIndicator(color: Colors.orange)),
         error: (e, st) => Center(child: Text('Errore: $e')),
         data: (community) {
+          // If user pressed '+', show the creation/join form regardless
+          if (_showInitialForm) {
+            return _buildCreationForm(context, isOwner: true);
+          }
+          
           if (community == null) {
             return _buildEmptyState(context);
           }
           
           final isOwner = community.isOwner;
 
-          // Pre-fill if exists and unchanged manually
-          if (_nameController.text.isEmpty && _slugController.text.isEmpty) {
-            _nameController.text = community.name;
-            _slugController.text = community.slug;
-            _loadExtendedData(community.id);
-          }
-
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Icon(
-                    isOwner ? Icons.hub_outlined : Icons.groups_outlined, 
-                    size: 80, 
-                    color: isOwner ? Colors.orange : Colors.blue
-                  ),
-                  const SizedBox(height: 24),
-                  Text(
-                    isOwner 
-                        ? l10n.adminStatus 
-                        : l10n.collaboratorStatus,
-                    textAlign: TextAlign.center, 
-                    style: const TextStyle(fontSize: 15, color: Colors.white70)
-                  ),
-                  const SizedBox(height: 32),
-                  TextFormField(
-                    controller: _nameController,
-                    readOnly: !isOwner,
-                    decoration: InputDecoration(
-                      labelText: l10n.nameLabel, 
-                      border: const OutlineInputBorder()
+          // Pre-fill controllers with community data
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (_nameController.text.isEmpty) {
+              _nameController.text = community.name;
+            }
+            if (_slugController.text.isEmpty) {
+              _slugController.text = community.slug;
+            }
+            if (_locationController.text.isEmpty && community.location != null) {
+              _locationController.text = community.location!;
+            }
+            if (_instagramController.text.isEmpty && community.instagramUrl != null) {
+              final ig = community.instagramUrl!.split('/').last;
+              _instagramController.text = ig;
+            }
+            if (_tiktokController.text.isEmpty && community.tiktokUrl != null) {
+              final tk = community.tiktokUrl!.split('@').last;
+              _tiktokController.text = tk;
+            }
+          });
+          return Column(
+            children: [
+              _buildSwitchBar(ref),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(24),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Icon(
+                          isOwner ? Icons.hub_outlined : Icons.groups_outlined, 
+                          size: 80, 
+                          color: isOwner ? Colors.orange : Colors.blue
+                        ),
+                        const SizedBox(height: 24),
+                        Text(
+                          isOwner 
+                              ? l10n.adminStatus 
+                              : l10n.collaboratorStatus,
+                          textAlign: TextAlign.center, 
+                          style: const TextStyle(fontSize: 15, color: Colors.white70)
+                        ),
+                        const SizedBox(height: 32),
+                        TextFormField(
+                          controller: _nameController,
+                          readOnly: !isOwner,
+                          decoration: InputDecoration(
+                            labelText: l10n.nameLabel, 
+                            border: const OutlineInputBorder()
+                          ),
+                          validator: (v) => v == null || v.length < 3 ? 'Inserisci un nome valido' : null,
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _slugController,
+                          readOnly: !isOwner,
+                          decoration: InputDecoration(
+                            labelText: 'URL Slug', 
+                            border: const OutlineInputBorder(), 
+                            prefixText: 'trnmnt.vercel.app/it/',
+                            prefixStyle: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
+                          ),
+                          validator: (v) => v == null || v.length < 3 ? 'Inserisci un URL valido' : null,
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _locationController,
+                          readOnly: !isOwner,
+                          decoration: const InputDecoration(
+                            labelText: 'Location', 
+                            border: OutlineInputBorder(),
+                            prefixIcon: Icon(Icons.location_on_outlined),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _instagramController,
+                          readOnly: !isOwner,
+                          decoration: const InputDecoration(
+                            labelText: 'Instagram',
+                            border: OutlineInputBorder(),
+                            prefixIcon: Icon(Icons.camera_alt_outlined),
+                            prefixText: '@ ',
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _tiktokController,
+                          readOnly: !isOwner,
+                          decoration: const InputDecoration(
+                            labelText: 'TikTok',
+                            border: OutlineInputBorder(),
+                            prefixIcon: Icon(Icons.music_note_outlined),
+                            prefixText: '@ ',
+                          ),
+                        ),
+                        if (isOwner) ...[
+                          const SizedBox(height: 48),
+                          ElevatedButton(
+                            onPressed: _isLoading ? null : _save,
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.all(16), 
+                              backgroundColor: Colors.orange,
+                              foregroundColor: Colors.white
+                            ),
+                            child: _isLoading 
+                                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) 
+                                : Text(l10n.updateData),
+                          )
+                        ] else ... [
+                          const SizedBox(height: 32),
+                          Center(child: Text(l10n.onlyAdminCanEdit, style: const TextStyle(color: Colors.white24, fontSize: 12, fontStyle: FontStyle.italic)))
+                        ]
+                      ],
                     ),
-                    validator: (v) => v == null || v.length < 3 ? 'Inserisci un nome valido' : null,
                   ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _slugController,
-                    readOnly: !isOwner,
-                    decoration: InputDecoration(
-                      labelText: 'URL Slug', 
-                      border: const OutlineInputBorder(), 
-                      prefixText: 'trnmnt.vercel.app/it/',
-                      prefixStyle: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
-                    ),
-                    validator: (v) => v == null || v.length < 3 ? 'Inserisci un URL valido' : null,
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _locationController,
-                    readOnly: !isOwner,
-                    decoration: const InputDecoration(
-                      labelText: 'Location', 
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.location_on_outlined),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _instagramController,
-                    readOnly: !isOwner,
-                    decoration: const InputDecoration(
-                      labelText: 'Instagram',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.camera_alt_outlined),
-                      prefixText: '@ ',
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _tiktokController,
-                    readOnly: !isOwner,
-                    decoration: const InputDecoration(
-                      labelText: 'TikTok',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.music_note_outlined),
-                      prefixText: '@ ',
-                    ),
-                  ),
-                  if (isOwner) ...[
-                    const SizedBox(height: 48),
-                    ElevatedButton(
-                      onPressed: _isLoading ? null : _save,
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.all(16), 
-                        backgroundColor: Colors.orange,
-                        foregroundColor: Colors.white
-                      ),
-                      child: _isLoading 
-                          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) 
-                          : Text(l10n.updateData),
-                    )
-                  ] else ... [
-                    const SizedBox(height: 32),
-                    Center(child: Text(l10n.onlyAdminCanEdit, style: const TextStyle(color: Colors.white24, fontSize: 12, fontStyle: FontStyle.italic)))
-                  ]
-                ],
+                ),
               ),
-            ),
+            ],
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildSwitchBar(WidgetRef ref) {
+    // We'll Fetch all local communities
+    final repo = ref.read(communityRepositoryProvider);
+    return FutureBuilder<List<Community>>(
+      future: repo.getAllLocalCommunities(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData || snapshot.data!.length <= 1) return const SizedBox.shrink();
+        
+        final communities = snapshot.data!;
+        final activeId = ref.watch(selectedCommunityIdProvider);
+        
+        return Container(
+          height: 60,
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.2),
+            border: const Border(bottom: BorderSide(color: Colors.white10)),
+          ),
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            itemCount: communities.length,
+            itemBuilder: (context, index) {
+              final c = communities[index];
+              final isSelected = activeId == c.id || (activeId == null && index == 0);
+              return Padding(
+                padding: const EdgeInsets.only(right: 8.0),
+                child: ChoiceChip(
+                  label: Text(c.name),
+                  selected: isSelected,
+                  onSelected: (val) {
+                    if (val) {
+                      ref.read(selectedCommunityIdProvider.notifier).setSelected(c.id);
+                    }
+                  },
+                  selectedColor: Colors.orange.withValues(alpha: 0.3),
+                  labelStyle: TextStyle(color: isSelected ? Colors.orange : Colors.white),
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildCreationForm(BuildContext context, {bool isOwner = false}) {
+    final l10n = AppLocalizations.of(context)!;
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Icon(Icons.add_business_outlined, size: 80, color: Colors.orange),
+            const SizedBox(height: 24),
+            Text(
+              l10n.createNewGroup,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 32),
+            TextFormField(
+              controller: _nameController,
+              decoration: InputDecoration(
+                labelText: l10n.nameLabel,
+                border: const OutlineInputBorder(),
+                prefixIcon: const Icon(Icons.business),
+              ),
+              validator: (v) => v == null || v.length < 3 ? 'Inserisci un nome valido' : null,
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _locationController,
+              decoration: const InputDecoration(
+                labelText: 'Location',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.location_on_outlined),
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _instagramController,
+              decoration: const InputDecoration(
+                labelText: 'Instagram',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.camera_alt_outlined),
+                prefixText: '@ ',
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _tiktokController,
+              decoration: const InputDecoration(
+                labelText: 'TikTok',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.music_note_outlined),
+                prefixText: '@ ',
+              ),
+            ),
+            const SizedBox(height: 32),
+            ElevatedButton(
+              onPressed: _isLoading ? null : _save,
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.all(16),
+                backgroundColor: Colors.orange,
+                foregroundColor: Colors.white,
+              ),
+              child: _isLoading 
+                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : Text(l10n.saveAction ?? 'SALVA'),
+            ),
+            const SizedBox(height: 16),
+            if (!isOwner) ...[  
+              OutlinedButton.icon(
+                icon: const Icon(Icons.qr_code_scanner),
+                label: Text(l10n.scanQrInvitation),
+                onPressed: () => context.push('/community/join'),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  side: const BorderSide(color: Colors.orange),
+                  foregroundColor: Colors.orange,
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+            TextButton(
+              onPressed: () => setState(() => _showInitialForm = false),
+              child: Text(l10n.cancel ?? 'ANNULLA'),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -215,80 +403,9 @@ class _CommunityDashboardScreenState extends ConsumerState<CommunityDashboardScr
     final l10n = AppLocalizations.of(context)!;
     
     if (_showInitialForm) {
-      return SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Icon(Icons.add_business_outlined, size: 80, color: Colors.orange),
-              const SizedBox(height: 24),
-              Text(
-                l10n.createNewGroup,
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 32),
-              TextFormField(
-                controller: _nameController,
-                decoration: InputDecoration(
-                  labelText: l10n.nameLabel,
-                  border: const OutlineInputBorder(),
-                  prefixIcon: const Icon(Icons.business),
-                ),
-                validator: (v) => v == null || v.length < 3 ? 'Inserisci un nome valido' : null,
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _locationController,
-                decoration: const InputDecoration(
-                  labelText: 'Location',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.location_on_outlined),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _instagramController,
-                decoration: const InputDecoration(
-                  labelText: 'Instagram',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.camera_alt_outlined),
-                  prefixText: '@ ',
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _tiktokController,
-                decoration: const InputDecoration(
-                  labelText: 'TikTok',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.music_note_outlined),
-                  prefixText: '@ ',
-                ),
-              ),
-              const SizedBox(height: 32),
-              ElevatedButton(
-                onPressed: _isLoading ? null : _save,
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.all(16),
-                  backgroundColor: Colors.orange,
-                  foregroundColor: Colors.white,
-                ),
-                child: _isLoading 
-                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                    : Text(l10n.saveAction ?? 'SALVA'),
-              ),
-              TextButton(
-                onPressed: () => setState(() => _showInitialForm = false),
-                child: Text(l10n.cancel ?? 'ANNULLA'),
-              ),
-            ],
-          ),
-        ),
-      );
+      return _buildCreationForm(context);
     }
+
 
     return Center(
       child: Padding(

@@ -3,306 +3,6 @@
 part of 'app_database.dart';
 
 // ignore_for_file: type=lint
-class $TeamsTable extends Teams with TableInfo<$TeamsTable, Team> {
-  @override
-  final GeneratedDatabase attachedDatabase;
-  final String? _alias;
-  $TeamsTable(this.attachedDatabase, [this._alias]);
-  static const VerificationMeta _idMeta = const VerificationMeta('id');
-  @override
-  late final GeneratedColumn<int> id = GeneratedColumn<int>(
-    'id',
-    aliasedName,
-    false,
-    hasAutoIncrement: true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'PRIMARY KEY AUTOINCREMENT',
-    ),
-  );
-  static const VerificationMeta _nameMeta = const VerificationMeta('name');
-  @override
-  late final GeneratedColumn<String> name = GeneratedColumn<String>(
-    'name',
-    aliasedName,
-    false,
-    additionalChecks: GeneratedColumn.checkTextLength(
-      minTextLength: 1,
-      maxTextLength: 50,
-    ),
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _logoPathMeta = const VerificationMeta(
-    'logoPath',
-  );
-  @override
-  late final GeneratedColumn<String> logoPath = GeneratedColumn<String>(
-    'logo_path',
-    aliasedName,
-    true,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _createdAtMeta = const VerificationMeta(
-    'createdAt',
-  );
-  @override
-  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
-    'created_at',
-    aliasedName,
-    false,
-    type: DriftSqlType.dateTime,
-    requiredDuringInsert: false,
-    defaultValue: currentDateAndTime,
-  );
-  @override
-  List<GeneratedColumn> get $columns => [id, name, logoPath, createdAt];
-  @override
-  String get aliasedName => _alias ?? actualTableName;
-  @override
-  String get actualTableName => $name;
-  static const String $name = 'teams';
-  @override
-  VerificationContext validateIntegrity(
-    Insertable<Team> instance, {
-    bool isInserting = false,
-  }) {
-    final context = VerificationContext();
-    final data = instance.toColumns(true);
-    if (data.containsKey('id')) {
-      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
-    }
-    if (data.containsKey('name')) {
-      context.handle(
-        _nameMeta,
-        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_nameMeta);
-    }
-    if (data.containsKey('logo_path')) {
-      context.handle(
-        _logoPathMeta,
-        logoPath.isAcceptableOrUnknown(data['logo_path']!, _logoPathMeta),
-      );
-    }
-    if (data.containsKey('created_at')) {
-      context.handle(
-        _createdAtMeta,
-        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
-      );
-    }
-    return context;
-  }
-
-  @override
-  Set<GeneratedColumn> get $primaryKey => {id};
-  @override
-  Team map(Map<String, dynamic> data, {String? tablePrefix}) {
-    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return Team(
-      id: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}id'],
-      )!,
-      name: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}name'],
-      )!,
-      logoPath: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}logo_path'],
-      ),
-      createdAt: attachedDatabase.typeMapping.read(
-        DriftSqlType.dateTime,
-        data['${effectivePrefix}created_at'],
-      )!,
-    );
-  }
-
-  @override
-  $TeamsTable createAlias(String alias) {
-    return $TeamsTable(attachedDatabase, alias);
-  }
-}
-
-class Team extends DataClass implements Insertable<Team> {
-  final int id;
-  final String name;
-  final String? logoPath;
-  final DateTime createdAt;
-  const Team({
-    required this.id,
-    required this.name,
-    this.logoPath,
-    required this.createdAt,
-  });
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    map['id'] = Variable<int>(id);
-    map['name'] = Variable<String>(name);
-    if (!nullToAbsent || logoPath != null) {
-      map['logo_path'] = Variable<String>(logoPath);
-    }
-    map['created_at'] = Variable<DateTime>(createdAt);
-    return map;
-  }
-
-  TeamsCompanion toCompanion(bool nullToAbsent) {
-    return TeamsCompanion(
-      id: Value(id),
-      name: Value(name),
-      logoPath: logoPath == null && nullToAbsent
-          ? const Value.absent()
-          : Value(logoPath),
-      createdAt: Value(createdAt),
-    );
-  }
-
-  factory Team.fromJson(
-    Map<String, dynamic> json, {
-    ValueSerializer? serializer,
-  }) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return Team(
-      id: serializer.fromJson<int>(json['id']),
-      name: serializer.fromJson<String>(json['name']),
-      logoPath: serializer.fromJson<String?>(json['logoPath']),
-      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
-    );
-  }
-  @override
-  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return <String, dynamic>{
-      'id': serializer.toJson<int>(id),
-      'name': serializer.toJson<String>(name),
-      'logoPath': serializer.toJson<String?>(logoPath),
-      'createdAt': serializer.toJson<DateTime>(createdAt),
-    };
-  }
-
-  Team copyWith({
-    int? id,
-    String? name,
-    Value<String?> logoPath = const Value.absent(),
-    DateTime? createdAt,
-  }) => Team(
-    id: id ?? this.id,
-    name: name ?? this.name,
-    logoPath: logoPath.present ? logoPath.value : this.logoPath,
-    createdAt: createdAt ?? this.createdAt,
-  );
-  Team copyWithCompanion(TeamsCompanion data) {
-    return Team(
-      id: data.id.present ? data.id.value : this.id,
-      name: data.name.present ? data.name.value : this.name,
-      logoPath: data.logoPath.present ? data.logoPath.value : this.logoPath,
-      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
-    );
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('Team(')
-          ..write('id: $id, ')
-          ..write('name: $name, ')
-          ..write('logoPath: $logoPath, ')
-          ..write('createdAt: $createdAt')
-          ..write(')'))
-        .toString();
-  }
-
-  @override
-  int get hashCode => Object.hash(id, name, logoPath, createdAt);
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      (other is Team &&
-          other.id == this.id &&
-          other.name == this.name &&
-          other.logoPath == this.logoPath &&
-          other.createdAt == this.createdAt);
-}
-
-class TeamsCompanion extends UpdateCompanion<Team> {
-  final Value<int> id;
-  final Value<String> name;
-  final Value<String?> logoPath;
-  final Value<DateTime> createdAt;
-  const TeamsCompanion({
-    this.id = const Value.absent(),
-    this.name = const Value.absent(),
-    this.logoPath = const Value.absent(),
-    this.createdAt = const Value.absent(),
-  });
-  TeamsCompanion.insert({
-    this.id = const Value.absent(),
-    required String name,
-    this.logoPath = const Value.absent(),
-    this.createdAt = const Value.absent(),
-  }) : name = Value(name);
-  static Insertable<Team> custom({
-    Expression<int>? id,
-    Expression<String>? name,
-    Expression<String>? logoPath,
-    Expression<DateTime>? createdAt,
-  }) {
-    return RawValuesInsertable({
-      if (id != null) 'id': id,
-      if (name != null) 'name': name,
-      if (logoPath != null) 'logo_path': logoPath,
-      if (createdAt != null) 'created_at': createdAt,
-    });
-  }
-
-  TeamsCompanion copyWith({
-    Value<int>? id,
-    Value<String>? name,
-    Value<String?>? logoPath,
-    Value<DateTime>? createdAt,
-  }) {
-    return TeamsCompanion(
-      id: id ?? this.id,
-      name: name ?? this.name,
-      logoPath: logoPath ?? this.logoPath,
-      createdAt: createdAt ?? this.createdAt,
-    );
-  }
-
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    if (id.present) {
-      map['id'] = Variable<int>(id.value);
-    }
-    if (name.present) {
-      map['name'] = Variable<String>(name.value);
-    }
-    if (logoPath.present) {
-      map['logo_path'] = Variable<String>(logoPath.value);
-    }
-    if (createdAt.present) {
-      map['created_at'] = Variable<DateTime>(createdAt.value);
-    }
-    return map;
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('TeamsCompanion(')
-          ..write('id: $id, ')
-          ..write('name: $name, ')
-          ..write('logoPath: $logoPath, ')
-          ..write('createdAt: $createdAt')
-          ..write(')'))
-        .toString();
-  }
-}
-
 class $CommunitiesTable extends Communities
     with TableInfo<$CommunitiesTable, Community> {
   @override
@@ -355,6 +55,39 @@ class $CommunitiesTable extends Communities
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _locationMeta = const VerificationMeta(
+    'location',
+  );
+  @override
+  late final GeneratedColumn<String> location = GeneratedColumn<String>(
+    'location',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _instagramUrlMeta = const VerificationMeta(
+    'instagramUrl',
+  );
+  @override
+  late final GeneratedColumn<String> instagramUrl = GeneratedColumn<String>(
+    'instagram_url',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _tiktokUrlMeta = const VerificationMeta(
+    'tiktokUrl',
+  );
+  @override
+  late final GeneratedColumn<String> tiktokUrl = GeneratedColumn<String>(
+    'tiktok_url',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _isOwnerMeta = const VerificationMeta(
     'isOwner',
   );
@@ -388,6 +121,9 @@ class $CommunitiesTable extends Communities
     name,
     slug,
     logoUrl,
+    location,
+    instagramUrl,
+    tiktokUrl,
     isOwner,
     createdAt,
   ];
@@ -430,6 +166,27 @@ class $CommunitiesTable extends Communities
         logoUrl.isAcceptableOrUnknown(data['logo_url']!, _logoUrlMeta),
       );
     }
+    if (data.containsKey('location')) {
+      context.handle(
+        _locationMeta,
+        location.isAcceptableOrUnknown(data['location']!, _locationMeta),
+      );
+    }
+    if (data.containsKey('instagram_url')) {
+      context.handle(
+        _instagramUrlMeta,
+        instagramUrl.isAcceptableOrUnknown(
+          data['instagram_url']!,
+          _instagramUrlMeta,
+        ),
+      );
+    }
+    if (data.containsKey('tiktok_url')) {
+      context.handle(
+        _tiktokUrlMeta,
+        tiktokUrl.isAcceptableOrUnknown(data['tiktok_url']!, _tiktokUrlMeta),
+      );
+    }
     if (data.containsKey('is_owner')) {
       context.handle(
         _isOwnerMeta,
@@ -467,6 +224,18 @@ class $CommunitiesTable extends Communities
         DriftSqlType.string,
         data['${effectivePrefix}logo_url'],
       ),
+      location: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}location'],
+      ),
+      instagramUrl: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}instagram_url'],
+      ),
+      tiktokUrl: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}tiktok_url'],
+      ),
       isOwner: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}is_owner'],
@@ -489,6 +258,9 @@ class Community extends DataClass implements Insertable<Community> {
   final String name;
   final String slug;
   final String? logoUrl;
+  final String? location;
+  final String? instagramUrl;
+  final String? tiktokUrl;
   final bool isOwner;
   final DateTime createdAt;
   const Community({
@@ -496,6 +268,9 @@ class Community extends DataClass implements Insertable<Community> {
     required this.name,
     required this.slug,
     this.logoUrl,
+    this.location,
+    this.instagramUrl,
+    this.tiktokUrl,
     required this.isOwner,
     required this.createdAt,
   });
@@ -507,6 +282,15 @@ class Community extends DataClass implements Insertable<Community> {
     map['slug'] = Variable<String>(slug);
     if (!nullToAbsent || logoUrl != null) {
       map['logo_url'] = Variable<String>(logoUrl);
+    }
+    if (!nullToAbsent || location != null) {
+      map['location'] = Variable<String>(location);
+    }
+    if (!nullToAbsent || instagramUrl != null) {
+      map['instagram_url'] = Variable<String>(instagramUrl);
+    }
+    if (!nullToAbsent || tiktokUrl != null) {
+      map['tiktok_url'] = Variable<String>(tiktokUrl);
     }
     map['is_owner'] = Variable<bool>(isOwner);
     map['created_at'] = Variable<DateTime>(createdAt);
@@ -521,6 +305,15 @@ class Community extends DataClass implements Insertable<Community> {
       logoUrl: logoUrl == null && nullToAbsent
           ? const Value.absent()
           : Value(logoUrl),
+      location: location == null && nullToAbsent
+          ? const Value.absent()
+          : Value(location),
+      instagramUrl: instagramUrl == null && nullToAbsent
+          ? const Value.absent()
+          : Value(instagramUrl),
+      tiktokUrl: tiktokUrl == null && nullToAbsent
+          ? const Value.absent()
+          : Value(tiktokUrl),
       isOwner: Value(isOwner),
       createdAt: Value(createdAt),
     );
@@ -536,6 +329,9 @@ class Community extends DataClass implements Insertable<Community> {
       name: serializer.fromJson<String>(json['name']),
       slug: serializer.fromJson<String>(json['slug']),
       logoUrl: serializer.fromJson<String?>(json['logoUrl']),
+      location: serializer.fromJson<String?>(json['location']),
+      instagramUrl: serializer.fromJson<String?>(json['instagramUrl']),
+      tiktokUrl: serializer.fromJson<String?>(json['tiktokUrl']),
       isOwner: serializer.fromJson<bool>(json['isOwner']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
     );
@@ -548,6 +344,9 @@ class Community extends DataClass implements Insertable<Community> {
       'name': serializer.toJson<String>(name),
       'slug': serializer.toJson<String>(slug),
       'logoUrl': serializer.toJson<String?>(logoUrl),
+      'location': serializer.toJson<String?>(location),
+      'instagramUrl': serializer.toJson<String?>(instagramUrl),
+      'tiktokUrl': serializer.toJson<String?>(tiktokUrl),
       'isOwner': serializer.toJson<bool>(isOwner),
       'createdAt': serializer.toJson<DateTime>(createdAt),
     };
@@ -558,6 +357,9 @@ class Community extends DataClass implements Insertable<Community> {
     String? name,
     String? slug,
     Value<String?> logoUrl = const Value.absent(),
+    Value<String?> location = const Value.absent(),
+    Value<String?> instagramUrl = const Value.absent(),
+    Value<String?> tiktokUrl = const Value.absent(),
     bool? isOwner,
     DateTime? createdAt,
   }) => Community(
@@ -565,6 +367,9 @@ class Community extends DataClass implements Insertable<Community> {
     name: name ?? this.name,
     slug: slug ?? this.slug,
     logoUrl: logoUrl.present ? logoUrl.value : this.logoUrl,
+    location: location.present ? location.value : this.location,
+    instagramUrl: instagramUrl.present ? instagramUrl.value : this.instagramUrl,
+    tiktokUrl: tiktokUrl.present ? tiktokUrl.value : this.tiktokUrl,
     isOwner: isOwner ?? this.isOwner,
     createdAt: createdAt ?? this.createdAt,
   );
@@ -574,6 +379,11 @@ class Community extends DataClass implements Insertable<Community> {
       name: data.name.present ? data.name.value : this.name,
       slug: data.slug.present ? data.slug.value : this.slug,
       logoUrl: data.logoUrl.present ? data.logoUrl.value : this.logoUrl,
+      location: data.location.present ? data.location.value : this.location,
+      instagramUrl: data.instagramUrl.present
+          ? data.instagramUrl.value
+          : this.instagramUrl,
+      tiktokUrl: data.tiktokUrl.present ? data.tiktokUrl.value : this.tiktokUrl,
       isOwner: data.isOwner.present ? data.isOwner.value : this.isOwner,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
     );
@@ -586,6 +396,9 @@ class Community extends DataClass implements Insertable<Community> {
           ..write('name: $name, ')
           ..write('slug: $slug, ')
           ..write('logoUrl: $logoUrl, ')
+          ..write('location: $location, ')
+          ..write('instagramUrl: $instagramUrl, ')
+          ..write('tiktokUrl: $tiktokUrl, ')
           ..write('isOwner: $isOwner, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
@@ -593,7 +406,17 @@ class Community extends DataClass implements Insertable<Community> {
   }
 
   @override
-  int get hashCode => Object.hash(id, name, slug, logoUrl, isOwner, createdAt);
+  int get hashCode => Object.hash(
+    id,
+    name,
+    slug,
+    logoUrl,
+    location,
+    instagramUrl,
+    tiktokUrl,
+    isOwner,
+    createdAt,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -602,6 +425,9 @@ class Community extends DataClass implements Insertable<Community> {
           other.name == this.name &&
           other.slug == this.slug &&
           other.logoUrl == this.logoUrl &&
+          other.location == this.location &&
+          other.instagramUrl == this.instagramUrl &&
+          other.tiktokUrl == this.tiktokUrl &&
           other.isOwner == this.isOwner &&
           other.createdAt == this.createdAt);
 }
@@ -611,6 +437,9 @@ class CommunitiesCompanion extends UpdateCompanion<Community> {
   final Value<String> name;
   final Value<String> slug;
   final Value<String?> logoUrl;
+  final Value<String?> location;
+  final Value<String?> instagramUrl;
+  final Value<String?> tiktokUrl;
   final Value<bool> isOwner;
   final Value<DateTime> createdAt;
   final Value<int> rowid;
@@ -619,6 +448,9 @@ class CommunitiesCompanion extends UpdateCompanion<Community> {
     this.name = const Value.absent(),
     this.slug = const Value.absent(),
     this.logoUrl = const Value.absent(),
+    this.location = const Value.absent(),
+    this.instagramUrl = const Value.absent(),
+    this.tiktokUrl = const Value.absent(),
     this.isOwner = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -628,6 +460,9 @@ class CommunitiesCompanion extends UpdateCompanion<Community> {
     required String name,
     required String slug,
     this.logoUrl = const Value.absent(),
+    this.location = const Value.absent(),
+    this.instagramUrl = const Value.absent(),
+    this.tiktokUrl = const Value.absent(),
     this.isOwner = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -639,6 +474,9 @@ class CommunitiesCompanion extends UpdateCompanion<Community> {
     Expression<String>? name,
     Expression<String>? slug,
     Expression<String>? logoUrl,
+    Expression<String>? location,
+    Expression<String>? instagramUrl,
+    Expression<String>? tiktokUrl,
     Expression<bool>? isOwner,
     Expression<DateTime>? createdAt,
     Expression<int>? rowid,
@@ -648,6 +486,9 @@ class CommunitiesCompanion extends UpdateCompanion<Community> {
       if (name != null) 'name': name,
       if (slug != null) 'slug': slug,
       if (logoUrl != null) 'logo_url': logoUrl,
+      if (location != null) 'location': location,
+      if (instagramUrl != null) 'instagram_url': instagramUrl,
+      if (tiktokUrl != null) 'tiktok_url': tiktokUrl,
       if (isOwner != null) 'is_owner': isOwner,
       if (createdAt != null) 'created_at': createdAt,
       if (rowid != null) 'rowid': rowid,
@@ -659,6 +500,9 @@ class CommunitiesCompanion extends UpdateCompanion<Community> {
     Value<String>? name,
     Value<String>? slug,
     Value<String?>? logoUrl,
+    Value<String?>? location,
+    Value<String?>? instagramUrl,
+    Value<String?>? tiktokUrl,
     Value<bool>? isOwner,
     Value<DateTime>? createdAt,
     Value<int>? rowid,
@@ -668,6 +512,9 @@ class CommunitiesCompanion extends UpdateCompanion<Community> {
       name: name ?? this.name,
       slug: slug ?? this.slug,
       logoUrl: logoUrl ?? this.logoUrl,
+      location: location ?? this.location,
+      instagramUrl: instagramUrl ?? this.instagramUrl,
+      tiktokUrl: tiktokUrl ?? this.tiktokUrl,
       isOwner: isOwner ?? this.isOwner,
       createdAt: createdAt ?? this.createdAt,
       rowid: rowid ?? this.rowid,
@@ -689,6 +536,15 @@ class CommunitiesCompanion extends UpdateCompanion<Community> {
     if (logoUrl.present) {
       map['logo_url'] = Variable<String>(logoUrl.value);
     }
+    if (location.present) {
+      map['location'] = Variable<String>(location.value);
+    }
+    if (instagramUrl.present) {
+      map['instagram_url'] = Variable<String>(instagramUrl.value);
+    }
+    if (tiktokUrl.present) {
+      map['tiktok_url'] = Variable<String>(tiktokUrl.value);
+    }
     if (isOwner.present) {
       map['is_owner'] = Variable<bool>(isOwner.value);
     }
@@ -708,9 +564,373 @@ class CommunitiesCompanion extends UpdateCompanion<Community> {
           ..write('name: $name, ')
           ..write('slug: $slug, ')
           ..write('logoUrl: $logoUrl, ')
+          ..write('location: $location, ')
+          ..write('instagramUrl: $instagramUrl, ')
+          ..write('tiktokUrl: $tiktokUrl, ')
           ..write('isOwner: $isOwner, ')
           ..write('createdAt: $createdAt, ')
           ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $TeamsTable extends Teams with TableInfo<$TeamsTable, Team> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $TeamsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(
+      minTextLength: 1,
+      maxTextLength: 50,
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _logoPathMeta = const VerificationMeta(
+    'logoPath',
+  );
+  @override
+  late final GeneratedColumn<String> logoPath = GeneratedColumn<String>(
+    'logo_path',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _communityIdMeta = const VerificationMeta(
+    'communityId',
+  );
+  @override
+  late final GeneratedColumn<String> communityId = GeneratedColumn<String>(
+    'community_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES communities (id)',
+    ),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    name,
+    logoPath,
+    communityId,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'teams';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<Team> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('logo_path')) {
+      context.handle(
+        _logoPathMeta,
+        logoPath.isAcceptableOrUnknown(data['logo_path']!, _logoPathMeta),
+      );
+    }
+    if (data.containsKey('community_id')) {
+      context.handle(
+        _communityIdMeta,
+        communityId.isAcceptableOrUnknown(
+          data['community_id']!,
+          _communityIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  Team map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Team(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      logoPath: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}logo_path'],
+      ),
+      communityId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}community_id'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $TeamsTable createAlias(String alias) {
+    return $TeamsTable(attachedDatabase, alias);
+  }
+}
+
+class Team extends DataClass implements Insertable<Team> {
+  final int id;
+  final String name;
+  final String? logoPath;
+  final String? communityId;
+  final DateTime createdAt;
+  const Team({
+    required this.id,
+    required this.name,
+    this.logoPath,
+    this.communityId,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['name'] = Variable<String>(name);
+    if (!nullToAbsent || logoPath != null) {
+      map['logo_path'] = Variable<String>(logoPath);
+    }
+    if (!nullToAbsent || communityId != null) {
+      map['community_id'] = Variable<String>(communityId);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  TeamsCompanion toCompanion(bool nullToAbsent) {
+    return TeamsCompanion(
+      id: Value(id),
+      name: Value(name),
+      logoPath: logoPath == null && nullToAbsent
+          ? const Value.absent()
+          : Value(logoPath),
+      communityId: communityId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(communityId),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory Team.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Team(
+      id: serializer.fromJson<int>(json['id']),
+      name: serializer.fromJson<String>(json['name']),
+      logoPath: serializer.fromJson<String?>(json['logoPath']),
+      communityId: serializer.fromJson<String?>(json['communityId']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'name': serializer.toJson<String>(name),
+      'logoPath': serializer.toJson<String?>(logoPath),
+      'communityId': serializer.toJson<String?>(communityId),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  Team copyWith({
+    int? id,
+    String? name,
+    Value<String?> logoPath = const Value.absent(),
+    Value<String?> communityId = const Value.absent(),
+    DateTime? createdAt,
+  }) => Team(
+    id: id ?? this.id,
+    name: name ?? this.name,
+    logoPath: logoPath.present ? logoPath.value : this.logoPath,
+    communityId: communityId.present ? communityId.value : this.communityId,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  Team copyWithCompanion(TeamsCompanion data) {
+    return Team(
+      id: data.id.present ? data.id.value : this.id,
+      name: data.name.present ? data.name.value : this.name,
+      logoPath: data.logoPath.present ? data.logoPath.value : this.logoPath,
+      communityId: data.communityId.present
+          ? data.communityId.value
+          : this.communityId,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Team(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('logoPath: $logoPath, ')
+          ..write('communityId: $communityId, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, name, logoPath, communityId, createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Team &&
+          other.id == this.id &&
+          other.name == this.name &&
+          other.logoPath == this.logoPath &&
+          other.communityId == this.communityId &&
+          other.createdAt == this.createdAt);
+}
+
+class TeamsCompanion extends UpdateCompanion<Team> {
+  final Value<int> id;
+  final Value<String> name;
+  final Value<String?> logoPath;
+  final Value<String?> communityId;
+  final Value<DateTime> createdAt;
+  const TeamsCompanion({
+    this.id = const Value.absent(),
+    this.name = const Value.absent(),
+    this.logoPath = const Value.absent(),
+    this.communityId = const Value.absent(),
+    this.createdAt = const Value.absent(),
+  });
+  TeamsCompanion.insert({
+    this.id = const Value.absent(),
+    required String name,
+    this.logoPath = const Value.absent(),
+    this.communityId = const Value.absent(),
+    this.createdAt = const Value.absent(),
+  }) : name = Value(name);
+  static Insertable<Team> custom({
+    Expression<int>? id,
+    Expression<String>? name,
+    Expression<String>? logoPath,
+    Expression<String>? communityId,
+    Expression<DateTime>? createdAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (name != null) 'name': name,
+      if (logoPath != null) 'logo_path': logoPath,
+      if (communityId != null) 'community_id': communityId,
+      if (createdAt != null) 'created_at': createdAt,
+    });
+  }
+
+  TeamsCompanion copyWith({
+    Value<int>? id,
+    Value<String>? name,
+    Value<String?>? logoPath,
+    Value<String?>? communityId,
+    Value<DateTime>? createdAt,
+  }) {
+    return TeamsCompanion(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      logoPath: logoPath ?? this.logoPath,
+      communityId: communityId ?? this.communityId,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (logoPath.present) {
+      map['logo_path'] = Variable<String>(logoPath.value);
+    }
+    if (communityId.present) {
+      map['community_id'] = Variable<String>(communityId.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TeamsCompanion(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('logoPath: $logoPath, ')
+          ..write('communityId: $communityId, ')
+          ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
   }
@@ -4027,8 +4247,8 @@ class CourtsCompanion extends UpdateCompanion<Court> {
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
-  late final $TeamsTable teams = $TeamsTable(this);
   late final $CommunitiesTable communities = $CommunitiesTable(this);
+  late final $TeamsTable teams = $TeamsTable(this);
   late final $TournamentsTable tournaments = $TournamentsTable(this);
   late final $TournamentTeamsTable tournamentTeams = $TournamentTeamsTable(
     this,
@@ -4040,8 +4260,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
   List<DatabaseSchemaEntity> get allSchemaEntities => [
-    teams,
     communities,
+    teams,
     tournaments,
     tournamentTeams,
     matches,
@@ -4059,11 +4279,490 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   ]);
 }
 
+typedef $$CommunitiesTableCreateCompanionBuilder =
+    CommunitiesCompanion Function({
+      required String id,
+      required String name,
+      required String slug,
+      Value<String?> logoUrl,
+      Value<String?> location,
+      Value<String?> instagramUrl,
+      Value<String?> tiktokUrl,
+      Value<bool> isOwner,
+      Value<DateTime> createdAt,
+      Value<int> rowid,
+    });
+typedef $$CommunitiesTableUpdateCompanionBuilder =
+    CommunitiesCompanion Function({
+      Value<String> id,
+      Value<String> name,
+      Value<String> slug,
+      Value<String?> logoUrl,
+      Value<String?> location,
+      Value<String?> instagramUrl,
+      Value<String?> tiktokUrl,
+      Value<bool> isOwner,
+      Value<DateTime> createdAt,
+      Value<int> rowid,
+    });
+
+final class $$CommunitiesTableReferences
+    extends BaseReferences<_$AppDatabase, $CommunitiesTable, Community> {
+  $$CommunitiesTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static MultiTypedResultKey<$TeamsTable, List<Team>> _teamsRefsTable(
+    _$AppDatabase db,
+  ) => MultiTypedResultKey.fromTable(
+    db.teams,
+    aliasName: $_aliasNameGenerator(db.communities.id, db.teams.communityId),
+  );
+
+  $$TeamsTableProcessedTableManager get teamsRefs {
+    final manager = $$TeamsTableTableManager(
+      $_db,
+      $_db.teams,
+    ).filter((f) => f.communityId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_teamsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$TournamentsTable, List<Tournament>>
+  _tournamentsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.tournaments,
+    aliasName: $_aliasNameGenerator(
+      db.communities.id,
+      db.tournaments.communityId,
+    ),
+  );
+
+  $$TournamentsTableProcessedTableManager get tournamentsRefs {
+    final manager = $$TournamentsTableTableManager(
+      $_db,
+      $_db.tournaments,
+    ).filter((f) => f.communityId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_tournamentsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
+class $$CommunitiesTableFilterComposer
+    extends Composer<_$AppDatabase, $CommunitiesTable> {
+  $$CommunitiesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get slug => $composableBuilder(
+    column: $table.slug,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get logoUrl => $composableBuilder(
+    column: $table.logoUrl,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get location => $composableBuilder(
+    column: $table.location,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get instagramUrl => $composableBuilder(
+    column: $table.instagramUrl,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get tiktokUrl => $composableBuilder(
+    column: $table.tiktokUrl,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isOwner => $composableBuilder(
+    column: $table.isOwner,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  Expression<bool> teamsRefs(
+    Expression<bool> Function($$TeamsTableFilterComposer f) f,
+  ) {
+    final $$TeamsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.teams,
+      getReferencedColumn: (t) => t.communityId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TeamsTableFilterComposer(
+            $db: $db,
+            $table: $db.teams,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> tournamentsRefs(
+    Expression<bool> Function($$TournamentsTableFilterComposer f) f,
+  ) {
+    final $$TournamentsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.tournaments,
+      getReferencedColumn: (t) => t.communityId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TournamentsTableFilterComposer(
+            $db: $db,
+            $table: $db.tournaments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$CommunitiesTableOrderingComposer
+    extends Composer<_$AppDatabase, $CommunitiesTable> {
+  $$CommunitiesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get slug => $composableBuilder(
+    column: $table.slug,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get logoUrl => $composableBuilder(
+    column: $table.logoUrl,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get location => $composableBuilder(
+    column: $table.location,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get instagramUrl => $composableBuilder(
+    column: $table.instagramUrl,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get tiktokUrl => $composableBuilder(
+    column: $table.tiktokUrl,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isOwner => $composableBuilder(
+    column: $table.isOwner,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$CommunitiesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CommunitiesTable> {
+  $$CommunitiesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get slug =>
+      $composableBuilder(column: $table.slug, builder: (column) => column);
+
+  GeneratedColumn<String> get logoUrl =>
+      $composableBuilder(column: $table.logoUrl, builder: (column) => column);
+
+  GeneratedColumn<String> get location =>
+      $composableBuilder(column: $table.location, builder: (column) => column);
+
+  GeneratedColumn<String> get instagramUrl => $composableBuilder(
+    column: $table.instagramUrl,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get tiktokUrl =>
+      $composableBuilder(column: $table.tiktokUrl, builder: (column) => column);
+
+  GeneratedColumn<bool> get isOwner =>
+      $composableBuilder(column: $table.isOwner, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  Expression<T> teamsRefs<T extends Object>(
+    Expression<T> Function($$TeamsTableAnnotationComposer a) f,
+  ) {
+    final $$TeamsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.teams,
+      getReferencedColumn: (t) => t.communityId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TeamsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.teams,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<T> tournamentsRefs<T extends Object>(
+    Expression<T> Function($$TournamentsTableAnnotationComposer a) f,
+  ) {
+    final $$TournamentsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.tournaments,
+      getReferencedColumn: (t) => t.communityId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TournamentsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.tournaments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$CommunitiesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CommunitiesTable,
+          Community,
+          $$CommunitiesTableFilterComposer,
+          $$CommunitiesTableOrderingComposer,
+          $$CommunitiesTableAnnotationComposer,
+          $$CommunitiesTableCreateCompanionBuilder,
+          $$CommunitiesTableUpdateCompanionBuilder,
+          (Community, $$CommunitiesTableReferences),
+          Community,
+          PrefetchHooks Function({bool teamsRefs, bool tournamentsRefs})
+        > {
+  $$CommunitiesTableTableManager(_$AppDatabase db, $CommunitiesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CommunitiesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CommunitiesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CommunitiesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<String> slug = const Value.absent(),
+                Value<String?> logoUrl = const Value.absent(),
+                Value<String?> location = const Value.absent(),
+                Value<String?> instagramUrl = const Value.absent(),
+                Value<String?> tiktokUrl = const Value.absent(),
+                Value<bool> isOwner = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CommunitiesCompanion(
+                id: id,
+                name: name,
+                slug: slug,
+                logoUrl: logoUrl,
+                location: location,
+                instagramUrl: instagramUrl,
+                tiktokUrl: tiktokUrl,
+                isOwner: isOwner,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String name,
+                required String slug,
+                Value<String?> logoUrl = const Value.absent(),
+                Value<String?> location = const Value.absent(),
+                Value<String?> instagramUrl = const Value.absent(),
+                Value<String?> tiktokUrl = const Value.absent(),
+                Value<bool> isOwner = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CommunitiesCompanion.insert(
+                id: id,
+                name: name,
+                slug: slug,
+                logoUrl: logoUrl,
+                location: location,
+                instagramUrl: instagramUrl,
+                tiktokUrl: tiktokUrl,
+                isOwner: isOwner,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$CommunitiesTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback:
+              ({teamsRefs = false, tournamentsRefs = false}) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [
+                    if (teamsRefs) db.teams,
+                    if (tournamentsRefs) db.tournaments,
+                  ],
+                  addJoins: null,
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (teamsRefs)
+                        await $_getPrefetchedData<
+                          Community,
+                          $CommunitiesTable,
+                          Team
+                        >(
+                          currentTable: table,
+                          referencedTable: $$CommunitiesTableReferences
+                              ._teamsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$CommunitiesTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).teamsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.communityId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (tournamentsRefs)
+                        await $_getPrefetchedData<
+                          Community,
+                          $CommunitiesTable,
+                          Tournament
+                        >(
+                          currentTable: table,
+                          referencedTable: $$CommunitiesTableReferences
+                              ._tournamentsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$CommunitiesTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).tournamentsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.communityId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                    ];
+                  },
+                );
+              },
+        ),
+      );
+}
+
+typedef $$CommunitiesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CommunitiesTable,
+      Community,
+      $$CommunitiesTableFilterComposer,
+      $$CommunitiesTableOrderingComposer,
+      $$CommunitiesTableAnnotationComposer,
+      $$CommunitiesTableCreateCompanionBuilder,
+      $$CommunitiesTableUpdateCompanionBuilder,
+      (Community, $$CommunitiesTableReferences),
+      Community,
+      PrefetchHooks Function({bool teamsRefs, bool tournamentsRefs})
+    >;
 typedef $$TeamsTableCreateCompanionBuilder =
     TeamsCompanion Function({
       Value<int> id,
       required String name,
       Value<String?> logoPath,
+      Value<String?> communityId,
       Value<DateTime> createdAt,
     });
 typedef $$TeamsTableUpdateCompanionBuilder =
@@ -4071,12 +4770,32 @@ typedef $$TeamsTableUpdateCompanionBuilder =
       Value<int> id,
       Value<String> name,
       Value<String?> logoPath,
+      Value<String?> communityId,
       Value<DateTime> createdAt,
     });
 
 final class $$TeamsTableReferences
     extends BaseReferences<_$AppDatabase, $TeamsTable, Team> {
   $$TeamsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $CommunitiesTable _communityIdTable(_$AppDatabase db) =>
+      db.communities.createAlias(
+        $_aliasNameGenerator(db.teams.communityId, db.communities.id),
+      );
+
+  $$CommunitiesTableProcessedTableManager? get communityId {
+    final $_column = $_itemColumn<String>('community_id');
+    if ($_column == null) return null;
+    final manager = $$CommunitiesTableTableManager(
+      $_db,
+      $_db.communities,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_communityIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
 
   static MultiTypedResultKey<$TournamentsTable, List<Tournament>>
   _tournamentsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
@@ -4144,6 +4863,29 @@ class $$TeamsTableFilterComposer extends Composer<_$AppDatabase, $TeamsTable> {
     column: $table.createdAt,
     builder: (column) => ColumnFilters(column),
   );
+
+  $$CommunitiesTableFilterComposer get communityId {
+    final $$CommunitiesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.communityId,
+      referencedTable: $db.communities,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CommunitiesTableFilterComposer(
+            $db: $db,
+            $table: $db.communities,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 
   Expression<bool> tournamentsRefs(
     Expression<bool> Function($$TournamentsTableFilterComposer f) f,
@@ -4224,6 +4966,29 @@ class $$TeamsTableOrderingComposer
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
   );
+
+  $$CommunitiesTableOrderingComposer get communityId {
+    final $$CommunitiesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.communityId,
+      referencedTable: $db.communities,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CommunitiesTableOrderingComposer(
+            $db: $db,
+            $table: $db.communities,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 }
 
 class $$TeamsTableAnnotationComposer
@@ -4246,6 +5011,29 @@ class $$TeamsTableAnnotationComposer
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  $$CommunitiesTableAnnotationComposer get communityId {
+    final $$CommunitiesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.communityId,
+      referencedTable: $db.communities,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CommunitiesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.communities,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 
   Expression<T> tournamentsRefs<T extends Object>(
     Expression<T> Function($$TournamentsTableAnnotationComposer a) f,
@@ -4312,6 +5100,7 @@ class $$TeamsTableTableManager
           (Team, $$TeamsTableReferences),
           Team,
           PrefetchHooks Function({
+            bool communityId,
             bool tournamentsRefs,
             bool tournamentTeamsRefs,
           })
@@ -4332,11 +5121,13 @@ class $$TeamsTableTableManager
                 Value<int> id = const Value.absent(),
                 Value<String> name = const Value.absent(),
                 Value<String?> logoPath = const Value.absent(),
+                Value<String?> communityId = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => TeamsCompanion(
                 id: id,
                 name: name,
                 logoPath: logoPath,
+                communityId: communityId,
                 createdAt: createdAt,
               ),
           createCompanionCallback:
@@ -4344,11 +5135,13 @@ class $$TeamsTableTableManager
                 Value<int> id = const Value.absent(),
                 required String name,
                 Value<String?> logoPath = const Value.absent(),
+                Value<String?> communityId = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => TeamsCompanion.insert(
                 id: id,
                 name: name,
                 logoPath: logoPath,
+                communityId: communityId,
                 createdAt: createdAt,
               ),
           withReferenceMapper: (p0) => p0
@@ -4358,14 +5151,49 @@ class $$TeamsTableTableManager
               )
               .toList(),
           prefetchHooksCallback:
-              ({tournamentsRefs = false, tournamentTeamsRefs = false}) {
+              ({
+                communityId = false,
+                tournamentsRefs = false,
+                tournamentTeamsRefs = false,
+              }) {
                 return PrefetchHooks(
                   db: db,
                   explicitlyWatchedTables: [
                     if (tournamentsRefs) db.tournaments,
                     if (tournamentTeamsRefs) db.tournamentTeams,
                   ],
-                  addJoins: null,
+                  addJoins:
+                      <
+                        T extends TableManagerState<
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic
+                        >
+                      >(state) {
+                        if (communityId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.communityId,
+                                    referencedTable: $$TeamsTableReferences
+                                        ._communityIdTable(db),
+                                    referencedColumn: $$TeamsTableReferences
+                                        ._communityIdTable(db)
+                                        .id,
+                                  )
+                                  as T;
+                        }
+
+                        return state;
+                      },
                   getPrefetchedDataCallback: (items) async {
                     return [
                       if (tournamentsRefs)
@@ -4430,332 +5258,11 @@ typedef $$TeamsTableProcessedTableManager =
       $$TeamsTableUpdateCompanionBuilder,
       (Team, $$TeamsTableReferences),
       Team,
-      PrefetchHooks Function({bool tournamentsRefs, bool tournamentTeamsRefs})
-    >;
-typedef $$CommunitiesTableCreateCompanionBuilder =
-    CommunitiesCompanion Function({
-      required String id,
-      required String name,
-      required String slug,
-      Value<String?> logoUrl,
-      Value<bool> isOwner,
-      Value<DateTime> createdAt,
-      Value<int> rowid,
-    });
-typedef $$CommunitiesTableUpdateCompanionBuilder =
-    CommunitiesCompanion Function({
-      Value<String> id,
-      Value<String> name,
-      Value<String> slug,
-      Value<String?> logoUrl,
-      Value<bool> isOwner,
-      Value<DateTime> createdAt,
-      Value<int> rowid,
-    });
-
-final class $$CommunitiesTableReferences
-    extends BaseReferences<_$AppDatabase, $CommunitiesTable, Community> {
-  $$CommunitiesTableReferences(super.$_db, super.$_table, super.$_typedResult);
-
-  static MultiTypedResultKey<$TournamentsTable, List<Tournament>>
-  _tournamentsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
-    db.tournaments,
-    aliasName: $_aliasNameGenerator(
-      db.communities.id,
-      db.tournaments.communityId,
-    ),
-  );
-
-  $$TournamentsTableProcessedTableManager get tournamentsRefs {
-    final manager = $$TournamentsTableTableManager(
-      $_db,
-      $_db.tournaments,
-    ).filter((f) => f.communityId.id.sqlEquals($_itemColumn<String>('id')!));
-
-    final cache = $_typedResult.readTableOrNull(_tournamentsRefsTable($_db));
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: cache),
-    );
-  }
-}
-
-class $$CommunitiesTableFilterComposer
-    extends Composer<_$AppDatabase, $CommunitiesTable> {
-  $$CommunitiesTableFilterComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnFilters<String> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get name => $composableBuilder(
-    column: $table.name,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get slug => $composableBuilder(
-    column: $table.slug,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get logoUrl => $composableBuilder(
-    column: $table.logoUrl,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<bool> get isOwner => $composableBuilder(
-    column: $table.isOwner,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<DateTime> get createdAt => $composableBuilder(
-    column: $table.createdAt,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  Expression<bool> tournamentsRefs(
-    Expression<bool> Function($$TournamentsTableFilterComposer f) f,
-  ) {
-    final $$TournamentsTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.tournaments,
-      getReferencedColumn: (t) => t.communityId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$TournamentsTableFilterComposer(
-            $db: $db,
-            $table: $db.tournaments,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
-}
-
-class $$CommunitiesTableOrderingComposer
-    extends Composer<_$AppDatabase, $CommunitiesTable> {
-  $$CommunitiesTableOrderingComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnOrderings<String> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get name => $composableBuilder(
-    column: $table.name,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get slug => $composableBuilder(
-    column: $table.slug,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get logoUrl => $composableBuilder(
-    column: $table.logoUrl,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<bool> get isOwner => $composableBuilder(
-    column: $table.isOwner,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
-    column: $table.createdAt,
-    builder: (column) => ColumnOrderings(column),
-  );
-}
-
-class $$CommunitiesTableAnnotationComposer
-    extends Composer<_$AppDatabase, $CommunitiesTable> {
-  $$CommunitiesTableAnnotationComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  GeneratedColumn<String> get id =>
-      $composableBuilder(column: $table.id, builder: (column) => column);
-
-  GeneratedColumn<String> get name =>
-      $composableBuilder(column: $table.name, builder: (column) => column);
-
-  GeneratedColumn<String> get slug =>
-      $composableBuilder(column: $table.slug, builder: (column) => column);
-
-  GeneratedColumn<String> get logoUrl =>
-      $composableBuilder(column: $table.logoUrl, builder: (column) => column);
-
-  GeneratedColumn<bool> get isOwner =>
-      $composableBuilder(column: $table.isOwner, builder: (column) => column);
-
-  GeneratedColumn<DateTime> get createdAt =>
-      $composableBuilder(column: $table.createdAt, builder: (column) => column);
-
-  Expression<T> tournamentsRefs<T extends Object>(
-    Expression<T> Function($$TournamentsTableAnnotationComposer a) f,
-  ) {
-    final $$TournamentsTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.tournaments,
-      getReferencedColumn: (t) => t.communityId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$TournamentsTableAnnotationComposer(
-            $db: $db,
-            $table: $db.tournaments,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
-}
-
-class $$CommunitiesTableTableManager
-    extends
-        RootTableManager<
-          _$AppDatabase,
-          $CommunitiesTable,
-          Community,
-          $$CommunitiesTableFilterComposer,
-          $$CommunitiesTableOrderingComposer,
-          $$CommunitiesTableAnnotationComposer,
-          $$CommunitiesTableCreateCompanionBuilder,
-          $$CommunitiesTableUpdateCompanionBuilder,
-          (Community, $$CommunitiesTableReferences),
-          Community,
-          PrefetchHooks Function({bool tournamentsRefs})
-        > {
-  $$CommunitiesTableTableManager(_$AppDatabase db, $CommunitiesTable table)
-    : super(
-        TableManagerState(
-          db: db,
-          table: table,
-          createFilteringComposer: () =>
-              $$CommunitiesTableFilterComposer($db: db, $table: table),
-          createOrderingComposer: () =>
-              $$CommunitiesTableOrderingComposer($db: db, $table: table),
-          createComputedFieldComposer: () =>
-              $$CommunitiesTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback:
-              ({
-                Value<String> id = const Value.absent(),
-                Value<String> name = const Value.absent(),
-                Value<String> slug = const Value.absent(),
-                Value<String?> logoUrl = const Value.absent(),
-                Value<bool> isOwner = const Value.absent(),
-                Value<DateTime> createdAt = const Value.absent(),
-                Value<int> rowid = const Value.absent(),
-              }) => CommunitiesCompanion(
-                id: id,
-                name: name,
-                slug: slug,
-                logoUrl: logoUrl,
-                isOwner: isOwner,
-                createdAt: createdAt,
-                rowid: rowid,
-              ),
-          createCompanionCallback:
-              ({
-                required String id,
-                required String name,
-                required String slug,
-                Value<String?> logoUrl = const Value.absent(),
-                Value<bool> isOwner = const Value.absent(),
-                Value<DateTime> createdAt = const Value.absent(),
-                Value<int> rowid = const Value.absent(),
-              }) => CommunitiesCompanion.insert(
-                id: id,
-                name: name,
-                slug: slug,
-                logoUrl: logoUrl,
-                isOwner: isOwner,
-                createdAt: createdAt,
-                rowid: rowid,
-              ),
-          withReferenceMapper: (p0) => p0
-              .map(
-                (e) => (
-                  e.readTable(table),
-                  $$CommunitiesTableReferences(db, table, e),
-                ),
-              )
-              .toList(),
-          prefetchHooksCallback: ({tournamentsRefs = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [if (tournamentsRefs) db.tournaments],
-              addJoins: null,
-              getPrefetchedDataCallback: (items) async {
-                return [
-                  if (tournamentsRefs)
-                    await $_getPrefetchedData<
-                      Community,
-                      $CommunitiesTable,
-                      Tournament
-                    >(
-                      currentTable: table,
-                      referencedTable: $$CommunitiesTableReferences
-                          ._tournamentsRefsTable(db),
-                      managerFromTypedResult: (p0) =>
-                          $$CommunitiesTableReferences(
-                            db,
-                            table,
-                            p0,
-                          ).tournamentsRefs,
-                      referencedItemsForCurrentItem: (item, referencedItems) =>
-                          referencedItems.where(
-                            (e) => e.communityId == item.id,
-                          ),
-                      typedResults: items,
-                    ),
-                ];
-              },
-            );
-          },
-        ),
-      );
-}
-
-typedef $$CommunitiesTableProcessedTableManager =
-    ProcessedTableManager<
-      _$AppDatabase,
-      $CommunitiesTable,
-      Community,
-      $$CommunitiesTableFilterComposer,
-      $$CommunitiesTableOrderingComposer,
-      $$CommunitiesTableAnnotationComposer,
-      $$CommunitiesTableCreateCompanionBuilder,
-      $$CommunitiesTableUpdateCompanionBuilder,
-      (Community, $$CommunitiesTableReferences),
-      Community,
-      PrefetchHooks Function({bool tournamentsRefs})
+      PrefetchHooks Function({
+        bool communityId,
+        bool tournamentsRefs,
+        bool tournamentTeamsRefs,
+      })
     >;
 typedef $$TournamentsTableCreateCompanionBuilder =
     TournamentsCompanion Function({
@@ -7417,10 +7924,10 @@ typedef $$CourtsTableProcessedTableManager =
 class $AppDatabaseManager {
   final _$AppDatabase _db;
   $AppDatabaseManager(this._db);
-  $$TeamsTableTableManager get teams =>
-      $$TeamsTableTableManager(_db, _db.teams);
   $$CommunitiesTableTableManager get communities =>
       $$CommunitiesTableTableManager(_db, _db.communities);
+  $$TeamsTableTableManager get teams =>
+      $$TeamsTableTableManager(_db, _db.teams);
   $$TournamentsTableTableManager get tournaments =>
       $$TournamentsTableTableManager(_db, _db.tournaments);
   $$TournamentTeamsTableTableManager get tournamentTeams =>
