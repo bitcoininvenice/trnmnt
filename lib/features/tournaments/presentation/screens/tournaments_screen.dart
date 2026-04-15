@@ -5,6 +5,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:trnmnt/generated/l10n/app_localizations.dart';
 import 'package:trnmnt/features/tournaments/data/tournaments_repository.dart';
 import 'package:trnmnt/features/community/data/community_repository.dart';
+import 'package:trnmnt/core/database/app_database.dart';
 
 class TournamentsScreen extends ConsumerWidget {
   const TournamentsScreen({super.key});
@@ -192,19 +193,19 @@ class TournamentsScreen extends ConsumerWidget {
                       children: [
                         Row(
                           children: [
-                            Text(
-                              tournament.name,
-                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
+                            Flexible(
+                              child: Text(
+                                tournament.name,
+                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
                               ),
                             ),
                             if (tournament.isPublished) ...[
                               const SizedBox(width: 8),
                               const Icon(Icons.cloud_done, color: Colors.blue, size: 16),
-                            ],
-                            if (tournament.communityId != null) ...[
-                              const SizedBox(width: 8),
-                              _CommunityBadge(communityId: tournament.communityId!),
                             ],
                           ],
                         ),
@@ -234,6 +235,13 @@ class TournamentsScreen extends ConsumerWidget {
                             ),
                           ],
                         ),
+                        if (tournament.communityId != null) ...[
+                          const SizedBox(width: 8),
+                          _CommunityBadge(
+                            communityId: tournament.communityId!,
+                            communityName: tournament is Map ? tournament['communityName'] : (tournament is Tournament ? tournament.communityName : null),
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -361,7 +369,8 @@ class TournamentsScreen extends ConsumerWidget {
 
 class _CommunityBadge extends ConsumerWidget {
   final String communityId;
-  const _CommunityBadge({required this.communityId});
+  final String? communityName;
+  const _CommunityBadge({required this.communityId, this.communityName});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -369,7 +378,9 @@ class _CommunityBadge extends ConsumerWidget {
     
     return communityAsync.when(
       data: (community) {
-        if (community == null) return const SizedBox.shrink();
+        final displayName = community?.name ?? communityName;
+        if (displayName == null) return const SizedBox.shrink();
+
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
           decoration: BoxDecoration(
@@ -383,7 +394,7 @@ class _CommunityBadge extends ConsumerWidget {
               const Icon(Icons.hub_outlined, size: 10, color: Colors.orange),
               const SizedBox(width: 4),
               Text(
-                community.name,
+                displayName,
                 style: const TextStyle(
                   color: Colors.orange,
                   fontSize: 9,
@@ -394,8 +405,34 @@ class _CommunityBadge extends ConsumerWidget {
           ),
         );
       },
-      loading: () => const SizedBox.shrink(),
-      error: (_, __) => const SizedBox.shrink(),
+      loading: () => communityName != null ? _buildBadge(communityName!) : const SizedBox.shrink(),
+      error: (_, __) => communityName != null ? _buildBadge(communityName!) : const SizedBox.shrink(),
+    );
+  }
+
+  Widget _buildBadge(String name) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: Colors.orange.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.hub_outlined, size: 10, color: Colors.orange),
+          const SizedBox(width: 4),
+          Text(
+            name,
+            style: const TextStyle(
+              color: Colors.orange,
+              fontSize: 9,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

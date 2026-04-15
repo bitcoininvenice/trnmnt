@@ -158,6 +158,14 @@ class MainShell extends ConsumerWidget {
                 context.push('/scan');
               },
             ),
+            ListTile(
+              leading: const Icon(Icons.group_add_outlined),
+              title: Text(l10n.joinCommunity),
+              onTap: () {
+                Navigator.pop(context);
+                context.push('/community/join');
+              },
+            ),
             const Divider(),
             ListTile(
               leading: const Icon(Icons.military_tech_outlined),

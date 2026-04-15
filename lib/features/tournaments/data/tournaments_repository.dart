@@ -115,7 +115,7 @@ final cloudTournamentsProvider = StreamProvider<List<Map<String, dynamic>>>((ref
 /// Providers for filtering
 final tournamentSearchQueryProvider = StateProvider<String>((ref) => '');
 final tournamentModeFilterProvider = StateProvider<String?>((ref) => null);
-final tournamentStatusFilterProvider = StateProvider<String>((ref) => 'local'); // Default to local as requested
+final tournamentStatusFilterProvider = StateProvider<String>((ref) => 'all'); // Default to local as requested
 
 /// Provider for filtered tournaments
 final filteredTournamentsProvider = Provider<AsyncValue<List<Tournament>>>((ref) {

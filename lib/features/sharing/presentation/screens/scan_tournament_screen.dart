@@ -117,6 +117,8 @@ class _ScanTournamentScreenState extends ConsumerState<ScanTournamentScreen> {
         cloudId: drift.Value(cloudId),
         isPublished: const drift.Value(true),
         webUrl: drift.Value(tournamentData['webUrl']),
+        communityId: drift.Value(tournamentData['communityId'] ?? tournamentData['community_id']),
+        communityName: drift.Value(tournamentData['communityName'] ?? tournamentData['community_name']),
       )
     );
 

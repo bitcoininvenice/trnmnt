@@ -12,6 +12,11 @@ class Communities extends Table {
   TextColumn get name => text().withLength(min: 1, max: 100)();
   TextColumn get slug => text().withLength(min: 1, max: 50)();
   TextColumn get logoUrl => text().nullable()();
+  
+  // New: Security & Invites
+  TextColumn get inviteToken => text().nullable()();
+  DateTimeColumn get inviteTokenExpiresAt => dateTime().nullable()();
+
   TextColumn get location => text().nullable()();
   TextColumn get instagramUrl => text().nullable()();
   TextColumn get tiktokUrl => text().nullable()();
@@ -65,6 +70,7 @@ class Tournaments extends Table {
   
   IntColumn get winnerTeamId => integer().nullable().references(Teams, #id)();
   TextColumn get communityId => text().nullable().references(Communities, #id)();
+  TextColumn get communityName => text().nullable()();
 
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 }
@@ -123,7 +129,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 11;
+  int get schemaVersion => 14;
 
   @override
   MigrationStrategy get migration {
@@ -150,17 +156,33 @@ class AppDatabase extends _$AppDatabase {
           await m.addColumn(this.matches, this.matches.scheduledAt);
           
           // Data Migration: Create a default community for legacy data
+          final legacySuffix = DateTime.now().millisecondsSinceEpoch.toString().substring(10);
           await customStatement('INSERT INTO communities (id, name, slug, is_owner, created_at) VALUES (?, ?, ?, ?, ?)', 
-            ['legacy-id', 'La mia Community', 'my-community', 1, DateTime.now().millisecondsSinceEpoch]);
-            
+            ['legacy-$legacySuffix', 'La mia Community', 'my-community-$legacySuffix', 1, DateTime.now().millisecondsSinceEpoch]);
+             
           // Link all existing tournaments and teams to this community
-          await customStatement('UPDATE tournaments SET community_id = ?', ['legacy-id']);
-          await customStatement('UPDATE teams SET community_id = ?', ['legacy-id']);
+          await customStatement('UPDATE tournaments SET community_id = ?', ['legacy-$legacySuffix']);
+          await customStatement('UPDATE teams SET community_id = ?', ['legacy-$legacySuffix']);
         }
         if (from < 11) {
           await m.addColumn(communities, communities.location);
           await m.addColumn(communities, communities.instagramUrl);
           await m.addColumn(communities, communities.tiktokUrl);
+        }
+        if (from < 12) {
+          // Extra safety check: try adding the column to teams if it was missed in v10
+          try {
+            await m.addColumn(this.teams, this.teams.communityId);
+          } catch (_) {
+            // Column might already exist
+          }
+        }
+        if (from < 13) {
+          await m.addColumn(communities, communities.inviteToken);
+          await m.addColumn(communities, communities.inviteTokenExpiresAt);
+        }
+        if (from < 14) {
+          await m.addColumn(this.tournaments, this.tournaments.communityName);
         }
       },
     );

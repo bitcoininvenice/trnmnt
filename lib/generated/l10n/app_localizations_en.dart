@@ -86,7 +86,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get updateData => 'UPDATE DATA';
 
   @override
-  String get saveCommunity => 'SAVE COMMUNITY';
+  String get saveCommunity => 'COMMUNITY UPDATED';
 
   @override
   String get totalTeams => 'Total Teams';
@@ -725,4 +725,102 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get mapDataSourcePickRoll => 'Pick&Roll Source';
+
+  @override
+  String get syncSuccess => 'Synced to Cloud! ☁️🏀';
+
+  @override
+  String get webResult => 'Web Results';
+
+  @override
+  String get coManagement => 'Co-Management';
+
+  @override
+  String get publicDashboard => 'PUBLIC DASHBOARD';
+
+  @override
+  String get coManagementTitle => 'CLOUD CO-MANAGEMENT';
+
+  @override
+  String get publicDashboardDesc => 'Anyone can view live results';
+
+  @override
+  String get coManagementDesc =>
+      'Invite another organizer to manage the tournament';
+
+  @override
+  String get cloudSettings => 'CLOUD SETTINGS';
+
+  @override
+  String get liveLocationLabel => 'LIVE LOCATION';
+
+  @override
+  String get locationHint => 'Ex: Venice Beach Courts';
+
+  @override
+  String get twitchChannelLabel => 'TWITCH CHANNEL';
+
+  @override
+  String get twitchHint => 'Ex: venicestreetball';
+
+  @override
+  String get customTickerLabel => 'CUSTOM TICKER TEXT';
+
+  @override
+  String get tickerHint => 'Sponsors, community announcements...';
+
+  @override
+  String get tickerAutoDesc => 'Leave empty to use system-generated text.';
+
+  @override
+  String get copyLink => 'Copy link';
+
+  @override
+  String get openPage => 'Open Page';
+
+  @override
+  String get syncing => 'Syncing...';
+
+  @override
+  String get syncCloud => 'Sync Cloud';
+
+  @override
+  String get urlSlug => 'URL Slug';
+
+  @override
+  String get locationLabel => 'Location';
+
+  @override
+  String get instagramLabel => 'Instagram';
+
+  @override
+  String get tiktokLabel => 'TikTok';
+
+  @override
+  String get invalidName => 'Enter a valid name';
+
+  @override
+  String get invalidUrl => 'Enter a valid URL';
+
+  @override
+  String get noActiveInvite =>
+      'No active or expired invitation. Generate a new one.';
+
+  @override
+  String expiryDate(String time, String date) {
+    return 'Expires: $time on $date';
+  }
+
+  @override
+  String get regenerateInvite => 'REGENERATE';
+
+  @override
+  String get generateInviteAction => 'GENERATE INVITE';
+
+  @override
+  String get slugAlreadyExists =>
+      'This URL is already taken by another community.';
+
+  @override
+  String get close => 'CLOSE';
 }

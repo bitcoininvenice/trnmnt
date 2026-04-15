@@ -87,7 +87,7 @@ class AppLocalizationsIt extends AppLocalizations {
   String get updateData => 'AGGIORNA DATI';
 
   @override
-  String get saveCommunity => 'SALVA COMMUNITY';
+  String get saveCommunity => 'COMMUNITY AGGIORNATA';
 
   @override
   String get totalTeams => 'Squadre Totali';
@@ -728,4 +728,103 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get mapDataSourcePickRoll => 'Fonte Pick&Roll';
+
+  @override
+  String get syncSuccess => 'Sincronizzato sul Cloud! ☁️🏀';
+
+  @override
+  String get webResult => 'Risultati Web';
+
+  @override
+  String get coManagement => 'Co-Gestione';
+
+  @override
+  String get publicDashboard => 'DASHBOARD PUBBLICA';
+
+  @override
+  String get coManagementTitle => 'CO-GESTIONE CLOUD';
+
+  @override
+  String get publicDashboardDesc => 'Chiunque può vedere i risultati live';
+
+  @override
+  String get coManagementDesc =>
+      'Invita un altro organizzatore a gestire il torneo';
+
+  @override
+  String get cloudSettings => 'IMPOSTAZIONI CLOUD';
+
+  @override
+  String get liveLocationLabel => 'LOCATION LIVE';
+
+  @override
+  String get locationHint => 'Es: Playground San Alvise';
+
+  @override
+  String get twitchChannelLabel => 'CANALE TWITCH';
+
+  @override
+  String get twitchHint => 'Es: venicestreetball';
+
+  @override
+  String get customTickerLabel => 'TESTO SCORREVOLE (TICKER)';
+
+  @override
+  String get tickerHint => 'Sponsor, annunci community...';
+
+  @override
+  String get tickerAutoDesc =>
+      'Lascia vuoto per utilizzare il testo generato dal sistema.';
+
+  @override
+  String get copyLink => 'Copia link';
+
+  @override
+  String get openPage => 'Apri Pagina';
+
+  @override
+  String get syncing => 'Sincronizzazione...';
+
+  @override
+  String get syncCloud => 'Sincronizza Cloud';
+
+  @override
+  String get urlSlug => 'URL Slug';
+
+  @override
+  String get locationLabel => 'Location';
+
+  @override
+  String get instagramLabel => 'Instagram';
+
+  @override
+  String get tiktokLabel => 'TikTok';
+
+  @override
+  String get invalidName => 'Inserisci un nome valido';
+
+  @override
+  String get invalidUrl => 'Inserisci un URL valido';
+
+  @override
+  String get noActiveInvite =>
+      'Nessun invito attivo o scaduto. Generane uno nuovo.';
+
+  @override
+  String expiryDate(String time, String date) {
+    return 'Scadenza: $time del $date';
+  }
+
+  @override
+  String get regenerateInvite => 'RIGENERA';
+
+  @override
+  String get generateInviteAction => 'GENERA INVITO';
+
+  @override
+  String get slugAlreadyExists =>
+      'Questo URL è già occupato da un\'altra community.';
+
+  @override
+  String get close => 'CHIUDI';
 }

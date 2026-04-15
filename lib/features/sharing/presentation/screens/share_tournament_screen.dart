@@ -52,6 +52,7 @@ class _ShareTournamentScreenState extends ConsumerState<ShareTournamentScreen> {
     try {
       final tournament = await ref.read(tournamentByIdProvider(widget.tournamentId).future);
       if (tournament != null) {
+        if (!mounted) return;
         setState(() {
           _webUrl = tournament.webUrl;
           _cloudId = tournament.cloudId;
@@ -71,14 +72,16 @@ class _ShareTournamentScreenState extends ConsumerState<ShareTournamentScreen> {
     final uri = Uri.parse(url);
     if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Impossibile aprire $url')),
+          SnackBar(content: Text(l10n.unableToOpenUrl(url))),
         );
       }
     }
   }
 
   Future<void> _publishToWeb() async {
+    final l10n = AppLocalizations.of(context)!;
     setState(() => _isPublishing = true);
     try {
       final repo = ref.read(shareRepositoryProvider);
@@ -96,35 +99,19 @@ class _ShareTournamentScreenState extends ConsumerState<ShareTournamentScreen> {
       );
 
       final fullUrl = await repo.publishToSupabase(widget.tournamentId);
+      if (!mounted) return;
 
       if (fullUrl != null) {
-        // After publication, we need to extract the cloudId for the QR code
-        // The share_repository also updates the local DB, so we reload
-        await _loadInitialData();
-        
-        // If for some reason _loadInitialData doesn't see the update yet (cache),
-        // we force the cloud_id from the URL to ensure the UI switches
-        if (mounted && _cloudId == null) {
-          final uri = Uri.parse(fullUrl);
-          final segments = uri.pathSegments;
-          if (segments.length >= 3 && segments[1] == 'tournaments') {
-            setState(() {
-              _webUrl = fullUrl;
-              _cloudId = segments[2];
-            });
-          }
-        }
-        
         if (mounted) {
            ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Sincronizzato sul Cloud! ☁️🏀'), backgroundColor: Colors.blue),
+            SnackBar(content: Text(l10n.syncSuccess), backgroundColor: Colors.blue),
           );
         }
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Errore: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text('${l10n.error}: $e'), backgroundColor: Colors.red),
         );
       }
     } finally {
@@ -136,231 +123,260 @@ class _ShareTournamentScreenState extends ConsumerState<ShareTournamentScreen> {
   Widget build(BuildContext context) {
     final apiConfig = ref.watch(apiConfigProvider);
     final l10n = AppLocalizations.of(context)!;
+    
+    // WATCH reactively
+    final tournamentAsync = ref.watch(tournamentByIdProvider(widget.tournamentId));
+    
+    return tournamentAsync.when(
+      loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
+      error: (e, _) => Scaffold(body: Center(child: Text('Error: $e'))),
+      data: (tournament) {
+        if (tournament == null) return const Scaffold(body: Center(child: Text('NotFound')));
+        
+        final cloudId = tournament.cloudId;
+        final isCloudActive = cloudId != null && cloudId.isNotEmpty;
+        final themeColor = _shareType == ShareType.web ? Colors.blueAccent : Colors.orangeAccent;
 
-    final themeColor = _shareType == ShareType.web ? Colors.blueAccent : Colors.orangeAccent;
-    final cloudId = _cloudId;
-    final isCloudActive = cloudId != null;
+        // Initialize controllers only if they were empty
+        if (_locationController.text.isEmpty && tournament.location.isNotEmpty) {
+           _locationController.text = tournament.location;
+        }
+        if (_twitchController.text.isEmpty && tournament.twitchChannel != null) {
+          _twitchController.text = tournament.twitchChannel!;
+        }
+        if (_tickerController.text.isEmpty && tournament.customTicker != null) {
+          _tickerController.text = tournament.customTicker!;
+        }
 
-    Widget bodyContent;
+        final qrData = _shareType == ShareType.web 
+            ? (tournament.webUrl ?? "${apiConfig.baseUrl}/it/tournaments/$cloudId") 
+            : "trnmnt://manage?id=$cloudId";
 
-    if (!isCloudActive) {
-      bodyContent = Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.cloud_off, size: 80, color: Colors.grey),
-          const SizedBox(height: 24),
-          Text(
-            l10n.publishToCloud_title,
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            l10n.publishToCloud_desc,
-            textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.grey),
-          ),
-          const SizedBox(height: 32),
-          ElevatedButton.icon(
-            onPressed: _isPublishing ? null : _publishToWeb,
-            icon: _isPublishing ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.cloud_upload),
-            label: Text(l10n.publishNow),
-            style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-            ),
-          ),
-        ],
-      );
-    } else {
-      final qrData = _shareType == ShareType.web 
-          ? _webUrl! 
-          : "trnmnt://manage?id=$cloudId";
+        Widget bodyContent;
 
-      bodyContent = Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Tab selector
-          Container(
-            padding: const EdgeInsets.all(4),
-            decoration: BoxDecoration(
-              color: Colors.white10,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _buildTabButton(ShareType.web, 'Web Result', Icons.public),
-                _buildTabButton(ShareType.manage, 'Co-Management', Icons.sync),
-              ],
-            ),
-          ),
-          const SizedBox(height: 32),
-
-          // QR Area
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(24),
-            ),
-            child: QrImageView(
-              data: qrData,
-              version: QrVersions.auto,
-              size: 220,
-              foregroundColor: Colors.black,
-            ),
-          ).animate().scale(),
-
-          const SizedBox(height: 24),
-          Text(
-            _shareType == ShareType.web ? 'DASHBOARD PUBBLICA' : 'CO-GESTIONE CLOUD',
-            style: TextStyle(color: themeColor, fontWeight: FontWeight.bold, letterSpacing: 1.2),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            _shareType == ShareType.web 
-                ? 'Chiunque può vedere i risultati live' 
-                : 'Invita un altro organizzatore a gestire il torneo',
-            textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.grey),
-          ),
-          
-          const SizedBox(height: 32),
-          
-          // Cloud Settings Section
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white10,
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: Colors.white10),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Row(
+        if (!isCloudActive) {
+          bodyContent = Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.cloud_off, size: 80, color: Colors.grey),
+              const SizedBox(height: 24),
+              Text(
+                l10n.publishToCloud_title,
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                l10n.publishToCloud_desc,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.grey),
+              ),
+              const SizedBox(height: 32),
+              ElevatedButton.icon(
+                onPressed: _isPublishing ? null : _publishToWeb,
+                icon: _isPublishing ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.cloud_upload),
+                label: Text(l10n.publishNow),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                ),
+              ),
+            ],
+          );
+        } else {
+          bodyContent = Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Tab selector
+              Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: Colors.white10,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.settings_suggest, size: 18, color: Colors.blueAccent),
-                    SizedBox(width: 8),
+                    _buildTabButton(ShareType.web, l10n.webResult, Icons.public),
+                    _buildTabButton(ShareType.manage, l10n.coManagement, Icons.sync),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 32),
+
+              // QR Area
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                child: QrImageView(
+                  data: qrData,
+                  version: QrVersions.auto,
+                  size: 220,
+                  foregroundColor: Colors.black,
+                  embeddedImage: const AssetImage('assets/icon/logo.png'),
+                  embeddedImageStyle: const QrEmbeddedImageStyle(
+                    size: Size(45, 45),
+                  ),
+                ),
+              ).animate().scale(),
+
+              const SizedBox(height: 24),
+              Text(
+                _shareType == ShareType.web ? l10n.publicDashboard : l10n.coManagementTitle,
+                style: TextStyle(color: themeColor, fontWeight: FontWeight.bold, letterSpacing: 1.2),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _shareType == ShareType.web 
+                    ? l10n.publicDashboardDesc 
+                    : l10n.coManagementDesc,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.grey),
+              ),
+              
+              const SizedBox(height: 32),
+              
+              // Cloud Settings Section
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white10,
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: Colors.white10),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.settings_suggest, size: 18, color: Colors.blueAccent),
+                        const SizedBox(width: 8),
+                        Text(
+                          l10n.cloudSettings,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 1.5,
+                            color: Colors.blueAccent,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    
+                    // Location Adjustment
+                    _buildField(
+                      controller: _locationController,
+                      label: l10n.liveLocationLabel,
+                      hint: l10n.locationHint,
+                      icon: Icons.location_on_outlined,
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Twitch integration
+                    _buildField(
+                      controller: _twitchController,
+                      label: l10n.twitchChannelLabel,
+                      hint: l10n.twitchHint,
+                      icon: Icons.live_tv_rounded,
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Custom Ticker
+                    _buildField(
+                      controller: _tickerController,
+                      label: l10n.customTickerLabel,
+                      hint: l10n.tickerHint,
+                      icon: Icons.message_outlined,
+                      maxLines: 2,
+                    ),
+                    
+                    const SizedBox(height: 12),
                     Text(
-                      'IMPOSTAZIONI CLOUD',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 1.5,
-                        color: Colors.blueAccent,
-                      ),
+                      l10n.tickerAutoDesc,
+                      style: TextStyle(fontSize: 10, color: Colors.grey.shade600, fontStyle: FontStyle.italic),
                     ),
                   ],
                 ),
-                const SizedBox(height: 20),
-                
-                // Location Adjustment
-                _buildField(
-                  controller: _locationController,
-                  label: 'LOCATION LIVE',
-                  hint: 'Es: Playground San Alvise',
-                  icon: Icons.location_on_outlined,
-                ),
-                const SizedBox(height: 16),
-
-                // Twitch integration
-                _buildField(
-                  controller: _twitchController,
-                  label: 'TWITCH CHANNEL',
-                  hint: 'Es: venicestreetball',
-                  icon: Icons.live_tv_rounded,
-                ),
-                const SizedBox(height: 16),
-
-                // Custom Ticker
-                _buildField(
-                  controller: _tickerController,
-                  label: 'TESTO SCORREVOLE (TICKER)',
-                  hint: 'Sponsor, annunci community...',
-                  icon: Icons.message_outlined,
-                  maxLines: 2,
-                ),
-                
-                const SizedBox(height: 12),
-                Text(
-                  'Lascia vuoto per utilizzare il testo generato automaticamente dal sistema.',
-                  style: TextStyle(fontSize: 10, color: Colors.grey.shade600, fontStyle: FontStyle.italic),
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 32),
-
-          // Actions
-          Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            alignment: WrapAlignment.center,
-            children: [
-              IconButton.filledTonal(
-                onPressed: () => Clipboard.setData(ClipboardData(text: qrData)),
-                icon: const Icon(Icons.copy),
-                tooltip: 'Copia link',
               ),
-              if (_shareType == ShareType.web)
-                ElevatedButton.icon(
-                  onPressed: () => _openUrl(_webUrl!),
-                  icon: const Icon(Icons.open_in_new),
-                  label: const Text('Apri Pagina'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: themeColor, 
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+
+              const SizedBox(height: 32),
+
+              // Actions
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                alignment: WrapAlignment.center,
+                children: [
+                  IconButton.filledTonal(
+                    onPressed: () {
+                       Clipboard.setData(ClipboardData(text: qrData));
+                       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.copyLink)));
+                    },
+                    icon: const Icon(Icons.copy),
+                    tooltip: l10n.copyLink,
                   ),
-                ),
-              ElevatedButton.icon(
-                onPressed: _isPublishing ? null : _publishToWeb,
-                icon: _isPublishing 
-                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.blueAccent))
-                  : Icon(Icons.sync, color: _isPublishing ? Colors.grey : Colors.blueAccent),
-                label: Text(
-                  _isPublishing ? 'Sincronizzazione...' : 'Sincronizza Cloud',
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  side: BorderSide(color: Colors.blueAccent.withValues(alpha: 0.5)),
+                  if (_shareType == ShareType.web)
+                    ElevatedButton.icon(
+                      onPressed: () => _openUrl(tournament.webUrl ?? "${apiConfig.baseUrl}/it/tournaments/$cloudId"),
+                      icon: const Icon(Icons.open_in_new),
+                      label: Text(l10n.openPage),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: themeColor, 
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      ),
+                    ),
+                  ElevatedButton.icon(
+                    onPressed: _isPublishing ? null : _publishToWeb,
+                    icon: _isPublishing 
+                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.blueAccent))
+                      : Icon(Icons.sync, color: _isPublishing ? Colors.grey : Colors.blueAccent),
+                    label: Text(
+                      _isPublishing ? l10n.syncing : l10n.syncCloud,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      side: BorderSide(color: Colors.blueAccent.withValues(alpha: 0.5)),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          );
+        }
+
+        return Scaffold(
+          appBar: AppBar(
+            title: Text('${l10n.share} ${widget.tournamentName}'),
+            actions: [
+              Padding(
+                padding: const EdgeInsets.only(right: 16),
+                child: Center(
+                  child: Container(
+                    width: 12,
+                    height: 12,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: apiConfig.isConnected ? Colors.green : Colors.red,
+                    ),
+                  ),
                 ),
               ),
             ],
           ),
-        ],
-      );
-    }
-
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('${l10n.share} ${widget.tournamentName}'),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16),
+          body: SingleChildScrollView(
             child: Center(
-              child: Container(
-                width: 12,
-                height: 12,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: apiConfig.isConnected ? Colors.green : Colors.red,
-                ),
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: bodyContent,
               ),
             ),
           ),
-        ],
-      ),
-      body: SingleChildScrollView(
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: bodyContent,
-          ),
-        ),
-      ),
+        );
+      },
     );
   }
 

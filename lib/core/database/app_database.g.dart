@@ -55,6 +55,28 @@ class $CommunitiesTable extends Communities
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _inviteTokenMeta = const VerificationMeta(
+    'inviteToken',
+  );
+  @override
+  late final GeneratedColumn<String> inviteToken = GeneratedColumn<String>(
+    'invite_token',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _inviteTokenExpiresAtMeta =
+      const VerificationMeta('inviteTokenExpiresAt');
+  @override
+  late final GeneratedColumn<DateTime> inviteTokenExpiresAt =
+      GeneratedColumn<DateTime>(
+        'invite_token_expires_at',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
   static const VerificationMeta _locationMeta = const VerificationMeta(
     'location',
   );
@@ -121,6 +143,8 @@ class $CommunitiesTable extends Communities
     name,
     slug,
     logoUrl,
+    inviteToken,
+    inviteTokenExpiresAt,
     location,
     instagramUrl,
     tiktokUrl,
@@ -164,6 +188,24 @@ class $CommunitiesTable extends Communities
       context.handle(
         _logoUrlMeta,
         logoUrl.isAcceptableOrUnknown(data['logo_url']!, _logoUrlMeta),
+      );
+    }
+    if (data.containsKey('invite_token')) {
+      context.handle(
+        _inviteTokenMeta,
+        inviteToken.isAcceptableOrUnknown(
+          data['invite_token']!,
+          _inviteTokenMeta,
+        ),
+      );
+    }
+    if (data.containsKey('invite_token_expires_at')) {
+      context.handle(
+        _inviteTokenExpiresAtMeta,
+        inviteTokenExpiresAt.isAcceptableOrUnknown(
+          data['invite_token_expires_at']!,
+          _inviteTokenExpiresAtMeta,
+        ),
       );
     }
     if (data.containsKey('location')) {
@@ -224,6 +266,14 @@ class $CommunitiesTable extends Communities
         DriftSqlType.string,
         data['${effectivePrefix}logo_url'],
       ),
+      inviteToken: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}invite_token'],
+      ),
+      inviteTokenExpiresAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}invite_token_expires_at'],
+      ),
       location: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}location'],
@@ -258,6 +308,8 @@ class Community extends DataClass implements Insertable<Community> {
   final String name;
   final String slug;
   final String? logoUrl;
+  final String? inviteToken;
+  final DateTime? inviteTokenExpiresAt;
   final String? location;
   final String? instagramUrl;
   final String? tiktokUrl;
@@ -268,6 +320,8 @@ class Community extends DataClass implements Insertable<Community> {
     required this.name,
     required this.slug,
     this.logoUrl,
+    this.inviteToken,
+    this.inviteTokenExpiresAt,
     this.location,
     this.instagramUrl,
     this.tiktokUrl,
@@ -282,6 +336,12 @@ class Community extends DataClass implements Insertable<Community> {
     map['slug'] = Variable<String>(slug);
     if (!nullToAbsent || logoUrl != null) {
       map['logo_url'] = Variable<String>(logoUrl);
+    }
+    if (!nullToAbsent || inviteToken != null) {
+      map['invite_token'] = Variable<String>(inviteToken);
+    }
+    if (!nullToAbsent || inviteTokenExpiresAt != null) {
+      map['invite_token_expires_at'] = Variable<DateTime>(inviteTokenExpiresAt);
     }
     if (!nullToAbsent || location != null) {
       map['location'] = Variable<String>(location);
@@ -305,6 +365,12 @@ class Community extends DataClass implements Insertable<Community> {
       logoUrl: logoUrl == null && nullToAbsent
           ? const Value.absent()
           : Value(logoUrl),
+      inviteToken: inviteToken == null && nullToAbsent
+          ? const Value.absent()
+          : Value(inviteToken),
+      inviteTokenExpiresAt: inviteTokenExpiresAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(inviteTokenExpiresAt),
       location: location == null && nullToAbsent
           ? const Value.absent()
           : Value(location),
@@ -329,6 +395,10 @@ class Community extends DataClass implements Insertable<Community> {
       name: serializer.fromJson<String>(json['name']),
       slug: serializer.fromJson<String>(json['slug']),
       logoUrl: serializer.fromJson<String?>(json['logoUrl']),
+      inviteToken: serializer.fromJson<String?>(json['inviteToken']),
+      inviteTokenExpiresAt: serializer.fromJson<DateTime?>(
+        json['inviteTokenExpiresAt'],
+      ),
       location: serializer.fromJson<String?>(json['location']),
       instagramUrl: serializer.fromJson<String?>(json['instagramUrl']),
       tiktokUrl: serializer.fromJson<String?>(json['tiktokUrl']),
@@ -344,6 +414,10 @@ class Community extends DataClass implements Insertable<Community> {
       'name': serializer.toJson<String>(name),
       'slug': serializer.toJson<String>(slug),
       'logoUrl': serializer.toJson<String?>(logoUrl),
+      'inviteToken': serializer.toJson<String?>(inviteToken),
+      'inviteTokenExpiresAt': serializer.toJson<DateTime?>(
+        inviteTokenExpiresAt,
+      ),
       'location': serializer.toJson<String?>(location),
       'instagramUrl': serializer.toJson<String?>(instagramUrl),
       'tiktokUrl': serializer.toJson<String?>(tiktokUrl),
@@ -357,6 +431,8 @@ class Community extends DataClass implements Insertable<Community> {
     String? name,
     String? slug,
     Value<String?> logoUrl = const Value.absent(),
+    Value<String?> inviteToken = const Value.absent(),
+    Value<DateTime?> inviteTokenExpiresAt = const Value.absent(),
     Value<String?> location = const Value.absent(),
     Value<String?> instagramUrl = const Value.absent(),
     Value<String?> tiktokUrl = const Value.absent(),
@@ -367,6 +443,10 @@ class Community extends DataClass implements Insertable<Community> {
     name: name ?? this.name,
     slug: slug ?? this.slug,
     logoUrl: logoUrl.present ? logoUrl.value : this.logoUrl,
+    inviteToken: inviteToken.present ? inviteToken.value : this.inviteToken,
+    inviteTokenExpiresAt: inviteTokenExpiresAt.present
+        ? inviteTokenExpiresAt.value
+        : this.inviteTokenExpiresAt,
     location: location.present ? location.value : this.location,
     instagramUrl: instagramUrl.present ? instagramUrl.value : this.instagramUrl,
     tiktokUrl: tiktokUrl.present ? tiktokUrl.value : this.tiktokUrl,
@@ -379,6 +459,12 @@ class Community extends DataClass implements Insertable<Community> {
       name: data.name.present ? data.name.value : this.name,
       slug: data.slug.present ? data.slug.value : this.slug,
       logoUrl: data.logoUrl.present ? data.logoUrl.value : this.logoUrl,
+      inviteToken: data.inviteToken.present
+          ? data.inviteToken.value
+          : this.inviteToken,
+      inviteTokenExpiresAt: data.inviteTokenExpiresAt.present
+          ? data.inviteTokenExpiresAt.value
+          : this.inviteTokenExpiresAt,
       location: data.location.present ? data.location.value : this.location,
       instagramUrl: data.instagramUrl.present
           ? data.instagramUrl.value
@@ -396,6 +482,8 @@ class Community extends DataClass implements Insertable<Community> {
           ..write('name: $name, ')
           ..write('slug: $slug, ')
           ..write('logoUrl: $logoUrl, ')
+          ..write('inviteToken: $inviteToken, ')
+          ..write('inviteTokenExpiresAt: $inviteTokenExpiresAt, ')
           ..write('location: $location, ')
           ..write('instagramUrl: $instagramUrl, ')
           ..write('tiktokUrl: $tiktokUrl, ')
@@ -411,6 +499,8 @@ class Community extends DataClass implements Insertable<Community> {
     name,
     slug,
     logoUrl,
+    inviteToken,
+    inviteTokenExpiresAt,
     location,
     instagramUrl,
     tiktokUrl,
@@ -425,6 +515,8 @@ class Community extends DataClass implements Insertable<Community> {
           other.name == this.name &&
           other.slug == this.slug &&
           other.logoUrl == this.logoUrl &&
+          other.inviteToken == this.inviteToken &&
+          other.inviteTokenExpiresAt == this.inviteTokenExpiresAt &&
           other.location == this.location &&
           other.instagramUrl == this.instagramUrl &&
           other.tiktokUrl == this.tiktokUrl &&
@@ -437,6 +529,8 @@ class CommunitiesCompanion extends UpdateCompanion<Community> {
   final Value<String> name;
   final Value<String> slug;
   final Value<String?> logoUrl;
+  final Value<String?> inviteToken;
+  final Value<DateTime?> inviteTokenExpiresAt;
   final Value<String?> location;
   final Value<String?> instagramUrl;
   final Value<String?> tiktokUrl;
@@ -448,6 +542,8 @@ class CommunitiesCompanion extends UpdateCompanion<Community> {
     this.name = const Value.absent(),
     this.slug = const Value.absent(),
     this.logoUrl = const Value.absent(),
+    this.inviteToken = const Value.absent(),
+    this.inviteTokenExpiresAt = const Value.absent(),
     this.location = const Value.absent(),
     this.instagramUrl = const Value.absent(),
     this.tiktokUrl = const Value.absent(),
@@ -460,6 +556,8 @@ class CommunitiesCompanion extends UpdateCompanion<Community> {
     required String name,
     required String slug,
     this.logoUrl = const Value.absent(),
+    this.inviteToken = const Value.absent(),
+    this.inviteTokenExpiresAt = const Value.absent(),
     this.location = const Value.absent(),
     this.instagramUrl = const Value.absent(),
     this.tiktokUrl = const Value.absent(),
@@ -474,6 +572,8 @@ class CommunitiesCompanion extends UpdateCompanion<Community> {
     Expression<String>? name,
     Expression<String>? slug,
     Expression<String>? logoUrl,
+    Expression<String>? inviteToken,
+    Expression<DateTime>? inviteTokenExpiresAt,
     Expression<String>? location,
     Expression<String>? instagramUrl,
     Expression<String>? tiktokUrl,
@@ -486,6 +586,9 @@ class CommunitiesCompanion extends UpdateCompanion<Community> {
       if (name != null) 'name': name,
       if (slug != null) 'slug': slug,
       if (logoUrl != null) 'logo_url': logoUrl,
+      if (inviteToken != null) 'invite_token': inviteToken,
+      if (inviteTokenExpiresAt != null)
+        'invite_token_expires_at': inviteTokenExpiresAt,
       if (location != null) 'location': location,
       if (instagramUrl != null) 'instagram_url': instagramUrl,
       if (tiktokUrl != null) 'tiktok_url': tiktokUrl,
@@ -500,6 +603,8 @@ class CommunitiesCompanion extends UpdateCompanion<Community> {
     Value<String>? name,
     Value<String>? slug,
     Value<String?>? logoUrl,
+    Value<String?>? inviteToken,
+    Value<DateTime?>? inviteTokenExpiresAt,
     Value<String?>? location,
     Value<String?>? instagramUrl,
     Value<String?>? tiktokUrl,
@@ -512,6 +617,8 @@ class CommunitiesCompanion extends UpdateCompanion<Community> {
       name: name ?? this.name,
       slug: slug ?? this.slug,
       logoUrl: logoUrl ?? this.logoUrl,
+      inviteToken: inviteToken ?? this.inviteToken,
+      inviteTokenExpiresAt: inviteTokenExpiresAt ?? this.inviteTokenExpiresAt,
       location: location ?? this.location,
       instagramUrl: instagramUrl ?? this.instagramUrl,
       tiktokUrl: tiktokUrl ?? this.tiktokUrl,
@@ -535,6 +642,14 @@ class CommunitiesCompanion extends UpdateCompanion<Community> {
     }
     if (logoUrl.present) {
       map['logo_url'] = Variable<String>(logoUrl.value);
+    }
+    if (inviteToken.present) {
+      map['invite_token'] = Variable<String>(inviteToken.value);
+    }
+    if (inviteTokenExpiresAt.present) {
+      map['invite_token_expires_at'] = Variable<DateTime>(
+        inviteTokenExpiresAt.value,
+      );
     }
     if (location.present) {
       map['location'] = Variable<String>(location.value);
@@ -564,6 +679,8 @@ class CommunitiesCompanion extends UpdateCompanion<Community> {
           ..write('name: $name, ')
           ..write('slug: $slug, ')
           ..write('logoUrl: $logoUrl, ')
+          ..write('inviteToken: $inviteToken, ')
+          ..write('inviteTokenExpiresAt: $inviteTokenExpiresAt, ')
           ..write('location: $location, ')
           ..write('instagramUrl: $instagramUrl, ')
           ..write('tiktokUrl: $tiktokUrl, ')
@@ -1254,6 +1371,17 @@ class $TournamentsTable extends Tournaments
       'REFERENCES communities (id)',
     ),
   );
+  static const VerificationMeta _communityNameMeta = const VerificationMeta(
+    'communityName',
+  );
+  @override
+  late final GeneratedColumn<String> communityName = GeneratedColumn<String>(
+    'community_name',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -1293,6 +1421,7 @@ class $TournamentsTable extends Tournaments
     timerMinutes,
     winnerTeamId,
     communityId,
+    communityName,
     createdAt,
   ];
   @override
@@ -1491,6 +1620,15 @@ class $TournamentsTable extends Tournaments
         ),
       );
     }
+    if (data.containsKey('community_name')) {
+      context.handle(
+        _communityNameMeta,
+        communityName.isAcceptableOrUnknown(
+          data['community_name']!,
+          _communityNameMeta,
+        ),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -1606,6 +1744,10 @@ class $TournamentsTable extends Tournaments
         DriftSqlType.string,
         data['${effectivePrefix}community_id'],
       ),
+      communityName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}community_name'],
+      ),
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -1647,6 +1789,7 @@ class Tournament extends DataClass implements Insertable<Tournament> {
   final int timerMinutes;
   final int? winnerTeamId;
   final String? communityId;
+  final String? communityName;
   final DateTime createdAt;
   const Tournament({
     required this.id,
@@ -1674,6 +1817,7 @@ class Tournament extends DataClass implements Insertable<Tournament> {
     required this.timerMinutes,
     this.winnerTeamId,
     this.communityId,
+    this.communityName,
     required this.createdAt,
   });
   @override
@@ -1724,6 +1868,9 @@ class Tournament extends DataClass implements Insertable<Tournament> {
     if (!nullToAbsent || communityId != null) {
       map['community_id'] = Variable<String>(communityId);
     }
+    if (!nullToAbsent || communityName != null) {
+      map['community_name'] = Variable<String>(communityName);
+    }
     map['created_at'] = Variable<DateTime>(createdAt);
     return map;
   }
@@ -1773,6 +1920,9 @@ class Tournament extends DataClass implements Insertable<Tournament> {
       communityId: communityId == null && nullToAbsent
           ? const Value.absent()
           : Value(communityId),
+      communityName: communityName == null && nullToAbsent
+          ? const Value.absent()
+          : Value(communityName),
       createdAt: Value(createdAt),
     );
   }
@@ -1810,6 +1960,7 @@ class Tournament extends DataClass implements Insertable<Tournament> {
       timerMinutes: serializer.fromJson<int>(json['timerMinutes']),
       winnerTeamId: serializer.fromJson<int?>(json['winnerTeamId']),
       communityId: serializer.fromJson<String?>(json['communityId']),
+      communityName: serializer.fromJson<String?>(json['communityName']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
     );
   }
@@ -1844,6 +1995,7 @@ class Tournament extends DataClass implements Insertable<Tournament> {
       'timerMinutes': serializer.toJson<int>(timerMinutes),
       'winnerTeamId': serializer.toJson<int?>(winnerTeamId),
       'communityId': serializer.toJson<String?>(communityId),
+      'communityName': serializer.toJson<String?>(communityName),
       'createdAt': serializer.toJson<DateTime>(createdAt),
     };
   }
@@ -1874,6 +2026,7 @@ class Tournament extends DataClass implements Insertable<Tournament> {
     int? timerMinutes,
     Value<int?> winnerTeamId = const Value.absent(),
     Value<String?> communityId = const Value.absent(),
+    Value<String?> communityName = const Value.absent(),
     DateTime? createdAt,
   }) => Tournament(
     id: id ?? this.id,
@@ -1904,6 +2057,9 @@ class Tournament extends DataClass implements Insertable<Tournament> {
     timerMinutes: timerMinutes ?? this.timerMinutes,
     winnerTeamId: winnerTeamId.present ? winnerTeamId.value : this.winnerTeamId,
     communityId: communityId.present ? communityId.value : this.communityId,
+    communityName: communityName.present
+        ? communityName.value
+        : this.communityName,
     createdAt: createdAt ?? this.createdAt,
   );
   Tournament copyWithCompanion(TournamentsCompanion data) {
@@ -1963,6 +2119,9 @@ class Tournament extends DataClass implements Insertable<Tournament> {
       communityId: data.communityId.present
           ? data.communityId.value
           : this.communityId,
+      communityName: data.communityName.present
+          ? data.communityName.value
+          : this.communityName,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
     );
   }
@@ -1995,6 +2154,7 @@ class Tournament extends DataClass implements Insertable<Tournament> {
           ..write('timerMinutes: $timerMinutes, ')
           ..write('winnerTeamId: $winnerTeamId, ')
           ..write('communityId: $communityId, ')
+          ..write('communityName: $communityName, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
@@ -2027,6 +2187,7 @@ class Tournament extends DataClass implements Insertable<Tournament> {
     timerMinutes,
     winnerTeamId,
     communityId,
+    communityName,
     createdAt,
   ]);
   @override
@@ -2058,6 +2219,7 @@ class Tournament extends DataClass implements Insertable<Tournament> {
           other.timerMinutes == this.timerMinutes &&
           other.winnerTeamId == this.winnerTeamId &&
           other.communityId == this.communityId &&
+          other.communityName == this.communityName &&
           other.createdAt == this.createdAt);
 }
 
@@ -2087,6 +2249,7 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
   final Value<int> timerMinutes;
   final Value<int?> winnerTeamId;
   final Value<String?> communityId;
+  final Value<String?> communityName;
   final Value<DateTime> createdAt;
   const TournamentsCompanion({
     this.id = const Value.absent(),
@@ -2114,6 +2277,7 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
     this.timerMinutes = const Value.absent(),
     this.winnerTeamId = const Value.absent(),
     this.communityId = const Value.absent(),
+    this.communityName = const Value.absent(),
     this.createdAt = const Value.absent(),
   });
   TournamentsCompanion.insert({
@@ -2142,6 +2306,7 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
     this.timerMinutes = const Value.absent(),
     this.winnerTeamId = const Value.absent(),
     this.communityId = const Value.absent(),
+    this.communityName = const Value.absent(),
     this.createdAt = const Value.absent(),
   }) : name = Value(name),
        location = Value(location);
@@ -2171,6 +2336,7 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
     Expression<int>? timerMinutes,
     Expression<int>? winnerTeamId,
     Expression<String>? communityId,
+    Expression<String>? communityName,
     Expression<DateTime>? createdAt,
   }) {
     return RawValuesInsertable({
@@ -2201,6 +2367,7 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
       if (timerMinutes != null) 'timer_minutes': timerMinutes,
       if (winnerTeamId != null) 'winner_team_id': winnerTeamId,
       if (communityId != null) 'community_id': communityId,
+      if (communityName != null) 'community_name': communityName,
       if (createdAt != null) 'created_at': createdAt,
     });
   }
@@ -2231,6 +2398,7 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
     Value<int>? timerMinutes,
     Value<int?>? winnerTeamId,
     Value<String?>? communityId,
+    Value<String?>? communityName,
     Value<DateTime>? createdAt,
   }) {
     return TournamentsCompanion(
@@ -2260,6 +2428,7 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
       timerMinutes: timerMinutes ?? this.timerMinutes,
       winnerTeamId: winnerTeamId ?? this.winnerTeamId,
       communityId: communityId ?? this.communityId,
+      communityName: communityName ?? this.communityName,
       createdAt: createdAt ?? this.createdAt,
     );
   }
@@ -2344,6 +2513,9 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
     if (communityId.present) {
       map['community_id'] = Variable<String>(communityId.value);
     }
+    if (communityName.present) {
+      map['community_name'] = Variable<String>(communityName.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -2378,6 +2550,7 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
           ..write('timerMinutes: $timerMinutes, ')
           ..write('winnerTeamId: $winnerTeamId, ')
           ..write('communityId: $communityId, ')
+          ..write('communityName: $communityName, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
@@ -4285,6 +4458,8 @@ typedef $$CommunitiesTableCreateCompanionBuilder =
       required String name,
       required String slug,
       Value<String?> logoUrl,
+      Value<String?> inviteToken,
+      Value<DateTime?> inviteTokenExpiresAt,
       Value<String?> location,
       Value<String?> instagramUrl,
       Value<String?> tiktokUrl,
@@ -4298,6 +4473,8 @@ typedef $$CommunitiesTableUpdateCompanionBuilder =
       Value<String> name,
       Value<String> slug,
       Value<String?> logoUrl,
+      Value<String?> inviteToken,
+      Value<DateTime?> inviteTokenExpiresAt,
       Value<String?> location,
       Value<String?> instagramUrl,
       Value<String?> tiktokUrl,
@@ -4377,6 +4554,16 @@ class $$CommunitiesTableFilterComposer
 
   ColumnFilters<String> get logoUrl => $composableBuilder(
     column: $table.logoUrl,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get inviteToken => $composableBuilder(
+    column: $table.inviteToken,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get inviteTokenExpiresAt => $composableBuilder(
+    column: $table.inviteTokenExpiresAt,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -4485,6 +4672,16 @@ class $$CommunitiesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get inviteToken => $composableBuilder(
+    column: $table.inviteToken,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get inviteTokenExpiresAt => $composableBuilder(
+    column: $table.inviteTokenExpiresAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get location => $composableBuilder(
     column: $table.location,
     builder: (column) => ColumnOrderings(column),
@@ -4531,6 +4728,16 @@ class $$CommunitiesTableAnnotationComposer
 
   GeneratedColumn<String> get logoUrl =>
       $composableBuilder(column: $table.logoUrl, builder: (column) => column);
+
+  GeneratedColumn<String> get inviteToken => $composableBuilder(
+    column: $table.inviteToken,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get inviteTokenExpiresAt => $composableBuilder(
+    column: $table.inviteTokenExpiresAt,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<String> get location =>
       $composableBuilder(column: $table.location, builder: (column) => column);
@@ -4632,6 +4839,8 @@ class $$CommunitiesTableTableManager
                 Value<String> name = const Value.absent(),
                 Value<String> slug = const Value.absent(),
                 Value<String?> logoUrl = const Value.absent(),
+                Value<String?> inviteToken = const Value.absent(),
+                Value<DateTime?> inviteTokenExpiresAt = const Value.absent(),
                 Value<String?> location = const Value.absent(),
                 Value<String?> instagramUrl = const Value.absent(),
                 Value<String?> tiktokUrl = const Value.absent(),
@@ -4643,6 +4852,8 @@ class $$CommunitiesTableTableManager
                 name: name,
                 slug: slug,
                 logoUrl: logoUrl,
+                inviteToken: inviteToken,
+                inviteTokenExpiresAt: inviteTokenExpiresAt,
                 location: location,
                 instagramUrl: instagramUrl,
                 tiktokUrl: tiktokUrl,
@@ -4656,6 +4867,8 @@ class $$CommunitiesTableTableManager
                 required String name,
                 required String slug,
                 Value<String?> logoUrl = const Value.absent(),
+                Value<String?> inviteToken = const Value.absent(),
+                Value<DateTime?> inviteTokenExpiresAt = const Value.absent(),
                 Value<String?> location = const Value.absent(),
                 Value<String?> instagramUrl = const Value.absent(),
                 Value<String?> tiktokUrl = const Value.absent(),
@@ -4667,6 +4880,8 @@ class $$CommunitiesTableTableManager
                 name: name,
                 slug: slug,
                 logoUrl: logoUrl,
+                inviteToken: inviteToken,
+                inviteTokenExpiresAt: inviteTokenExpiresAt,
                 location: location,
                 instagramUrl: instagramUrl,
                 tiktokUrl: tiktokUrl,
@@ -5291,6 +5506,7 @@ typedef $$TournamentsTableCreateCompanionBuilder =
       Value<int> timerMinutes,
       Value<int?> winnerTeamId,
       Value<String?> communityId,
+      Value<String?> communityName,
       Value<DateTime> createdAt,
     });
 typedef $$TournamentsTableUpdateCompanionBuilder =
@@ -5320,6 +5536,7 @@ typedef $$TournamentsTableUpdateCompanionBuilder =
       Value<int> timerMinutes,
       Value<int?> winnerTeamId,
       Value<String?> communityId,
+      Value<String?> communityName,
       Value<DateTime> createdAt,
     });
 
@@ -5548,6 +5765,11 @@ class $$TournamentsTableFilterComposer
 
   ColumnFilters<int> get timerMinutes => $composableBuilder(
     column: $table.timerMinutes,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get communityName => $composableBuilder(
+    column: $table.communityName,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5802,6 +6024,11 @@ class $$TournamentsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get communityName => $composableBuilder(
+    column: $table.communityName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -5955,6 +6182,11 @@ class $$TournamentsTableAnnotationComposer
 
   GeneratedColumn<int> get timerMinutes => $composableBuilder(
     column: $table.timerMinutes,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get communityName => $composableBuilder(
+    column: $table.communityName,
     builder: (column) => column,
   );
 
@@ -6142,6 +6374,7 @@ class $$TournamentsTableTableManager
                 Value<int> timerMinutes = const Value.absent(),
                 Value<int?> winnerTeamId = const Value.absent(),
                 Value<String?> communityId = const Value.absent(),
+                Value<String?> communityName = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => TournamentsCompanion(
                 id: id,
@@ -6169,6 +6402,7 @@ class $$TournamentsTableTableManager
                 timerMinutes: timerMinutes,
                 winnerTeamId: winnerTeamId,
                 communityId: communityId,
+                communityName: communityName,
                 createdAt: createdAt,
               ),
           createCompanionCallback:
@@ -6198,6 +6432,7 @@ class $$TournamentsTableTableManager
                 Value<int> timerMinutes = const Value.absent(),
                 Value<int?> winnerTeamId = const Value.absent(),
                 Value<String?> communityId = const Value.absent(),
+                Value<String?> communityName = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => TournamentsCompanion.insert(
                 id: id,
@@ -6225,6 +6460,7 @@ class $$TournamentsTableTableManager
                 timerMinutes: timerMinutes,
                 winnerTeamId: winnerTeamId,
                 communityId: communityId,
+                communityName: communityName,
                 createdAt: createdAt,
               ),
           withReferenceMapper: (p0) => p0

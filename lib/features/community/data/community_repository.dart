@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:uuid/uuid.dart';
 import '../../../core/providers/database_provider.dart';
 import '../../../core/database/app_database.dart';
 import 'selected_community_provider.dart';
@@ -8,6 +9,7 @@ import 'selected_community_provider.dart';
 class CommunityRepository {
   final SupabaseClient _supabase = Supabase.instance.client;
   final AppDatabase _db;
+  final _uuid = const Uuid();
 
   CommunityRepository(this._db);
 
@@ -27,34 +29,27 @@ class CommunityRepository {
       comm = await (_db.select(_db.communities)..where((c) => c.id.equals(selectedId))).getSingleOrNull();
     }
     
+    // Auto-Heal/Merge: if we have more than one owner community, merge legacy into real
+    final allComms = await _db.select(_db.communities).get();
+    if (allComms.length > 1) {
+      final realOwner = allComms.where((c) => c.isOwner && !c.id.startsWith('legacy')).firstOrNull;
+      final legacyOwner = allComms.where((c) => (c.id.startsWith('legacy-') || c.id == 'legacy-id') && c.isOwner).firstOrNull;
+      
+      if (realOwner != null && legacyOwner != null) {
+        // MERGE NOW
+        await (_db.update(_db.tournaments)..where((t) => t.communityId.equals(legacyOwner.id)))
+            .write(TournamentsCompanion(communityId: Value(realOwner.id)));
+        await (_db.update(_db.teams)..where((t) => t.communityId.equals(legacyOwner.id)))
+            .write(TeamsCompanion(communityId: Value(realOwner.id)));
+        await (_db.delete(_db.communities)..where((t) => t.id.equals(legacyOwner.id))).go();
+        
+        return realOwner;
+      }
+    }
+
     // Fallback to first if selected not found or not provided
     comm ??= await (_db.select(_db.communities)..limit(1)).getSingleOrNull();
     
-    if (comm == null) {
-      // Heal check: are there tournaments or teams with no community?
-      final orphanTournaments = await (_db.select(_db.tournaments)..where((t) => t.communityId.isNull())..limit(1)).getSingleOrNull();
-      final orphanTeams = await (_db.select(_db.teams)..where((t) => t.communityId.isNull())..limit(1)).getSingleOrNull();
-      
-      if (orphanTournaments != null || orphanTeams != null) {
-        // We have legacy data! Create a recovery community.
-        final now = DateTime.now();
-        final legacyId = 'legacy-${now.millisecondsSinceEpoch}';
-        
-        await _db.into(_db.communities).insert(CommunitiesCompanion.insert(
-          id: legacyId,
-          name: 'La mia Community',
-          slug: 'my-community',
-          isOwner: const Value(true),
-          createdAt: Value(now),
-        ));
-        
-        // Link everything
-        await (_db.update(_db.tournaments)..where((t) => t.communityId.isNull())).write(TournamentsCompanion(communityId: Value(legacyId)));
-        await (_db.update(_db.teams)..where((t) => t.communityId.isNull())).write(TeamsCompanion(communityId: Value(legacyId)));
-        
-        return await (_db.select(_db.communities)..limit(1)).getSingleOrNull();
-      }
-    }
     return comm;
   }
 
@@ -82,11 +77,15 @@ class CommunityRepository {
         slug: Value(data['slug']),
         logoUrl: Value(data['logo_url']),
         isOwner: Value(isOwner),
+        inviteToken: Value(data['invite_token']),
+        inviteTokenExpiresAt: data['invite_token_expires_at'] != null 
+            ? Value(DateTime.parse(data['invite_token_expires_at'])) 
+            : const Value.absent(),
       ),
     );
   }
 
-  Future<bool> upsertCommunity({
+  Future<String?> upsertCommunity({
     required String name, 
     required String slug, 
     String? logoUrl, 
@@ -95,7 +94,7 @@ class CommunityRepository {
     String? tiktokUrl
   }) async {
     final ownerId = currentOwnerId;
-    if (ownerId == null) return false;
+    if (ownerId == null) return 'no-session';
     
     try {
       final existing = await getMyCommunityFromCloud();
@@ -119,15 +118,92 @@ class CommunityRepository {
       }
 
       // Save locally as OWNER
+      final String newId = finalCommunity['id'];
+      
+      // DATABASE MIGRATION: Check if we have a legacy community and migrate its contents
+      final legacyCommunities = await (_db.select(_db.communities)..where((t) => t.id.equals('legacy-id') | t.id.like('legacy-%'))).get();
+      
+      for (final legacy in legacyCommunities) {
+        if (legacy.id == newId) continue; 
+        
+        await (_db.update(_db.tournaments)..where((t) => t.communityId.equals(legacy.id)))
+            .write(TournamentsCompanion(communityId: Value(newId)));
+            
+        await (_db.update(_db.teams)..where((t) => t.communityId.equals(legacy.id)))
+            .write(TeamsCompanion(communityId: Value(newId)));
+            
+        await (_db.delete(_db.communities)..where((t) => t.id.equals(legacy.id))).go();
+      }
+
       await saveCommunityLocally(finalCommunity, true);
-      return true;
+      return null; // Success
+    } on PostgrestException catch (e) {
+      if (e.code == '23505') return 'slug-exists';
+      print('Upsert Postgrest error: ${e.message} (code: ${e.code})');
+      return 'error';
     } catch (e) {
       print('Upsert error: $e');
+      return 'error';
+    }
+  }
+
+  /// Generates a new secure invite token (UUID) valid for 24 hours
+  Future<String?> generateInviteToken(String communityId) async {
+    if (communityId.startsWith('legacy')) return null;
+    
+    try {
+      final token = _uuid.v4();
+      final expiresAt = DateTime.now().add(const Duration(hours: 24));
+      
+      final response = await _supabase
+          .from('communities')
+          .update({
+            'invite_token': token,
+            'invite_token_expires_at': expiresAt.toIso8601String(),
+          })
+          .eq('id', communityId)
+          .select()
+          .single();
+      
+      // Update local cache
+      await saveCommunityLocally(response, true);
+      
+      return token;
+    } catch (e) {
+      print('Generate token error: $e');
+      return null;
+    }
+  }
+
+  /// Join an existing community using a secure invite token
+  Future<bool> joinCommunityByToken(String token) async {
+    try {
+      // Find the community with this token and check expiration
+      final response = await _supabase
+          .from('communities')
+          .select()
+          .eq('invite_token', token)
+          .single();
+      
+      final expiresAtStr = response['invite_token_expires_at'];
+      if (expiresAtStr != null) {
+        final expiresAt = DateTime.parse(expiresAtStr);
+        if (DateTime.now().isAfter(expiresAt)) {
+          // Token expired
+          return false;
+        }
+      }
+      
+      // Save locally as MEMBER (not owner)
+      await saveCommunityLocally(response, false);
+      return true;
+    } catch (e) {
+      print('Join by token error: $e');
       return false;
     }
   }
 
-  /// Join an existing community (via QR scan)
+  /// Legacy join by ID - Deprecated for security
   Future<bool> joinCommunity(String communityId) async {
     try {
       final response = await _supabase
@@ -136,7 +212,6 @@ class CommunityRepository {
           .eq('id', communityId)
           .single();
       
-      // Save locally as MEMBER (not owner)
       await saveCommunityLocally(response, false);
       return true;
     } catch (e) {

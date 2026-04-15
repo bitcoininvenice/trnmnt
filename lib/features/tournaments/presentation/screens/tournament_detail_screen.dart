@@ -34,6 +34,8 @@ class _TournamentDetailScreenState extends ConsumerState<TournamentDetailScreen>
     if (!mounted) return;
 
     final tournament = await ref.read(tournamentByIdProvider(widget.tournamentId).future);
+    if (!mounted) return;
+    
     if (tournament != null && tournament.cloudId != null) {
       ref.read(syncRepositoryProvider).subscribeToTournament(
         tournament.cloudId!, 
@@ -145,7 +147,10 @@ class _TournamentDetailScreenState extends ConsumerState<TournamentDetailScreen>
                           children: [
                             const Icon(Icons.hub_outlined, size: 16, color: Colors.orange),
                             const SizedBox(width: 8),
-                            _CommunityBadge(communityId: tournament.communityId!),
+                            _CommunityBadge(
+                              communityId: tournament.communityId!,
+                              communityName: tournament.communityName,
+                            ),
                           ],
                         ),
                         const SizedBox(height: 12),
@@ -364,7 +369,8 @@ class _TournamentDetailScreenState extends ConsumerState<TournamentDetailScreen>
 
 class _CommunityBadge extends ConsumerWidget {
   final String communityId;
-  const _CommunityBadge({required this.communityId});
+  final String? communityName;
+  const _CommunityBadge({required this.communityId, this.communityName});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -372,9 +378,10 @@ class _CommunityBadge extends ConsumerWidget {
     
     return communityAsync.when(
       data: (community) {
-        if (community == null) return const SizedBox.shrink();
+        final name = community?.name ?? communityName;
+        if (name == null) return const SizedBox.shrink();
         return Text(
-          community.name,
+          name,
           style: const TextStyle(
             color: Colors.orange,
             fontSize: 13,
@@ -382,8 +389,12 @@ class _CommunityBadge extends ConsumerWidget {
           ),
         );
       },
-      loading: () => const SizedBox(child: CircularProgressIndicator(strokeWidth: 2), height: 12, width: 12),
-      error: (_, __) => const SizedBox.shrink(),
+      loading: () => communityName != null 
+          ? Text(communityName!, style: const TextStyle(color: Colors.orange, fontSize: 13, fontWeight: FontWeight.bold))
+          : const SizedBox(child: CircularProgressIndicator(strokeWidth: 2), height: 12, width: 12),
+      error: (_, __) => communityName != null 
+          ? Text(communityName!, style: const TextStyle(color: Colors.orange, fontSize: 13, fontWeight: FontWeight.bold))
+          : const SizedBox.shrink(),
     );
   }
 }

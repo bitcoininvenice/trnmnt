@@ -16,13 +16,37 @@ class ShareRepository {
   Future<Map<String, dynamic>?> fetchTournamentByCloudId(String cloudId) async {
     try {
       final supabase = Supabase.instance.client;
+      
+      // 1. Fetch tournament data and community ID
       final response = await supabase
           .from('published_tournaments')
-          .select('data')
+          .select('data, community_id')
           .eq('id', cloudId)
           .single();
       
-      return response['data'] as Map<String, dynamic>;
+      final Map<String, dynamic> data = Map<String, dynamic>.from(response['data'] as Map);
+      final String? communityId = response['community_id'];
+
+      // 2. If communityId is present but name is missing in JSON, fetch it from cloud communities table
+      if (communityId != null) {
+        final tournamentData = data['tournament'] as Map<String, dynamic>;
+        if (tournamentData['communityName'] == null) {
+          try {
+            final commResponse = await supabase
+                .from('communities')
+                .select('name')
+                .eq('id', communityId)
+                .single();
+            
+            tournamentData['communityName'] = commResponse['name'];
+            tournamentData['communityId'] = communityId;
+          } catch (_) {
+            // Community might have been deleted or not found
+          }
+        }
+      }
+      
+      return data;
     } catch (e) {
       return null;
     }
@@ -47,8 +71,14 @@ class ShareRepository {
 
     final matches = await (_db.select(_db.matches)..where((m) => m.tournamentId.equals(tournamentId))).get();
 
+    final activeCommunity = await _communityRepo.getActiveCommunity(null);
+    final tournamentMap = tournament.toJson();
+    if (activeCommunity != null && tournament.communityId == activeCommunity.id) {
+      tournamentMap['communityName'] = activeCommunity.name;
+    }
+
     return {
-      'tournament': tournament.toJson(),
+      'tournament': tournamentMap,
       'teams': exportTeams,
       'matches': matches.map((m) => m.toJson()).toList(),
       'exportedAt': DateTime.now().toIso8601String(),

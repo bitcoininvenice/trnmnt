@@ -25,12 +25,21 @@ class _JoinCommunityScreenState extends ConsumerState<JoinCommunityScreen> {
       if (barcode.rawValue == null) continue;
       
       final String code = barcode.rawValue!;
+      final uri = Uri.tryParse(code);
       
-      if (code.startsWith('trnmnt://join-community?id=')) {
+      if (uri != null && (uri.host == 'join-community' || code.startsWith('trnmnt://join-community'))) {
         setState(() => _isProcessing = true);
         
-        final communityId = code.replaceFirst('trnmnt://join-community?id=', '');
-        final success = await ref.read(communityRepositoryProvider).joinCommunity(communityId);
+        final token = uri.queryParameters['token'];
+        final id = uri.queryParameters['id'];
+        
+        bool success = false;
+        if (token != null) {
+          success = await ref.read(communityRepositoryProvider).joinCommunityByToken(token);
+        } else if (id != null) {
+          // Legacy support (optional: remove for maximum security)
+          success = await ref.read(communityRepositoryProvider).joinCommunity(id);
+        }
         
         if (mounted) {
           if (success) {

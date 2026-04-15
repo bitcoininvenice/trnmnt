@@ -251,7 +251,7 @@ abstract class AppLocalizations {
   /// No description provided for @saveCommunity.
   ///
   /// In it, this message translates to:
-  /// **'SALVA COMMUNITY'**
+  /// **'COMMUNITY AGGIORNATA'**
   String get saveCommunity;
 
   /// No description provided for @totalTeams.
@@ -1459,6 +1459,192 @@ abstract class AppLocalizations {
   /// In it, this message translates to:
   /// **'Fonte Pick&Roll'**
   String get mapDataSourcePickRoll;
+
+  /// No description provided for @syncSuccess.
+  ///
+  /// In it, this message translates to:
+  /// **'Sincronizzato sul Cloud! ☁️🏀'**
+  String get syncSuccess;
+
+  /// No description provided for @webResult.
+  ///
+  /// In it, this message translates to:
+  /// **'Risultati Web'**
+  String get webResult;
+
+  /// No description provided for @coManagement.
+  ///
+  /// In it, this message translates to:
+  /// **'Co-Gestione'**
+  String get coManagement;
+
+  /// No description provided for @publicDashboard.
+  ///
+  /// In it, this message translates to:
+  /// **'DASHBOARD PUBBLICA'**
+  String get publicDashboard;
+
+  /// No description provided for @coManagementTitle.
+  ///
+  /// In it, this message translates to:
+  /// **'CO-GESTIONE CLOUD'**
+  String get coManagementTitle;
+
+  /// No description provided for @publicDashboardDesc.
+  ///
+  /// In it, this message translates to:
+  /// **'Chiunque può vedere i risultati live'**
+  String get publicDashboardDesc;
+
+  /// No description provided for @coManagementDesc.
+  ///
+  /// In it, this message translates to:
+  /// **'Invita un altro organizzatore a gestire il torneo'**
+  String get coManagementDesc;
+
+  /// No description provided for @cloudSettings.
+  ///
+  /// In it, this message translates to:
+  /// **'IMPOSTAZIONI CLOUD'**
+  String get cloudSettings;
+
+  /// No description provided for @liveLocationLabel.
+  ///
+  /// In it, this message translates to:
+  /// **'LOCATION LIVE'**
+  String get liveLocationLabel;
+
+  /// No description provided for @locationHint.
+  ///
+  /// In it, this message translates to:
+  /// **'Es: Playground San Alvise'**
+  String get locationHint;
+
+  /// No description provided for @twitchChannelLabel.
+  ///
+  /// In it, this message translates to:
+  /// **'CANALE TWITCH'**
+  String get twitchChannelLabel;
+
+  /// No description provided for @twitchHint.
+  ///
+  /// In it, this message translates to:
+  /// **'Es: venicestreetball'**
+  String get twitchHint;
+
+  /// No description provided for @customTickerLabel.
+  ///
+  /// In it, this message translates to:
+  /// **'TESTO SCORREVOLE (TICKER)'**
+  String get customTickerLabel;
+
+  /// No description provided for @tickerHint.
+  ///
+  /// In it, this message translates to:
+  /// **'Sponsor, annunci community...'**
+  String get tickerHint;
+
+  /// No description provided for @tickerAutoDesc.
+  ///
+  /// In it, this message translates to:
+  /// **'Lascia vuoto per utilizzare il testo generato dal sistema.'**
+  String get tickerAutoDesc;
+
+  /// No description provided for @copyLink.
+  ///
+  /// In it, this message translates to:
+  /// **'Copia link'**
+  String get copyLink;
+
+  /// No description provided for @openPage.
+  ///
+  /// In it, this message translates to:
+  /// **'Apri Pagina'**
+  String get openPage;
+
+  /// No description provided for @syncing.
+  ///
+  /// In it, this message translates to:
+  /// **'Sincronizzazione...'**
+  String get syncing;
+
+  /// No description provided for @syncCloud.
+  ///
+  /// In it, this message translates to:
+  /// **'Sincronizza Cloud'**
+  String get syncCloud;
+
+  /// No description provided for @urlSlug.
+  ///
+  /// In it, this message translates to:
+  /// **'URL Slug'**
+  String get urlSlug;
+
+  /// No description provided for @locationLabel.
+  ///
+  /// In it, this message translates to:
+  /// **'Location'**
+  String get locationLabel;
+
+  /// No description provided for @instagramLabel.
+  ///
+  /// In it, this message translates to:
+  /// **'Instagram'**
+  String get instagramLabel;
+
+  /// No description provided for @tiktokLabel.
+  ///
+  /// In it, this message translates to:
+  /// **'TikTok'**
+  String get tiktokLabel;
+
+  /// No description provided for @invalidName.
+  ///
+  /// In it, this message translates to:
+  /// **'Inserisci un nome valido'**
+  String get invalidName;
+
+  /// No description provided for @invalidUrl.
+  ///
+  /// In it, this message translates to:
+  /// **'Inserisci un URL valido'**
+  String get invalidUrl;
+
+  /// No description provided for @noActiveInvite.
+  ///
+  /// In it, this message translates to:
+  /// **'Nessun invito attivo o scaduto. Generane uno nuovo.'**
+  String get noActiveInvite;
+
+  /// No description provided for @expiryDate.
+  ///
+  /// In it, this message translates to:
+  /// **'Scadenza: {time} del {date}'**
+  String expiryDate(String time, String date);
+
+  /// No description provided for @regenerateInvite.
+  ///
+  /// In it, this message translates to:
+  /// **'RIGENERA'**
+  String get regenerateInvite;
+
+  /// No description provided for @generateInviteAction.
+  ///
+  /// In it, this message translates to:
+  /// **'GENERA INVITO'**
+  String get generateInviteAction;
+
+  /// No description provided for @slugAlreadyExists.
+  ///
+  /// In it, this message translates to:
+  /// **'Questo URL è già occupato da un\'altra community.'**
+  String get slugAlreadyExists;
+
+  /// No description provided for @close.
+  ///
+  /// In it, this message translates to:
+  /// **'CHIUDI'**
+  String get close;
 }
 
 class _AppLocalizationsDelegate

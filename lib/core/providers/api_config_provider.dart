@@ -53,11 +53,12 @@ class ApiConfigNotifier extends StateNotifier<ApiConfig> {
 
   Future<bool> testConnection() async {
     try {
-      // Test the /health endpoint or similar. 
-      // If we don't have one, just try a GET to the base or api/publish (might 405 but still reachable)
-      final response = await http.get(Uri.parse('${state.baseUrl}/api/publish')).timeout(const Duration(seconds: 5));
-      // Even if 405 Method Not Allowed, it means server is alive
-      final isAlive = response.statusCode != 404 && response.statusCode < 500;
+      // Test the base URL. If we can reach it, the web dashboard is likely up.
+      final response = await http.get(Uri.parse(state.baseUrl)).timeout(const Duration(seconds: 5));
+      
+      // Any response code below 500 (even 404 if the server is up but root is missing) 
+      // typically means the server is reachable and alive.
+      final isAlive = response.statusCode < 500;
       state = state.copyWith(isConnected: isAlive);
       return isAlive;
     } catch (e) {
