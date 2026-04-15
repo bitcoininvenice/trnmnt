@@ -6,6 +6,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../../data/tournaments_repository.dart';
 import '../../data/matches_repository.dart';
 import '../../../../core/database/app_database.dart';
+import '../../../sharing/data/share_repository.dart';
 import 'standings_screen.dart';
 
 /// Bracket match data
@@ -60,15 +61,34 @@ final bracketProvider = FutureProvider.family<Map<String, List<BracketMatch>>, i
 
 final playSpareggiProvider = StateProvider.family<bool, int>((ref, id) => true);
 
-class BracketScreen extends ConsumerWidget {
+class BracketScreen extends ConsumerStatefulWidget {
   final int tournamentId;
 
   const BracketScreen({super.key, required this.tournamentId});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final bracketAsync = ref.watch(bracketProvider(tournamentId));
-    final tournamentAsync = ref.watch(tournamentByIdProvider(tournamentId));
+  ConsumerState<BracketScreen> createState() => _BracketScreenState();
+}
+
+class _BracketScreenState extends ConsumerState<BracketScreen> {
+  bool _isProcessing = false;
+
+  @override
+  Widget build(BuildContext context) {
+    // 1. Defensive check
+    if (!mounted) return const SizedBox.shrink();
+
+    // 2. Unconditional watches at the top (Riverpod best practice)
+    final bracketAsync = ref.watch(bracketProvider(widget.tournamentId));
+    final tournamentAsync = ref.watch(tournamentByIdProvider(widget.tournamentId));
+
+    // 3. Early return for processing state
+    if (_isProcessing) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Eliminatoria')),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -87,7 +107,7 @@ class BracketScreen extends ConsumerWidget {
           IconButton(
             icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
             tooltip: 'Elimina e ricrea',
-            onPressed: () => deleteBracket(context, ref, tournamentId),
+            onPressed: () => _softDeleteBracket(context, ref, widget.tournamentId),
           ),
         ],
       ),
@@ -106,7 +126,7 @@ class BracketScreen extends ConsumerWidget {
   }
 
   Widget _buildEmptyState(BuildContext context, WidgetRef ref, AsyncValue<dynamic> tournamentAsync) {
-    final playSpareggi = ref.watch(playSpareggiProvider(tournamentId));
+    final playSpareggi = ref.watch(playSpareggiProvider(widget.tournamentId));
 
     return Center(
       child: Container(
@@ -118,7 +138,7 @@ class BracketScreen extends ConsumerWidget {
             Icon(
               Icons.account_tree_outlined,
               size: 80,
-              color: Colors.white.withOpacity(0.3),
+              color: Colors.white.withValues(alpha: 0.3),
             ),
             const SizedBox(height: 24),
             Text(
@@ -129,7 +149,7 @@ class BracketScreen extends ConsumerWidget {
             Text(
               'Genera il bracket per iniziare la fase eliminatoria',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Colors.white.withOpacity(0.6),
+                color: Colors.white.withValues(alpha: 0.6),
               ),
               textAlign: TextAlign.center,
             ),
@@ -137,12 +157,12 @@ class BracketScreen extends ConsumerWidget {
             
             // SPAREGGI TOGGLE
             Card(
-              color: Colors.white.withOpacity(0.05),
+              color: Colors.white.withValues(alpha: 0.05),
               child: SwitchListTile(
                 title: const Text('Gioca Spareggi', style: TextStyle(fontWeight: FontWeight.bold)),
                 subtitle: const Text('2ª vs 3ª dei gironi (Qualifica 3 per girone)'),
                 value: playSpareggi,
-                onChanged: (val) => ref.read(playSpareggiProvider(tournamentId).notifier).state = val,
+                onChanged: (val) => ref.read(playSpareggiProvider(widget.tournamentId).notifier).state = val,
                 secondary: Icon(Icons.compare_arrows, color: playSpareggi ? Colors.amber : Colors.grey),
               ),
             ),
@@ -178,14 +198,14 @@ class BracketScreen extends ConsumerWidget {
   }
 
   Future<void> _generateFromStandings(BuildContext context, WidgetRef ref) async {
-    final tournament = await ref.read(tournamentByIdProvider(tournamentId).future);
+    final tournament = await ref.read(tournamentByIdProvider(widget.tournamentId).future);
     if (tournament == null) return;
     
-    final playSpareggi = ref.read(playSpareggiProvider(tournamentId));
-    final standingsMap = await ref.read(standingsProvider(tournamentId).future);
+    final playSpareggi = ref.read(playSpareggiProvider(widget.tournamentId));
+    final standingsMap = await ref.read(standingsProvider(widget.tournamentId).future);
     
     if (standingsMap.isEmpty) {
-       if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Completare le partite dei gironi per generare il tabellone.')));
+       if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Completare le partite dei gironi per generare il tabellone.')));
        return;
     }
 
@@ -219,14 +239,15 @@ class BracketScreen extends ConsumerWidget {
   }
 
   Future<void> _generateRandom(BuildContext context, WidgetRef ref) async {
-    final teams = await ref.read(tournamentTeamsProvider(tournamentId).future);
-    final tournament = await ref.read(tournamentByIdProvider(tournamentId).future);
+    final teams = await ref.read(tournamentTeamsProvider(widget.tournamentId).future);
+    final tournament = await ref.read(tournamentByIdProvider(widget.tournamentId).future);
     if (teams.isEmpty || tournament == null) {
-      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Nessuna squadra nel torneo.')));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Nessuna squadra nel torneo.')));
       return;
     }
 
     final teamIds = teams.map((t) => t.team.id).toList()..shuffle();
+    if (!mounted) return;
     await _generateDynamicBracket(context, ref, tournament, teamIds, false);
   }
 
@@ -237,115 +258,132 @@ class BracketScreen extends ConsumerWidget {
     List<int> allQualifiers,
     bool playSpareggi,
   ) async {
-    final repo = ref.read(matchesRepositoryProvider);
-    final numTeams = allQualifiers.length;
-    
-    if (numTeams < 2) {
-       if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Numero di squadre insufficiente.')));
-       return;
-    }
-
-    // Determine Bracket Size
-    int bracketSize = 2;
-    while (bracketSize < numTeams) {
-      bracketSize *= 2;
-    }
-
-    final phaseNames = {
-      2: 'final',
-      4: 'semifinal',
-      8: 'quarterfinal',
-      16: 'round_of_16',
-      32: 'round_of_32',
-    };
-
-    final bool exactPower = bracketSize == numTeams;
-    
-    // Clear existing matches
-    await repo.deleteMatchesByPhase(tournamentId, 'play_in');
-    await repo.deleteMatchesByPhase(tournamentId, 'round_of_32');
-    await repo.deleteMatchesByPhase(tournamentId, 'round_of_16');
-    await repo.deleteMatchesByPhase(tournamentId, 'quarterfinal');
-    await repo.deleteMatchesByPhase(tournamentId, 'semifinal');
-    await repo.deleteMatchesByPhase(tournamentId, 'final');
-    await repo.deleteMatchesByPhase(tournamentId, 'third_place');
-
-    if (exactPower && !playSpareggi) {
-      // STANDARD BRACKET
-      int currentSize = bracketSize;
-      while (currentSize >= 2) {
-        final phase = phaseNames[currentSize]!;
-        final numMatches = currentSize ~/ 2;
-        for (int i = 1; i <= numMatches; i++) {
-          int? home, away;
-          if (currentSize == bracketSize) {
-             home = allQualifiers.length > (i - 1) ? allQualifiers[i - 1] : null;
-             away = allQualifiers.length > (currentSize - i) ? allQualifiers[currentSize - i] : null;
-          }
-          await repo.createMatch(tournamentId: tournamentId, round: i, phase: phase, homeTeamId: home, awayTeamId: away);
-        }
-        currentSize ~/= 2;
-      }
-    } else {
-      // PLAY-IN OR FORCED SPAREGGI
-      // If playSpareggi is true and numTeams is 6, we force bracketSize 8
-      int effectiveBracketSize = bracketSize;
-      if (playSpareggi && numTeams == 6) effectiveBracketSize = 8;
+    setState(() => _isProcessing = true);
+    try {
+      final repo = ref.read(matchesRepositoryProvider);
+      final numTeams = allQualifiers.length;
       
-      final int numByes = effectiveBracketSize - numTeams;
-      final int numPlayIn = numTeams - (effectiveBracketSize ~/ 2);
+      if (numTeams < 2) {
+         if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Numero di squadre insufficiente.')));
+         return;
+      }
+
+      // Determine Bracket Size
+      int bracketSize = 2;
+      while (bracketSize < numTeams) {
+        bracketSize *= 2;
+      }
+
+      final phaseNames = {
+        2: 'final',
+        4: 'semifinal',
+        8: 'quarterfinal',
+        16: 'round_of_16',
+        32: 'round_of_32',
+      };
+
+      final bool exactPower = bracketSize == numTeams;
       
-      // 1. Play-In Matches
-      for (int i = 1; i <= numPlayIn; i++) {
-        final homeIdx = numByes + (i - 1);
-        final awayIdx = numTeams - i;
-        await repo.createMatch(
-          tournamentId: tournamentId, 
-          round: i, 
-          phase: 'play_in', 
-          homeTeamId: allQualifiers.length > homeIdx ? allQualifiers[homeIdx] : null,
-          awayTeamId: allQualifiers.length > awayIdx ? allQualifiers[awayIdx] : null,
-        );
-      }
+      // Clear existing matches
+      await repo.deleteMatchesByPhase(widget.tournamentId, 'play_in');
+      await repo.deleteMatchesByPhase(widget.tournamentId, 'round_of_32');
+      await repo.deleteMatchesByPhase(widget.tournamentId, 'round_of_16');
+      await repo.deleteMatchesByPhase(widget.tournamentId, 'quarterfinal');
+      await repo.deleteMatchesByPhase(widget.tournamentId, 'semifinal');
+      await repo.deleteMatchesByPhase(widget.tournamentId, 'final');
+      await repo.deleteMatchesByPhase(widget.tournamentId, 'third_place');
 
-      // 2. Next Phases (Seeds waiting)
-      int currentSize = effectiveBracketSize ~/ 2;
-      while (currentSize >= 2) {
-        final phase = phaseNames[currentSize]!;
-        final numMatches = currentSize ~/ 2;
-        for (int i = 1; i <= numMatches; i++) {
-          int? home;
-          if (currentSize == effectiveBracketSize ~/ 2 && i <= numByes) {
-             home = allQualifiers.length > (i - 1) ? allQualifiers[i - 1] : null;
+      if (exactPower && !playSpareggi) {
+        // STANDARD BRACKET
+        int currentSize = bracketSize;
+        while (currentSize >= 2) {
+          final phase = phaseNames[currentSize]!;
+          final numMatches = currentSize ~/ 2;
+          for (int i = 1; i <= numMatches; i++) {
+            int? home, away;
+            if (currentSize == bracketSize) {
+               home = allQualifiers.length > (i - 1) ? allQualifiers[i - 1] : null;
+               away = allQualifiers.length > (currentSize - i) ? allQualifiers[currentSize - i] : null;
+            }
+            await repo.createMatch(tournamentId: widget.tournamentId, round: i, phase: phase, homeTeamId: home, awayTeamId: away);
           }
-          await repo.createMatch(tournamentId: tournamentId, round: i, phase: phase, homeTeamId: home);
+          currentSize ~/= 2;
         }
-        currentSize ~/= 2;
+      } else {
+        // PLAY-IN OR FORCED SPAREGGI
+        // If playSpareggi is true and numTeams is 6, we force bracketSize 8
+        int effectiveBracketSize = bracketSize;
+        if (playSpareggi && numTeams == 6) effectiveBracketSize = 8;
+        
+        final int numByes = effectiveBracketSize - numTeams;
+        final int numPlayIn = numTeams - (effectiveBracketSize ~/ 2);
+        
+        // 1. Play-In Matches
+        for (int i = 1; i <= numPlayIn; i++) {
+          final homeIdx = numByes + (i - 1);
+          final awayIdx = numTeams - i;
+          await repo.createMatch(
+            tournamentId: widget.tournamentId, 
+            round: i, 
+            phase: 'play_in', 
+            homeTeamId: allQualifiers.length > homeIdx ? allQualifiers[homeIdx] : null,
+            awayTeamId: allQualifiers.length > awayIdx ? allQualifiers[awayIdx] : null,
+          );
+        }
+
+        // 2. Next Phases (Seeds waiting)
+        int currentSize = effectiveBracketSize ~/ 2;
+        while (currentSize >= 2) {
+          final phase = phaseNames[currentSize]!;
+          final numMatches = currentSize ~/ 2;
+          for (int i = 1; i <= numMatches; i++) {
+            int? home;
+            if (currentSize == effectiveBracketSize ~/ 2 && i <= numByes) {
+               home = allQualifiers.length > (i - 1) ? allQualifiers[i - 1] : null;
+            }
+            await repo.createMatch(tournamentId: widget.tournamentId, round: i, phase: phase, homeTeamId: home);
+          }
+          currentSize ~/= 2;
+        }
+      }
+
+      if (tournament.includeConsolationFinals) {
+        await repo.createMatch(tournamentId: widget.tournamentId, round: 1, phase: 'third_place');
+      }
+
+      // Auto-sync back to cloud if published
+      if (tournament.isPublished) {
+        await ref.read(shareRepositoryProvider).publishToSupabase(widget.tournamentId);
+      }
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Bracket generato con successo!')));
+    } catch (e) {
+       if (mounted) {
+         setState(() => _isProcessing = false);
+         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Errore: $e')));
+       }
+    } finally {
+      if (mounted) {
+        setState(() => _isProcessing = false);
       }
     }
-
-    if (tournament.includeConsolationFinals) {
-      await repo.createMatch(tournamentId: tournamentId, round: 1, phase: 'third_place');
-    }
-
-    ref.refresh(bracketProvider(tournamentId));
-    if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Bracket generato con successo!')));
   }
 
   Future<void> _generateBracket(BuildContext context, WidgetRef ref, List<int> orderedTeamIds) async {
-     final tournament = await ref.read(tournamentByIdProvider(tournamentId).future);
+     final tournament = await ref.read(tournamentByIdProvider(widget.tournamentId).future);
     if (tournament == null) return;
 
     final repo = ref.read(matchesRepositoryProvider);
     
     // Delete existing elimination matches
-    await repo.deleteMatchesByPhase(tournamentId, 'round_of_16');
-    await repo.deleteMatchesByPhase(tournamentId, 'quarterfinal');
-    await repo.deleteMatchesByPhase(tournamentId, 'semifinal');
-    await repo.deleteMatchesByPhase(tournamentId, 'final');
-    await repo.deleteMatchesByPhase(tournamentId, 'third_place');
-    await repo.deleteMatchesByPhase(tournamentId, 'fifth_place');
-    await repo.deleteMatchesByPhase(tournamentId, 'seventh_place');
+    await repo.deleteMatchesByPhase(widget.tournamentId, 'round_of_16');
+    await repo.deleteMatchesByPhase(widget.tournamentId, 'quarterfinal');
+    await repo.deleteMatchesByPhase(widget.tournamentId, 'semifinal');
+    await repo.deleteMatchesByPhase(widget.tournamentId, 'final');
+    await repo.deleteMatchesByPhase(widget.tournamentId, 'third_place');
+    await repo.deleteMatchesByPhase(widget.tournamentId, 'fifth_place');
+    await repo.deleteMatchesByPhase(widget.tournamentId, 'seventh_place');
 
     final numTeams = orderedTeamIds.length;
     
@@ -355,7 +393,7 @@ class BracketScreen extends ConsumerWidget {
         final homeIdx = i;
         final awayIdx = 7 - i;
         await repo.createMatch(
-          tournamentId: tournamentId,
+          tournamentId: widget.tournamentId,
           homeTeamId: homeIdx < numTeams ? orderedTeamIds[homeIdx] : null,
           awayTeamId: awayIdx < numTeams ? orderedTeamIds[awayIdx] : null,
           round: i + 1,
@@ -370,7 +408,7 @@ class BracketScreen extends ConsumerWidget {
         final homeIdx = numTeams < 8 ? i : null;
         final awayIdx = numTeams < 8 ? 3 - i : null;
         await repo.createMatch(
-          tournamentId: tournamentId,
+          tournamentId: widget.tournamentId,
           homeTeamId: numTeams < 8 && homeIdx != null && homeIdx < numTeams ? orderedTeamIds[homeIdx] : null,
           awayTeamId: numTeams < 8 && awayIdx != null && awayIdx < numTeams ? orderedTeamIds[awayIdx] : null,
           round: i + 1,
@@ -380,7 +418,7 @@ class BracketScreen extends ConsumerWidget {
     }
 
     await repo.createMatch(
-      tournamentId: tournamentId,
+      tournamentId: widget.tournamentId,
       homeTeamId: numTeams == 2 ? orderedTeamIds[0] : null,
       awayTeamId: numTeams == 2 ? orderedTeamIds[1] : null,
       round: 1,
@@ -388,11 +426,10 @@ class BracketScreen extends ConsumerWidget {
     );
 
     if (tournament.includeConsolationFinals) {
-      await repo.createMatch(tournamentId: tournamentId, round: 1, phase: 'third_place');
+      await repo.createMatch(tournamentId: widget.tournamentId, round: 1, phase: 'third_place');
     }
 
-    ref.refresh(bracketProvider(tournamentId));
-    if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Bracket generato!')));
+    if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Bracket generato!')));
   }
 
   Widget _buildBracketView(BuildContext context, Map<String, List<BracketMatch>> bracket) {
@@ -454,7 +491,7 @@ class BracketScreen extends ConsumerWidget {
                   ),
                 ],
               ),
-            ).animate().fadeIn().scale(),
+            ),
 
           // Main bracket area
           SingleChildScrollView(
@@ -522,7 +559,7 @@ class BracketScreen extends ConsumerWidget {
         onTap: () {
           if (match.matchId != null) {
             context.pushNamed('match-detail', pathParameters: {
-              'tournamentId': tournamentId.toString(),
+              'tournamentId': widget.tournamentId.toString(),
               'matchId': match.matchId.toString(),
             });
           }
@@ -543,7 +580,7 @@ class BracketScreen extends ConsumerWidget {
           ),
         ),
       ),
-    ).animate().fadeIn().scale(begin: const Offset(0.95, 0.95));
+    );
   }
 
   Widget _buildTeamRow(BuildContext context, String? teamName, int? score, bool isWinner) {
@@ -602,44 +639,60 @@ class BracketScreen extends ConsumerWidget {
         return phase;
     }
   }
-}
 
-Future<void> deleteBracket(BuildContext context, WidgetRef ref, int tournamentId) async {
-  final confirm = await showDialog<bool>(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: const Text('Elimina Bracket'),
-      content: const Text('Sei sicuro di voler eliminare tutto il tabellone eliminatorio? I risultati verranno persi.'),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Annulla')),
-        TextButton(
-          onPressed: () => Navigator.pop(context, true),
-          style: TextButton.styleFrom(foregroundColor: Colors.red),
-          child: const Text('Elimina'),
-        ),
-      ],
-    ),
-  );
-
-  if (confirm != true) return;
-
-  final repo = ref.read(matchesRepositoryProvider);
-  await repo.deleteMatchesByPhase(tournamentId, 'play_in');
-  await repo.deleteMatchesByPhase(tournamentId, 'round_of_32');
-  await repo.deleteMatchesByPhase(tournamentId, 'round_of_16');
-  await repo.deleteMatchesByPhase(tournamentId, 'quarterfinal');
-  await repo.deleteMatchesByPhase(tournamentId, 'semifinal');
-  await repo.deleteMatchesByPhase(tournamentId, 'final');
-  await repo.deleteMatchesByPhase(tournamentId, 'third_place');
-  await repo.deleteMatchesByPhase(tournamentId, 'fifth_place');
-  await repo.deleteMatchesByPhase(tournamentId, 'seventh_place');
-
-  if (context.mounted) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Tabellone eliminato con successo.')),
+  Future<void> _softDeleteBracket(BuildContext context, WidgetRef ref, int tournamentId) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Elimina Bracket'),
+        content: const Text('Sei sicuro di voler eliminare tutto il tabellone eliminatorio? I risultati verranno persi.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Annulla')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Elimina'),
+          ),
+        ],
+      ),
     );
-  }
 
-  // ignore: unused_result
-  ref.refresh(bracketProvider(tournamentId));
+    if (confirm != true) return;
+
+    setState(() => _isProcessing = true);
+    try {
+      final repo = ref.read(matchesRepositoryProvider);
+      await repo.deleteMatchesByPhase(tournamentId, 'play_in');
+      await repo.deleteMatchesByPhase(tournamentId, 'round_of_32');
+      await repo.deleteMatchesByPhase(tournamentId, 'round_of_16');
+      await repo.deleteMatchesByPhase(tournamentId, 'quarterfinal');
+      await repo.deleteMatchesByPhase(tournamentId, 'semifinal');
+      await repo.deleteMatchesByPhase(tournamentId, 'final');
+      await repo.deleteMatchesByPhase(tournamentId, 'third_place');
+      await repo.deleteMatchesByPhase(tournamentId, 'fifth_place');
+      await repo.deleteMatchesByPhase(tournamentId, 'seventh_place');
+
+      if (!mounted) return;
+      // Auto-sync after deletion if published
+      final tournament = await ref.read(tournamentByIdProvider(tournamentId).future);
+      if (!mounted) return;
+      if (tournament != null && tournament.isPublished) {
+        await ref.read(shareRepositoryProvider).publishToSupabase(tournamentId);
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Tabellone eliminato con successo.')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isProcessing = false);
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isProcessing = false);
+      }
+    }
+  }
 }

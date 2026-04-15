@@ -139,10 +139,8 @@ class CommunityRepository {
       return null; // Success
     } on PostgrestException catch (e) {
       if (e.code == '23505') return 'slug-exists';
-      print('Upsert Postgrest error: ${e.message} (code: ${e.code})');
       return 'error';
     } catch (e) {
-      print('Upsert error: $e');
       return 'error';
     }
   }
@@ -170,7 +168,6 @@ class CommunityRepository {
       
       return token;
     } catch (e) {
-      print('Generate token error: $e');
       return null;
     }
   }
@@ -198,7 +195,6 @@ class CommunityRepository {
       await saveCommunityLocally(response, false);
       return true;
     } catch (e) {
-      print('Join by token error: $e');
       return false;
     }
   }
@@ -235,16 +231,24 @@ final currentCommunityProvider = FutureProvider<Community?>((ref) async {
   
   final community = await repo.getActiveCommunity(selectedId);
   
-  // Auto-selection logic: if nothing selected but only 1 community exists, select it
+  // Auto-selection logic: if nothing selected but communities exist, pick the best candidate
   if (community == null && selectedId == null) {
     final all = await repo.getAllLocalCommunities();
-    if (all.length == 1) {
-      final onlyOne = all.first;
-      // We use a microtask to avoid updating providers during build if this is called reactively
-      Future.microtask(() {
-        ref.read(selectedCommunityIdProvider.notifier).setSelected(onlyOne.id);
+    if (all.isNotEmpty) {
+      // Sort to prioritize owned communities, then by name
+      all.sort((a, b) {
+        if (a.isOwner && !b.isOwner) return -1;
+        if (!a.isOwner && b.isOwner) return 1;
+        return a.name.compareTo(b.name);
       });
-      return onlyOne;
+      
+      final candidate = all.first;
+      Future.microtask(() {
+        if (ref.read(selectedCommunityIdProvider) != candidate.id) {
+          ref.read(selectedCommunityIdProvider.notifier).setSelected(candidate.id);
+        }
+      });
+      return candidate;
     }
   }
   

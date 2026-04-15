@@ -6,6 +6,7 @@ import '../../../../core/database/app_database.dart';
 import '../../data/tournaments_repository.dart';
 import '../../data/matches_repository.dart';
 import '../../../teams/data/teams_repository.dart';
+import '../../../sharing/data/share_repository.dart';
 
 class TournamentEditScreen extends ConsumerStatefulWidget {
   final int tournamentId;
@@ -78,6 +79,12 @@ class _TournamentEditScreenState extends ConsumerState<TournamentEditScreen> {
       );
 
       await repo.setTournamentTeams(widget.tournamentId, _selectedTeamIds);
+      
+      // Auto-sync after edit if published
+      final tournament = await ref.read(tournamentByIdProvider(widget.tournamentId).future);
+      if (tournament != null && tournament.isPublished) {
+        ref.read(shareRepositoryProvider).publishToSupabase(widget.tournamentId).catchError((_) => null);
+      }
 
       if (mounted) {
         context.pop();

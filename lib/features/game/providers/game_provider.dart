@@ -4,6 +4,7 @@ import 'package:trnmnt/core/database/app_database.dart';
 import '../../tournaments/data/matches_repository.dart';
 import '../../tournaments/data/tournaments_repository.dart';
 import '../../sharing/data/share_repository.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/services.dart';
 
@@ -219,6 +220,7 @@ class GameNotifier extends StateNotifier<GameState> {
 
       final repo = _ref.read(shareRepositoryProvider);
       
+      // Update live match on Supabase
       await repo.updateLiveMatch(
         cloudId: tournament.cloudId!,
         matchId: state.matchId!,
@@ -232,7 +234,9 @@ class GameNotifier extends StateNotifier<GameState> {
 
       _lastSyncHomeScore = state.homeScore;
       _lastSyncAwayScore = state.awayScore;
-    } catch (_) {}
+    } catch (_) {
+      // Silent error for production
+    }
   }
 
   Future<void> finishGame() async {

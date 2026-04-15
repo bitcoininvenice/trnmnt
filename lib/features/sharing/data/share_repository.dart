@@ -178,16 +178,16 @@ class ShareRepository {
     try {
       final supabase = Supabase.instance.client;
       await supabase.from('live_matches').upsert({
-        'id': '${cloudId}_$matchId',
+        'id': cloudId,
         'home_score': homeScore,
         'away_score': awayScore,
         'timer': timer,
         'home_team_name': homeName,
         'away_team_name': awayName,
         'is_running': isRunning,
-        'updated_at': DateTime.now().toIso8601String(),
+        'last_update': DateTime.now().toIso8601String(),
       });
-    } catch (e) {
+    } catch (_) {
       // Silent error for production
     }
   }
@@ -195,7 +195,7 @@ class ShareRepository {
   Future<void> clearLiveMatch(String cloudId, int matchId) async {
     try {
       final supabase = Supabase.instance.client;
-      await supabase.from('live_matches').delete().eq('id', '${cloudId}_$matchId');
+      await supabase.from('live_matches').delete().eq('id', cloudId);
     } catch (e) {
       // Silent error
     }

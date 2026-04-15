@@ -7,11 +7,25 @@ import 'package:trnmnt/features/tournaments/data/tournaments_repository.dart';
 import 'package:trnmnt/features/community/data/community_repository.dart';
 import 'package:trnmnt/core/database/app_database.dart';
 
-class TournamentsScreen extends ConsumerWidget {
+class TournamentsScreen extends ConsumerStatefulWidget {
   const TournamentsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<TournamentsScreen> createState() => _TournamentsScreenState();
+}
+
+class _TournamentsScreenState extends ConsumerState<TournamentsScreen> {
+  bool _isProcessing = false;
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isProcessing) {
+      return Scaffold(
+        appBar: AppBar(title: Text(AppLocalizations.of(context)!.myTournaments)),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
     final tournamentsAsync = ref.watch(filteredTournamentsProvider);
     final searchQuery = ref.watch(tournamentSearchQueryProvider);
     final selectedMode = ref.watch(tournamentModeFilterProvider);
@@ -38,7 +52,6 @@ class TournamentsScreen extends ConsumerWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Search Bar
                 TextField(
                   onChanged: (val) => ref.read(tournamentSearchQueryProvider.notifier).state = val,
                   decoration: InputDecoration(
@@ -55,8 +68,6 @@ class TournamentsScreen extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: 12),
-                
-                // Mode Filters
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: Row(
@@ -68,17 +79,15 @@ class TournamentsScreen extends ConsumerWidget {
                         onSelected: (_) => ref.read(tournamentModeFilterProvider.notifier).state = null,
                       ),
                       const SizedBox(width: 8),
-                      _buildFilterChip(context, ref, 'group_only', AppLocalizations.of(context)!.groupOnly, selectedMode),
+                      _buildFilterChip('group_only', AppLocalizations.of(context)!.groupOnly, selectedMode),
                       const SizedBox(width: 8),
-                      _buildFilterChip(context, ref, 'elimination_only', AppLocalizations.of(context)!.eliminationOnly, selectedMode),
+                      _buildFilterChip('elimination_only', AppLocalizations.of(context)!.eliminationOnly, selectedMode),
                       const SizedBox(width: 8),
-                      _buildFilterChip(context, ref, 'group_and_elimination', AppLocalizations.of(context)!.groupAndElimination, selectedMode),
+                      _buildFilterChip('group_and_elimination', AppLocalizations.of(context)!.groupAndElimination, selectedMode),
                     ],
                   ),
                 ),
                 const SizedBox(height: 12),
-                
-                // Status Filters (All, Local, Cloud)
                 const _StatusFilterBar(),
               ],
             ),
@@ -106,7 +115,7 @@ class TournamentsScreen extends ConsumerWidget {
             itemCount: tournaments.length,
             itemBuilder: (context, index) {
               final tournament = tournaments[index];
-              return _buildTournamentCard(context, ref, tournament, index);
+              return _buildTournamentCard(context, tournament, index);
             },
           );
         },
@@ -152,7 +161,7 @@ class TournamentsScreen extends ConsumerWidget {
     ).animate().fadeIn();
   }
 
-  Widget _buildTournamentCard(BuildContext context, WidgetRef ref, dynamic tournament, int index) {
+  Widget _buildTournamentCard(BuildContext context, Tournament tournament, int index) {
     final modeLabel = _getModeLabel(tournament.mode, context);
     final modeColor = _getModeColor(tournament.mode);
 
@@ -236,10 +245,10 @@ class TournamentsScreen extends ConsumerWidget {
                           ],
                         ),
                         if (tournament.communityId != null) ...[
-                          const SizedBox(width: 8),
+                          const SizedBox(height: 8),
                           _CommunityBadge(
                             communityId: tournament.communityId!,
-                            communityName: tournament is Map ? tournament['communityName'] : (tournament is Tournament ? tournament.communityName : null),
+                            communityName: tournament.communityName,
                           ),
                         ],
                       ],
@@ -272,7 +281,14 @@ class TournamentsScreen extends ConsumerWidget {
                           ),
                         );
                         if (confirm == true) {
-                          await ref.read(tournamentsRepositoryProvider).deleteTournament(tournament.id);
+                          setState(() => _isProcessing = true);
+                          try {
+                            await ref.read(tournamentsRepositoryProvider).deleteTournament(tournament.id);
+                          } finally {
+                            if (mounted) {
+                              setState(() => _isProcessing = false);
+                            }
+                          }
                         }
                       }
                     },
@@ -329,7 +345,7 @@ class TournamentsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildFilterChip(BuildContext context, WidgetRef ref, String mode, String label, String? selectedMode) {
+  Widget _buildFilterChip(String mode, String label, String? selectedMode) {
     return FilterChip(
       label: Text(label, style: const TextStyle(fontSize: 12)),
       selected: selectedMode == mode,
@@ -367,18 +383,23 @@ class TournamentsScreen extends ConsumerWidget {
   }
 }
 
-class _CommunityBadge extends ConsumerWidget {
+class _CommunityBadge extends ConsumerStatefulWidget {
   final String communityId;
   final String? communityName;
   const _CommunityBadge({required this.communityId, this.communityName});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final communityAsync = ref.watch(communityByIdProvider(communityId));
+  ConsumerState<_CommunityBadge> createState() => _CommunityBadgeState();
+}
+
+class _CommunityBadgeState extends ConsumerState<_CommunityBadge> {
+  @override
+  Widget build(BuildContext context) {
+    final communityAsync = ref.watch(communityByIdProvider(widget.communityId));
     
     return communityAsync.when(
       data: (community) {
-        final displayName = community?.name ?? communityName;
+        final displayName = community?.name ?? widget.communityName;
         if (displayName == null) return const SizedBox.shrink();
 
         return Container(
@@ -405,8 +426,8 @@ class _CommunityBadge extends ConsumerWidget {
           ),
         );
       },
-      loading: () => communityName != null ? _buildBadge(communityName!) : const SizedBox.shrink(),
-      error: (_, __) => communityName != null ? _buildBadge(communityName!) : const SizedBox.shrink(),
+      loading: () => widget.communityName != null ? _buildBadge(widget.communityName!) : const SizedBox.shrink(),
+      error: (_, __) => widget.communityName != null ? _buildBadge(widget.communityName!) : const SizedBox.shrink(),
     );
   }
 
@@ -437,23 +458,28 @@ class _CommunityBadge extends ConsumerWidget {
   }
 }
 
-class _StatusFilterBar extends ConsumerWidget {
+class _StatusFilterBar extends ConsumerStatefulWidget {
   const _StatusFilterBar();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_StatusFilterBar> createState() => _StatusFilterBarState();
+}
+
+class _StatusFilterBarState extends ConsumerState<_StatusFilterBar> {
+  @override
+  Widget build(BuildContext context) {
     final status = ref.watch(tournamentStatusFilterProvider);
     
     return Row(
       children: [
-        _buildStatusTab(ref, 'all', const Text('Tutti', style: TextStyle(fontSize: 12)), status == 'all'),
-        _buildStatusTab(ref, 'local', const Icon(Icons.smartphone, size: 20), status == 'local'),
-        _buildStatusTab(ref, 'cloud', const Icon(Icons.cloud, size: 20), status == 'cloud'),
+        _buildStatusTab('all', const Text('Tutti', style: TextStyle(fontSize: 12)), status == 'all'),
+        _buildStatusTab('local', const Icon(Icons.smartphone, size: 20), status == 'local'),
+        _buildStatusTab('cloud', const Icon(Icons.cloud, size: 20), status == 'cloud'),
       ],
     );
   }
 
-  Widget _buildStatusTab(WidgetRef ref, String value, Widget content, bool isSelected) {
+  Widget _buildStatusTab(String value, Widget content, bool isSelected) {
     return Expanded(
       child: GestureDetector(
         onTap: () => ref.read(tournamentStatusFilterProvider.notifier).state = value,

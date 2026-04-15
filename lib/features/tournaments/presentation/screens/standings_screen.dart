@@ -120,23 +120,36 @@ final standingsProvider = FutureProvider.family<Map<int, List<StandingEntry>>, i
   return result;
 });
 
-class StandingsScreen extends ConsumerWidget {
+class StandingsScreen extends ConsumerStatefulWidget {
   final int tournamentId;
 
   const StandingsScreen({super.key, required this.tournamentId});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final standingsAsync = ref.watch(standingsProvider(tournamentId));
-    final tournamentAsync = ref.watch(tournamentByIdProvider(tournamentId));
+  ConsumerState<StandingsScreen> createState() => _StandingsScreenState();
+}
+
+class _StandingsScreenState extends ConsumerState<StandingsScreen> {
+  @override
+  Widget build(BuildContext context) {
+    if (!mounted) return const SizedBox.shrink();
+
+    final standingsAsync = ref.watch(standingsProvider(widget.tournamentId));
+    final tournamentAsync = ref.watch(tournamentByIdProvider(widget.tournamentId));
 
     return tournamentAsync.when(
-      loading: () => Scaffold(appBar: AppBar(title: const Text('...')), body: const Center(child: CircularProgressIndicator())),
-      error: (_, __) => Scaffold(appBar: AppBar(title: const Text('Error')), body: const Center(child: Text('Error'))),
+      loading: () => Scaffold(
+        appBar: AppBar(title: const Text('...')),
+        body: const Center(child: CircularProgressIndicator()),
+      ),
+      error: (error, __) => Scaffold(
+        appBar: AppBar(title: const Text('Errore')),
+        body: Center(child: Text('Errore: $error')),
+      ),
       data: (tournament) {
-        if (tournament == null) return const SizedBox();
+        if (tournament == null) return const SizedBox.shrink();
         
-        // Parse group names
+        // Parse group names safely
         List<String> groupNames = [];
         try {
           if (tournament.groupNames != null) {
@@ -145,11 +158,22 @@ class StandingsScreen extends ConsumerWidget {
         } catch (_) {}
 
         return standingsAsync.when(
-          loading: () => Scaffold(appBar: AppBar(title: Text(tournament.name)), body: const Center(child: CircularProgressIndicator())),
-          error: (error, __) => Scaffold(appBar: AppBar(title: Text(tournament.name)), body: Center(child: Text('Errore: $error'))),
+          loading: () => Scaffold(
+            appBar: AppBar(title: Text(tournament.name)),
+            body: const Center(child: CircularProgressIndicator()),
+          ),
+          error: (error, __) => Scaffold(
+            appBar: AppBar(title: Text(tournament.name)),
+            body: Center(child: Text('Errore: $error')),
+          ),
           data: (groupedStandings) {
+            if (!mounted) return const SizedBox.shrink();
+            
             if (groupedStandings.isEmpty) {
-              return Scaffold(appBar: AppBar(title: Text(tournament.name)), body: _buildEmptyState(context));
+              return Scaffold(
+                appBar: AppBar(title: Text(tournament.name)),
+                body: _buildEmptyState(context),
+              );
             }
 
             final groupNumbers = groupedStandings.keys.toList()..sort();
@@ -170,7 +194,7 @@ class StandingsScreen extends ConsumerWidget {
                     IconButton(
                       icon: const Icon(Icons.account_tree),
                       tooltip: 'Vai al Tabellone',
-                      onPressed: () => context.go('/tournaments/$tournamentId/bracket'),
+                      onPressed: () => context.go('/tournaments/${widget.tournamentId}/bracket'),
                     ),
                   ],
                   bottom: TabBar(
@@ -308,7 +332,7 @@ class StandingsScreen extends ConsumerWidget {
           }).toList(),
         ),
       ),
-    ).animate().fadeIn().slideY(begin: 0.1);
+    );
   }
 
   Color _getPositionColor(int index) {

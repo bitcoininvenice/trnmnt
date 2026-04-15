@@ -7,19 +7,42 @@ import '../../data/tournaments_repository.dart';
 import '../../../stats/data/stats_repository.dart';
 import '../screens/standings_screen.dart'; // Add this for standingsProvider
 import '../../../../core/database/app_database.dart';
+import '../../../sharing/data/share_repository.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'bracket_screen.dart';
 
-class CalendarScreen extends ConsumerWidget {
+class CalendarScreen extends ConsumerStatefulWidget {
   final int tournamentId;
 
   const CalendarScreen({super.key, required this.tournamentId});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final matchesAsync = ref.watch(groupMatchesProvider(tournamentId));
+  ConsumerState<CalendarScreen> createState() => _CalendarScreenState();
+}
+
+class _CalendarScreenState extends ConsumerState<CalendarScreen> {
+  bool _isProcessing = false;
+
+  @override
+  Widget build(BuildContext context) {
+    // If we are already disposed, stop building
+    if (!mounted) return const SizedBox.shrink();
+
+    if (_isProcessing) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Calendario')),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
     final tournamentsAsync = ref.watch(tournamentsProvider);
-    final tournament = tournamentsAsync.value?.firstWhere((t) => t.id == tournamentId);
+    final matchesAsync = ref.watch(groupMatchesProvider(widget.tournamentId));
+    
+    // Safety check for tournament data
+    final tournament = tournamentsAsync.value?.firstWhere(
+      (t) => t.id == widget.tournamentId,
+      orElse: () => null as dynamic,
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -29,13 +52,13 @@ class CalendarScreen extends ConsumerWidget {
             icon: const Icon(Icons.add),
             tooltip: 'Aggiungi partita',
             onPressed: () async {
+              if (_isProcessing) return;
               final result = await showDialog<bool>(
                 context: context,
-                builder: (context) => AddMatchDialog(tournamentId: tournamentId),
+                builder: (context) => AddMatchDialog(tournamentId: widget.tournamentId),
               );
-              if (result == true) {
-                // ignore: unused_result
-                ref.refresh(groupMatchesProvider(tournamentId));
+              if (result == true && mounted) {
+                // The stream provider will auto-refresh
               }
             },
           ),
@@ -43,6 +66,7 @@ class CalendarScreen extends ConsumerWidget {
             icon: const Icon(Icons.shuffle),
             tooltip: 'Genera casuale',
             onPressed: () async {
+              if (_isProcessing) return;
               final confirm = await showDialog<bool>(
                 context: context,
                 builder: (context) => AlertDialog(
@@ -60,22 +84,29 @@ class CalendarScreen extends ConsumerWidget {
                   ],
                 ),
               );
-              if (confirm == true) {
-                await ref.read(matchesRepositoryProvider).generateGroupCalendar(tournamentId);
-                // ignore: unused_result
-                ref.refresh(groupMatchesProvider(tournamentId));
+              if (confirm == true && mounted) {
+                setState(() => _isProcessing = true);
+                try {
+                  await ref.read(matchesRepositoryProvider).generateGroupCalendar(widget.tournamentId);
+                  if (!mounted) return;
+                  if (tournament?.isPublished == true) {
+                    await ref.read(shareRepositoryProvider).publishToSupabase(widget.tournamentId);
+                  }
+                } catch (e) {
+                  debugPrint('Error generating calendar: $e');
+                } finally {
+                  if (mounted) {
+                    setState(() => _isProcessing = false);
+                  }
+                }
               }
             },
-          ),
-          IconButton(
-            icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
-            tooltip: 'Elimina e ricrea',
-            onPressed: () => deleteBracket(context, ref, tournamentId),
           ),
           IconButton(
             icon: const Icon(Icons.delete_outline),
             tooltip: 'Elimina calendario',
             onPressed: () async {
+              if (_isProcessing) return;
               final confirm = await showDialog<bool>(
                 context: context,
                 builder: (context) => AlertDialog(
@@ -93,10 +124,21 @@ class CalendarScreen extends ConsumerWidget {
                   ],
                 ),
               );
-              if (confirm == true) {
-                await ref.read(matchesRepositoryProvider).generateGroupCalendar(tournamentId);
-                // ignore: unused_result
-                ref.refresh(groupMatchesProvider(tournamentId));
+              if (confirm == true && mounted) {
+                setState(() => _isProcessing = true);
+                try {
+                  await ref.read(matchesRepositoryProvider).deleteMatchesByPhase(widget.tournamentId, 'group');
+                  if (!mounted) return;
+                  if (tournament?.isPublished == true) {
+                    await ref.read(shareRepositoryProvider).publishToSupabase(widget.tournamentId);
+                  }
+                } catch (e) {
+                  debugPrint('Error deleting matches: $e');
+                } finally {
+                  if (mounted) {
+                    setState(() => _isProcessing = false);
+                  }
+                }
               }
             },
           ),
@@ -114,7 +156,7 @@ class CalendarScreen extends ConsumerWidget {
         error: (error, stack) => Center(child: Text('Errore: $error')),
         data: (matches) {
           if (matches.isEmpty) {
-            return _buildEmptyState(context, ref);
+            return _buildEmptyState(context, ref, tournament);
           }
 
           // Group by round
@@ -148,7 +190,7 @@ class CalendarScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 16),
                 ],
-              ).animate().fadeIn(delay: Duration(milliseconds: 100 * index));
+              );
             },
           );
         },
@@ -156,7 +198,7 @@ class CalendarScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildEmptyState(BuildContext context, WidgetRef ref) {
+  Widget _buildEmptyState(BuildContext context, WidgetRef ref, dynamic tournament) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -186,11 +228,12 @@ class CalendarScreen extends ConsumerWidget {
                 onPressed: () async {
                   final result = await showDialog<bool>(
                     context: context,
-                    builder: (context) => AddMatchDialog(tournamentId: tournamentId),
+                    builder: (context) => AddMatchDialog(tournamentId: widget.tournamentId),
                   );
                   if (result == true) {
+                    if (!mounted) return;
                     // ignore: unused_result
-                    ref.refresh(groupMatchesProvider(tournamentId));
+                    ref.refresh(groupMatchesProvider(widget.tournamentId));
                   }
                 },
                 icon: const Icon(Icons.add),
@@ -199,9 +242,15 @@ class CalendarScreen extends ConsumerWidget {
               const SizedBox(width: 16),
               ElevatedButton.icon(
                 onPressed: () async {
-                  await ref.read(matchesRepositoryProvider).generateGroupCalendar(tournamentId);
+                  setState(() => _isProcessing = true);
+                  await ref.read(matchesRepositoryProvider).generateGroupCalendar(widget.tournamentId);
+                  if (tournament?.isPublished == true) {
+                    await ref.read(shareRepositoryProvider).publishToSupabase(widget.tournamentId);
+                  }
+                  if (!mounted) return;
+                  setState(() => _isProcessing = false);
                   // ignore: unused_result
-                  ref.refresh(groupMatchesProvider(tournamentId));
+                  ref.refresh(groupMatchesProvider(widget.tournamentId));
                 },
                 icon: const Icon(Icons.shuffle),
                 label: const Text('Genera automatico'),
@@ -210,7 +259,7 @@ class CalendarScreen extends ConsumerWidget {
           ),
         ],
       ),
-    ).animate().fadeIn();
+    );
   }
 
   Widget _buildMatchCard(BuildContext context, MatchWithTeams matchWithTeams, int index) {
@@ -225,7 +274,7 @@ class CalendarScreen extends ConsumerWidget {
       margin: const EdgeInsets.only(bottom: 8),
       child: InkWell(
         onTap: isBye ? null : () => context.pushNamed('match-detail', pathParameters: {
-          'tournamentId': tournamentId.toString(),
+          'tournamentId': widget.tournamentId.toString(),
           'matchId': match.id.toString(),
         }),
         child: Padding(
@@ -303,10 +352,10 @@ class CalendarScreen extends ConsumerWidget {
 
   void _finalizeTournament(BuildContext context, WidgetRef ref, Tournament tournament) async {
     // 1. Fetch current standings to find the winner
-    final standings = await ref.read(standingsProvider(tournamentId).future);
+    final standings = await ref.read(standingsProvider(widget.tournamentId).future);
     
     if (standings.isEmpty || standings.values.every((list) => list.isEmpty)) {
-      if (context.mounted) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Nessuna squadra in classifica. Impossibile finalizzare.')),
         );
@@ -316,7 +365,7 @@ class CalendarScreen extends ConsumerWidget {
 
     final winner = standings.values.first.first;
 
-    if (!context.mounted) return;
+    if (!mounted) return;
 
     final confirm = await showDialog<bool>(
       context: context,
@@ -349,9 +398,20 @@ class CalendarScreen extends ConsumerWidget {
     );
 
     if (confirm == true) {
-      await ref.read(tournamentsRepositoryProvider).finalizeTournament(tournamentId, winner.teamId);
-      if (context.mounted) {
-        context.go('/tournaments/$tournamentId'); // Back to detail (read-only)
+      if (!mounted) return;
+      setState(() => _isProcessing = true);
+      await ref.read(tournamentsRepositoryProvider).finalizeTournament(widget.tournamentId, winner.teamId);
+      if (!mounted) return;
+      
+      // Auto-sync after finalization if published
+      if (tournament.isPublished) {
+         await ref.read(shareRepositoryProvider).publishToSupabase(widget.tournamentId);
+      }
+      if (!mounted) return;
+
+      if (mounted) {
+        setState(() => _isProcessing = false);
+        context.go('/tournaments/${widget.tournamentId}'); // Back to detail (read-only)
       }
     }
   }
@@ -367,6 +427,7 @@ class AddMatchDialog extends ConsumerStatefulWidget {
 
 class _AddMatchDialogState extends ConsumerState<AddMatchDialog> {
   final _formKey = GlobalKey<FormState>();
+  bool _isSaving = false;
   int _selectedRound = 1;
   int? _homeTeamId;
   int? _awayTeamId;
@@ -426,26 +487,42 @@ class _AddMatchDialogState extends ConsumerState<AddMatchDialog> {
       ),
       actions: [
         TextButton(
-          onPressed: () => Navigator.pop(context), 
+          onPressed: _isSaving ? null : () => Navigator.pop(context), 
           child: const Text('Annulla')
         ),
         ElevatedButton(
-          onPressed: teamsAsync.hasValue ? () async {
+          onPressed: (teamsAsync.hasValue && !_isSaving) ? () async {
             if (_formKey.currentState?.validate() ?? false) {
               _formKey.currentState!.save();
-              await ref.read(matchesRepositoryProvider).createMatch(
-                tournamentId: widget.tournamentId,
-                homeTeamId: _homeTeamId,
-                awayTeamId: _awayTeamId,
-                round: _selectedRound,
-                phase: 'group',
-              );
-              ref.invalidate(tournamentMatchesProvider(widget.tournamentId));
-              if (!context.mounted) return;
-              Navigator.pop(context, true);
+              setState(() => _isSaving = true);
+              
+              try {
+                await ref.read(matchesRepositoryProvider).createMatch(
+                  tournamentId: widget.tournamentId,
+                  homeTeamId: _homeTeamId,
+                  awayTeamId: _awayTeamId,
+                  round: _selectedRound,
+                  phase: 'group',
+                );
+                
+                if (mounted) {
+                  final tournament = await ref.read(tournamentByIdProvider(widget.tournamentId).future);
+                  if (tournament?.isPublished == true) {
+                    ref.read(shareRepositoryProvider).publishToSupabase(widget.tournamentId).catchError((_) => null);
+                  }
+                  Navigator.pop(context, true);
+                }
+              } catch (e) {
+                if (mounted) {
+                  setState(() => _isSaving = false);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Errore: $e')),
+                  );
+                }
+              }
             }
           } : null,
-          child: const Text('Salva'),
+          child: _isSaving ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Salva'),
         ),
       ],
     );

@@ -638,7 +638,6 @@ class _CloudTournamentCard extends StatelessWidget {
                   }
 
                   if (webUrl != null && webUrl.isNotEmpty) {
-                    print('--- DEBUG: GENERATED URL: $webUrl ---');
                     final Uri url = Uri.parse(webUrl);
                     launchUrl(url, mode: LaunchMode.externalApplication);
                   } else {

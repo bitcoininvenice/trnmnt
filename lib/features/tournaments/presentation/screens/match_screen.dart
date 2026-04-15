@@ -44,6 +44,7 @@ class _MatchScreenState extends ConsumerState<MatchScreen> {
   int? _awayScore;
   bool _isLoading = false;
   bool _initialized = false;
+  bool _isFinishing = false;
 
   Future<void> _saveScore() async {
     if (widget.matchId == null) return;
@@ -66,20 +67,24 @@ class _MatchScreenState extends ConsumerState<MatchScreen> {
         _awayScore!,
       );
 
+      if (!mounted) return;
+
       final matchData = await ref.read(matchByIdProvider(widget.matchId!).future);
+      if (!mounted) return;
+      
       final tournamentId = matchData?.match.tournamentId;
       
       if (tournamentId != null) {
         final tournament = await ref.read(tournamentByIdProvider(tournamentId).future);
+        if (!mounted) return;
+        
         final isPublished = tournament?.isPublished ?? false;
 
-        if (mounted) {
-          Navigator.pop(context);
-          if (isPublished) {
-            shareRepo.publishToSupabase(tournamentId).catchError((_) => null);
-          }
+        Navigator.pop(context);
+        if (isPublished) {
+          shareRepo.publishToSupabase(tournamentId).catchError((_) => null);
         }
-      } else if (mounted) {
+      } else {
         Navigator.pop(context);
       }
     } catch (e) {
@@ -97,6 +102,13 @@ class _MatchScreenState extends ConsumerState<MatchScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isFinishing || _isLoading) {
+      return const Scaffold(
+        backgroundColor: Colors.black,
+        body: Center(child: CircularProgressIndicator(color: Colors.orange)),
+      );
+    }
+
     final activeGame = ref.watch(activeGameProvider);
     final activeGameNotifier = ref.read(activeGameProvider.notifier);
     final l10n = AppLocalizations.of(context)!;
@@ -291,9 +303,16 @@ class _MatchScreenState extends ConsumerState<MatchScreen> {
                         const SizedBox(width: 32),
                         _buildControlButton(
                           icon: Icons.check, 
-                          onPressed: () async {
-                            await notifier.finishGame();
-                            if (mounted) Navigator.pop(context);
+                          onPressed: _isFinishing ? null : () async {
+                            setState(() => _isFinishing = true);
+                            
+                            // 1. Pop the screen immediately
+                            if (mounted) {
+                              Navigator.pop(context);
+                            }
+                            
+                            // 2. Finish the game in the background (no longer depends on this screen's lifecycle)
+                            notifier.finishGame();
                           }, 
                           color: Colors.blue, 
                           size: 56
@@ -348,7 +367,7 @@ class _MatchScreenState extends ConsumerState<MatchScreen> {
     );
   }
 
-  Widget _buildControlButton({required IconData icon, required VoidCallback onPressed, required Color color, required double size}) {
+  Widget _buildControlButton({required IconData icon, VoidCallback? onPressed, required Color color, required double size}) {
     return Container(
       width: size, height: size,
       decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: color, width: 2)),

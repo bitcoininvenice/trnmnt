@@ -98,7 +98,7 @@ class _ScanTournamentScreenState extends ConsumerState<ScanTournamentScreen> {
       return existing.id;
     }
 
-    final importName = tournamentData['name'] + ' (Sync)';
+    final importName = tournamentData['name'];
     
     // 1. Create NEW Tournament record
     final tournamentId = await db.into(db.tournaments).insert(
@@ -179,6 +179,7 @@ class _ScanTournamentScreenState extends ConsumerState<ScanTournamentScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(title: const Text('Scan QR Code')),
       body: Stack(
@@ -207,7 +208,7 @@ class _ScanTournamentScreenState extends ConsumerState<ScanTournamentScreen> {
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 40),
                     child: Text(
-                      _status ?? 'Syncing...',
+                      _status ?? l10n.syncing,
                       textAlign: TextAlign.center,
                       style: const TextStyle(color: Colors.white, fontSize: 16),
                     ),
