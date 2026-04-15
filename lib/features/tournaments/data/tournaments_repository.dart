@@ -201,6 +201,7 @@ class TournamentsRepository {
     bool hasPlayIn = false,
     String? groupNames,
     String? twitchChannel,
+    String? communityId,
   }) async {
     return await _db.into(_db.tournaments).insert(
       TournamentsCompanion.insert(
@@ -219,6 +220,7 @@ class TournamentsRepository {
         hasPlayIn: Value(hasPlayIn),
         groupNames: Value(groupNames),
         twitchChannel: Value(twitchChannel),
+        communityId: Value(communityId),
       ),
     );
   }

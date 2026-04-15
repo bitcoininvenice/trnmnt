@@ -3,7 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:trnmnt/generated/l10n/app_localizations.dart';
-import '../../data/tournaments_repository.dart';
+import 'package:trnmnt/features/tournaments/data/tournaments_repository.dart';
+import 'package:trnmnt/features/community/data/community_repository.dart';
 
 class TournamentsScreen extends ConsumerWidget {
   const TournamentsScreen({super.key});
@@ -201,6 +202,10 @@ class TournamentsScreen extends ConsumerWidget {
                               const SizedBox(width: 8),
                               const Icon(Icons.cloud_done, color: Colors.blue, size: 16),
                             ],
+                            if (tournament.communityId != null) ...[
+                              const SizedBox(width: 8),
+                              _CommunityBadge(communityId: tournament.communityId!),
+                            ],
                           ],
                         ),
                         Row(
@@ -351,6 +356,47 @@ class TournamentsScreen extends ConsumerWidget {
       default:
         return Colors.grey;
     }
+  }
+}
+
+class _CommunityBadge extends ConsumerWidget {
+  final String communityId;
+  const _CommunityBadge({required this.communityId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final communityAsync = ref.watch(communityByIdProvider(communityId));
+    
+    return communityAsync.when(
+      data: (community) {
+        if (community == null) return const SizedBox.shrink();
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          decoration: BoxDecoration(
+            color: Colors.orange.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(4),
+            border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.hub_outlined, size: 10, color: Colors.orange),
+              const SizedBox(width: 4),
+              Text(
+                community.name,
+                style: const TextStyle(
+                  color: Colors.orange,
+                  fontSize: 9,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
+    );
   }
 }
 

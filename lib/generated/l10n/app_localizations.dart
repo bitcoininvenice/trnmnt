@@ -167,7 +167,7 @@ abstract class AppLocalizations {
   /// No description provided for @manageBrandsLogos.
   ///
   /// In it, this message translates to:
-  /// **'Gestisci brand, loghi e team'**
+  /// **'Gestisci brand'**
   String get manageBrandsLogos;
 
   /// No description provided for @joinCommunity.

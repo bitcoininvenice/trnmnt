@@ -75,6 +75,18 @@ class _CommunityDashboardScreenState extends ConsumerState<CommunityDashboardScr
 
   @override
   Widget build(BuildContext context) {
+    // Listen for community changes to update controllers
+    ref.listen<AsyncValue<Community?>>(currentCommunityProvider, (previous, next) {
+      final community = next.value;
+      if (community != null) {
+        _nameController.text = community.name;
+        _slugController.text = community.slug;
+        _locationController.text = community.location ?? '';
+        _instagramController.text = community.instagramUrl?.split('/').last ?? '';
+        _tiktokController.text = community.tiktokUrl?.split('@').last ?? '';
+      }
+    });
+
     final activeCommunityAsync = ref.watch(currentCommunityProvider);
     final l10n = AppLocalizations.of(context)!;
 
@@ -135,26 +147,16 @@ class _CommunityDashboardScreenState extends ConsumerState<CommunityDashboardScr
           
           final isOwner = community.isOwner;
 
-          // Pre-fill controllers with community data
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (_nameController.text.isEmpty) {
-              _nameController.text = community.name;
-            }
-            if (_slugController.text.isEmpty) {
-              _slugController.text = community.slug;
-            }
-            if (_locationController.text.isEmpty && community.location != null) {
-              _locationController.text = community.location!;
-            }
-            if (_instagramController.text.isEmpty && community.instagramUrl != null) {
-              final ig = community.instagramUrl!.split('/').last;
-              _instagramController.text = ig;
-            }
-            if (_tiktokController.text.isEmpty && community.tiktokUrl != null) {
-              final tk = community.tiktokUrl!.split('@').last;
-              _tiktokController.text = tk;
-            }
-          });
+          // Note: Initial controller population happens in ref.listen
+          // but we do a one-time check here for the very first build if data is already present
+          if (_nameController.text.isEmpty) {
+            _nameController.text = community.name;
+            _slugController.text = community.slug;
+            _locationController.text = community.location ?? '';
+            _instagramController.text = community.instagramUrl?.split('/').last ?? '';
+            _tiktokController.text = community.tiktokUrl?.split('@').last ?? '';
+          }
+
           return Column(
             children: [
               _buildSwitchBar(ref),

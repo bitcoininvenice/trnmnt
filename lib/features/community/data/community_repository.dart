@@ -157,5 +157,26 @@ final myLocalCommunitiesProvider = FutureProvider<List<Community>>((ref) async {
 final currentCommunityProvider = FutureProvider<Community?>((ref) async {
   final repo = ref.watch(communityRepositoryProvider);
   final selectedId = ref.watch(selectedCommunityIdProvider);
-  return repo.getActiveCommunity(selectedId);
+  
+  final community = await repo.getActiveCommunity(selectedId);
+  
+  // Auto-selection logic: if nothing selected but only 1 community exists, select it
+  if (community == null && selectedId == null) {
+    final all = await repo.getAllLocalCommunities();
+    if (all.length == 1) {
+      final onlyOne = all.first;
+      // We use a microtask to avoid updating providers during build if this is called reactively
+      Future.microtask(() {
+        ref.read(selectedCommunityIdProvider.notifier).setSelected(onlyOne.id);
+      });
+      return onlyOne;
+    }
+  }
+  
+  return community;
+});
+
+final communityByIdProvider = FutureProvider.family<Community?, String>((ref, id) async {
+  final repo = ref.watch(communityRepositoryProvider);
+  return repo.getActiveCommunity(id);
 });

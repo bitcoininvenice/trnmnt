@@ -153,8 +153,9 @@ class AppDatabase extends _$AppDatabase {
           await customStatement('INSERT INTO communities (id, name, slug, is_owner, created_at) VALUES (?, ?, ?, ?, ?)', 
             ['legacy-id', 'La mia Community', 'my-community', 1, DateTime.now().millisecondsSinceEpoch]);
             
-          // Link all existing tournaments to this community
+          // Link all existing tournaments and teams to this community
           await customStatement('UPDATE tournaments SET community_id = ?', ['legacy-id']);
+          await customStatement('UPDATE teams SET community_id = ?', ['legacy-id']);
         }
         if (from < 11) {
           await m.addColumn(communities, communities.location);

@@ -42,7 +42,7 @@ class AppLocalizationsIt extends AppLocalizations {
   String get communityManagement => 'Gestione Community';
 
   @override
-  String get manageBrandsLogos => 'Gestisci brand, loghi e team';
+  String get manageBrandsLogos => 'Gestisci brand';
 
   @override
   String get joinCommunity => 'Unisciti a una Community';

@@ -19,6 +19,7 @@ class HomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final activeGame = ref.watch(activeGameProvider);
     final customIconPath = ref.watch(customIconProvider);
+    final currentCommunity = ref.watch(currentCommunityProvider).valueOrNull;
     final statsAsync = ref.watch(appStatsProvider);
     final l10n = AppLocalizations.of(context)!;
     
@@ -98,6 +99,32 @@ class HomeScreen extends ConsumerWidget {
                                     l10n.appSubtitle,
                                     style: const TextStyle(color: Colors.white70, fontSize: 13),
                                   ),
+                                  if (currentCommunity != null) ...[
+                                    const SizedBox(height: 6),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withValues(alpha: 0.1),
+                                        borderRadius: BorderRadius.circular(15),
+                                        border: Border.all(color: Colors.white10),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          const Icon(Icons.hub_outlined, size: 10, color: Colors.orange),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            currentCommunity.name,
+                                            style: const TextStyle(
+                                              color: Colors.orange,
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
                                 ],
                               ),
                             ],

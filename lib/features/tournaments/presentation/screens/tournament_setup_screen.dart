@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../data/tournaments_repository.dart';
-import '../../../teams/data/teams_repository.dart';
+import 'package:trnmnt/features/tournaments/data/tournaments_repository.dart';
+import 'package:trnmnt/features/teams/data/teams_repository.dart';
 import 'package:trnmnt/generated/l10n/app_localizations.dart';
-import '../../../map/data/courts_repository.dart';
-import '../../../../core/services/geocoding_service.dart';
+import 'package:trnmnt/features/community/data/selected_community_provider.dart';
+import 'package:trnmnt/features/map/data/courts_repository.dart';
+import 'package:trnmnt/core/services/geocoding_service.dart';
 import 'dart:async';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'dart:convert';
@@ -85,6 +86,7 @@ class _TournamentSetupScreenState extends ConsumerState<TournamentSetupScreen> {
         qualifiersPerGroup: _isMultiGroup ? _qualifiersPerGroup : 2,
         hasPlayIn: _isMultiGroup ? _hasPlayIn : false,
         groupNames: _isMultiGroup ? jsonEncode(_groupNames) : null,
+        communityId: ref.read(selectedCommunityIdProvider),
       );
 
       await repo.setTournamentTeams(tournamentId, _selectedTeamIds, teamToGroup: _isMultiGroup ? _teamToGroup : null);

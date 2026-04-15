@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../data/teams_repository.dart';
+import 'package:trnmnt/features/teams/data/teams_repository.dart';
+import 'package:trnmnt/features/community/data/selected_community_provider.dart';
 
 class TeamFormScreen extends ConsumerStatefulWidget {
   final int? teamId;
@@ -50,7 +51,10 @@ class _TeamFormScreenState extends ConsumerState<TeamFormScreen> {
           name: _nameController.text.trim(),
         );
       } else {
-        await repo.createTeam(name: _nameController.text.trim());
+        await repo.createTeam(
+          name: _nameController.text.trim(),
+          communityId: ref.read(selectedCommunityIdProvider),
+        );
       }
       if (mounted) {
         context.go('/teams');

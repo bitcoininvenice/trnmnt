@@ -3,8 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:trnmnt/features/sharing/data/sync_repository.dart';
-import '../../data/tournaments_repository.dart';
+import 'package:trnmnt/features/tournaments/data/tournaments_repository.dart';
 import 'package:trnmnt/generated/l10n/app_localizations.dart';
+import 'package:trnmnt/features/community/data/community_repository.dart';
 
 class TournamentDetailScreen extends ConsumerStatefulWidget {
   final int tournamentId;
@@ -133,6 +134,18 @@ class _TournamentDetailScreenState extends ConsumerState<TournamentDetailScreen>
                                 fontWeight: FontWeight.bold
                               ),
                             ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                      ],
+                      
+                      // Community Badge
+                      if (tournament.communityId != null) ...[
+                        Row(
+                          children: [
+                            const Icon(Icons.hub_outlined, size: 16, color: Colors.orange),
+                            const SizedBox(width: 8),
+                            _CommunityBadge(communityId: tournament.communityId!),
                           ],
                         ),
                         const SizedBox(height: 12),
@@ -345,6 +358,32 @@ class _TournamentDetailScreenState extends ConsumerState<TournamentDetailScreen>
           ),
         ),
       ),
+    );
+  }
+}
+
+class _CommunityBadge extends ConsumerWidget {
+  final String communityId;
+  const _CommunityBadge({required this.communityId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final communityAsync = ref.watch(communityByIdProvider(communityId));
+    
+    return communityAsync.when(
+      data: (community) {
+        if (community == null) return const SizedBox.shrink();
+        return Text(
+          community.name,
+          style: const TextStyle(
+            color: Colors.orange,
+            fontSize: 13,
+            fontWeight: FontWeight.bold,
+          ),
+        );
+      },
+      loading: () => const SizedBox(child: CircularProgressIndicator(strokeWidth: 2), height: 12, width: 12),
+      error: (_, __) => const SizedBox.shrink(),
     );
   }
 }

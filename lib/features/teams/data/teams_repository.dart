@@ -22,11 +22,12 @@ class TeamsRepository {
 
   TeamsRepository(this._db);
 
-  Future<int> createTeam({required String name, String? logoPath}) async {
+  Future<int> createTeam({required String name, String? logoPath, String? communityId}) async {
     return await _db.into(_db.teams).insert(
       TeamsCompanion.insert(
         name: name,
         logoPath: Value(logoPath),
+        communityId: Value(communityId),
       ),
     );
   }
