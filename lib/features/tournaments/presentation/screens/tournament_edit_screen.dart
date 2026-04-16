@@ -54,7 +54,10 @@ class _TournamentEditScreenState extends ConsumerState<TournamentEditScreen> {
 
   Future<void> _updateTournament() async {
     if (!_formKey.currentState!.validate()) return;
-    if (_selectedTeamIds.length < 2) {
+    // Skip team validation for tournaments using web registration (teams come via web form)
+    final tournament = ref.read(tournamentByIdProvider(widget.tournamentId)).valueOrNull;
+    final hasWebRegistration = tournament?.cloudId != null && tournament!.cloudId!.isNotEmpty;
+    if (!hasWebRegistration && _selectedTeamIds.length < 2) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(AppLocalizations.of(context)!.selectAtLeastTwoTeams), backgroundColor: Colors.orange),
       );

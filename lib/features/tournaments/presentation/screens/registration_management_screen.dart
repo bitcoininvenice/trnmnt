@@ -22,9 +22,11 @@ class RegistrationManagementScreen extends ConsumerStatefulWidget {
 
 class _RegistrationManagementScreenState extends ConsumerState<RegistrationManagementScreen> {
   bool _isLoading = true;
+  bool _isFetchingData = false; // re-entrancy guard
   List<Map<String, dynamic>> _registrations = [];
   Map<String, dynamic>? _settings;
   List<String> _confirmedTeamNames = [];
+  bool _isConfirming = false;
 
   @override
   void initState() {
@@ -33,17 +35,16 @@ class _RegistrationManagementScreenState extends ConsumerState<RegistrationManag
   }
 
   Future<void> _loadData() async {
-    if (!mounted) return;
+    if (!mounted || _isFetchingData) return;
+    _isFetchingData = true;
     try {
       final currentRef = ref;
       setState(() => _isLoading = true);
       
-      debugPrint('RegistrationManagement: Loading data for ${widget.cloudId}...');
       
       final settings = await currentRef.refresh(registrationSettingsProvider(widget.cloudId).future);
       if (!mounted) return;
       
-      debugPrint('RegistrationManagement: Settings found: ${settings != null}');
       
       final repo = currentRef.read(shareRepositoryProvider);
       final regs = await repo.fetchTournamentRegistrations(widget.cloudId);
@@ -62,11 +63,11 @@ class _RegistrationManagementScreenState extends ConsumerState<RegistrationManag
         _isLoading = false;
       });
     } catch (e, stack) {
-      debugPrint('RegistrationManagement ERROR loading: $e');
-      debugPrint(stack.toString());
       if (mounted) {
         setState(() => _isLoading = false);
       }
+    } finally {
+      _isFetchingData = false;
     }
   }
 
@@ -158,7 +159,6 @@ class _RegistrationManagementScreenState extends ConsumerState<RegistrationManag
         );
         _loadData();
       } catch (e) {
-        debugPrint('DB ERROR Settings: $e');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('${l10n.error}: $e'), backgroundColor: Colors.red),
@@ -190,31 +190,69 @@ class _RegistrationManagementScreenState extends ConsumerState<RegistrationManag
     );
   }
 
-  Future<void> _deleteRegistration(String id) async {
+  Future<void> _deleteRegistration(Map<String, dynamic> reg) async {
+    if (!mounted) return;
     final l10n = AppLocalizations.of(context)!;
-    final confirm = await showDialog<bool>(
+
+    bool? confirmed;
+    await showDialog<void>(
       context: context,
-      builder: (context) => AlertDialog(
+      barrierDismissible: true,
+      builder: (dialogContext) => AlertDialog(
         backgroundColor: const Color(0xFF1E293B),
         title: Text(l10n.deleteRegistration.toUpperCase(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900)),
         content: Text(l10n.confirmDeleteRegGeneric, style: const TextStyle(color: Colors.white70)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.no.toUpperCase())),
           TextButton(
-            onPressed: () => Navigator.pop(context, true), 
+            onPressed: () {
+              confirmed = false;
+              Navigator.of(dialogContext).pop();
+            },
+            child: Text(l10n.no.toUpperCase()),
+          ),
+          TextButton(
+            onPressed: () {
+              confirmed = true;
+              Navigator.of(dialogContext).pop();
+            },
             child: Text(l10n.confirmAction, style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold))
           ),
         ],
       ),
     );
 
-    if (confirm == true) {
+    if (confirmed == true && mounted) {
       try {
         setState(() => _isLoading = true);
-        await ref.read(shareRepositoryProvider).deleteRegistration(id);
-        _loadData();
+        final shareRepo = ref.read(shareRepositoryProvider);
+        final teamsRepo = ref.read(teamsRepositoryProvider);
+        final tournamentsRepo = ref.read(tournamentsRepositoryProvider);
+
+        // If the registration was confirmed, also remove the team from the tournament
+        final teamName = reg['team_name']?.toString().trim().toLowerCase() ?? '';
+        final wasConfirmed = reg['status']?.toString().toLowerCase() == 'confirmed' ||
+            _confirmedTeamNames.contains(teamName);
+
+        if (wasConfirmed && teamName.isNotEmpty) {
+          final allTeams = await teamsRepo.getAllTeams();
+          final team = allTeams.where((t) =>
+            t.name.trim().toLowerCase() == teamName
+          ).firstOrNull;
+
+          if (team != null) {
+            await tournamentsRepo.removeTeamFromTournament(widget.tournamentId, team.id);
+            // Re-sync cloud
+            final tournament = await tournamentsRepo.getTournamentById(widget.tournamentId);
+            if (tournament != null && tournament.isPublished) {
+              await shareRepo.publishToSupabaseFull(widget.tournamentId);
+            }
+          }
+        }
+
+        // Delete the registration from Supabase
+        await shareRepo.deleteRegistration(reg['id']);
+        if (mounted) _loadData();
       } catch (e) {
-        debugPrint('DB ERROR Delete: $e');
         if (mounted) {
           ScaffoldMessenger.maybeOf(context)?.showSnackBar(
             SnackBar(content: Text('${l10n.error}: $e'), backgroundColor: Colors.red),
@@ -252,7 +290,6 @@ class _RegistrationManagementScreenState extends ConsumerState<RegistrationManag
         await ref.read(shareRepositoryProvider).closeRegistrations(widget.cloudId, _registrations.length);
         _loadData();
       } catch (e) {
-        debugPrint('DB ERROR Close: $e');
         if (mounted) {
           ScaffoldMessenger.maybeOf(context)?.showSnackBar(
             SnackBar(content: Text('${l10n.error}: $e'), backgroundColor: Colors.red),
@@ -262,8 +299,6 @@ class _RegistrationManagementScreenState extends ConsumerState<RegistrationManag
       }
     }
   }
-
-  bool _isConfirming = false;
 
   Future<void> _confirmTeam(Map<String, dynamic> reg) async {
     final l10n = AppLocalizations.of(context)!;
@@ -304,7 +339,6 @@ class _RegistrationManagementScreenState extends ConsumerState<RegistrationManag
       // SYNC WITH CLOUD if tournament is already published
       final tournament = await tournamentsRepo.getTournamentById(widget.tournamentId);
       if (tournament != null && tournament.isPublished) {
-        debugPrint('RegistrationManagement: Re-syncing cloud tournament...');
         await shareRepo.publishToSupabaseFull(widget.tournamentId);
       }
 
@@ -537,7 +571,7 @@ class _RegistrationManagementScreenState extends ConsumerState<RegistrationManag
                               child: Row(
                                 children: [
                                   IconButton(
-                                    onPressed: () => _deleteRegistration(reg['id']),
+                                    onPressed: () => _deleteRegistration(reg),
                                     icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 20),
                                     visualDensity: VisualDensity.compact,
                                   ),

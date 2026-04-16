@@ -216,15 +216,10 @@ class ShareRepository {
           .eq('tournament_id', cloudId)
           .maybeSingle();
       
-      if (settingsRes == null) {
-        debugPrint('Registration settings NOT FOUND for cloudId: $cloudId');
-      } else {
-        debugPrint('Registration settings FOUND for cloudId: $cloudId');
-      }
+
       
       return settingsRes;
     } catch (e) {
-      debugPrint('Error fetching registration settings: $e');
       return null;
     }
   }
@@ -236,7 +231,7 @@ class ShareRepository {
     required List<String> lunchOptions,
   }) async {
     try {
-      debugPrint('Supabase: Creating/Updating registration settings for $cloudId...');
+
       final supabase = Supabase.instance.client;
       
       final data = {
@@ -253,10 +248,10 @@ class ShareRepository {
           .select('id')
           .single();
       
-      debugPrint('Supabase SUCCESS: Created/Updated settings with ID: ${response['id']}');
+
       return response['id'].toString();
     } catch (e) {
-      debugPrint('Supabase ERROR creating registration settings: $e');
+
       rethrow;
     }
   }
@@ -311,10 +306,14 @@ class ShareRepository {
   Future<void> deleteRegistration(String registrationId) async {
     try {
       final supabase = Supabase.instance.client;
-      await supabase
+      final deleted = await supabase
           .from('registrations')
           .delete()
-          .eq('id', registrationId);
+          .eq('id', registrationId)
+          .select();
+      if (deleted.isEmpty) {
+        throw Exception('Nessuna riga eliminata. Controlla i permessi RLS su Supabase.');
+      }
     } catch (e) {
       rethrow;
     }
