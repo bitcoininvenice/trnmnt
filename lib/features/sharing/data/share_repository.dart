@@ -1,4 +1,5 @@
 import 'package:drift/drift.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -85,8 +86,12 @@ class ShareRepository {
     };
   }
 
-  /// Publishes tournament data to Supabase for global/realtime access
   Future<String?> publishToSupabase(int tournamentId) async {
+    final result = await publishToSupabaseFull(tournamentId);
+    return result?.url;
+  }
+
+  Future<({String url, String cloudId})?> publishToSupabaseFull(int tournamentId) async {
     final tournament = await (_db.select(_db.tournaments)..where((t) => t.id.equals(tournamentId))).getSingle();
     final export = await getTournamentExport(tournamentId);
     if (export == null) return null;
@@ -158,9 +163,9 @@ class ShareRepository {
         ),
       );
       
-      return finalUrl;
+      return (url: finalUrl, cloudId: cloudId!);
     } catch (e) {
-      return null;
+      rethrow;
     }
   }
 
@@ -200,10 +205,129 @@ class ShareRepository {
       // Silent error
     }
   }
+
+  /// Registration System Methods
+  Future<Map<String, dynamic>?> fetchRegistrationSettings(String cloudId) async {
+    try {
+      final supabase = Supabase.instance.client;
+      final settingsRes = await supabase
+          .from('registration_settings')
+          .select('*')
+          .eq('tournament_id', cloudId)
+          .maybeSingle();
+      
+      if (settingsRes == null) {
+        debugPrint('Registration settings NOT FOUND for cloudId: $cloudId');
+      } else {
+        debugPrint('Registration settings FOUND for cloudId: $cloudId');
+      }
+      
+      return settingsRes;
+    } catch (e) {
+      debugPrint('Error fetching registration settings: $e');
+      return null;
+    }
+  }
+
+  Future<String> createRegistrationSettings({
+    required String cloudId,
+    required int maxTeams,
+    required bool showLunch,
+    required List<String> lunchOptions,
+  }) async {
+    try {
+      debugPrint('Supabase: Creating/Updating registration settings for $cloudId...');
+      final supabase = Supabase.instance.client;
+      
+      final data = {
+        'tournament_id': cloudId,
+        'max_teams': maxTeams,
+        'is_active': true,
+        'show_lunch_options': showLunch,
+        'lunch_options': lunchOptions,
+      };
+
+      final response = await supabase
+          .from('registration_settings')
+          .upsert(data, onConflict: 'tournament_id')
+          .select('id')
+          .single();
+      
+      debugPrint('Supabase SUCCESS: Created/Updated settings with ID: ${response['id']}');
+      return response['id'].toString();
+    } catch (e) {
+      debugPrint('Supabase ERROR creating registration settings: $e');
+      rethrow;
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> fetchTournamentRegistrations(String cloudId) async {
+    try {
+      final supabase = Supabase.instance.client;
+      
+      // 1. Get the settings ID for this cloud tournament
+      final settingsRes = await supabase
+          .from('registration_settings')
+          .select('id')
+          .eq('tournament_id', cloudId)
+          .maybeSingle();
+      
+      if (settingsRes == null) return [];
+      
+      final settingsId = settingsRes['id'];
+      
+      // 2. Fetch all registrations for this settings ID
+      final regsRes = await supabase
+          .from('registrations')
+          .select('*')
+          .eq('settings_id', settingsId)
+          .order('created_at', ascending: true);
+      
+      return List<Map<String, dynamic>>.from(regsRes);
+    } catch (e) {
+      return [];
+    }
+  }
+
+  Future<void> updateRegistrationStatus(String regId, String status) async {
+    final supabase = Supabase.instance.client;
+    await supabase
+        .from('registrations')
+        .update({'status': status})
+        .eq('id', regId);
+  }
+
+  Future<void> closeRegistrations(String cloudId, int currentCount) async {
+    final supabase = Supabase.instance.client;
+    await supabase
+        .from('registration_settings')
+        .update({
+          'is_active': false,
+          'max_teams': currentCount,
+        })
+        .eq('tournament_id', cloudId);
+  }
+
+  Future<void> deleteRegistration(String registrationId) async {
+    try {
+      final supabase = Supabase.instance.client;
+      await supabase
+          .from('registrations')
+          .delete()
+          .eq('id', registrationId);
+    } catch (e) {
+      rethrow;
+    }
+  }
 }
 
 final shareRepositoryProvider = Provider((ref) {
   final db = ref.watch(dbProvider);
   final communityRepo = ref.watch(communityRepositoryProvider);
   return ShareRepository(db, communityRepo);
+});
+
+final registrationSettingsProvider = FutureProvider.autoDispose.family<Map<String, dynamic>?, String>((ref, cloudId) async {
+  final repo = ref.watch(shareRepositoryProvider);
+  return repo.fetchRegistrationSettings(cloudId);
 });

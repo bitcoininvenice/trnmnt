@@ -24,6 +24,7 @@ import '../../features/sharing/presentation/screens/share_tournament_screen.dart
 import '../../features/sharing/presentation/screens/scan_tournament_screen.dart';
 import '../../features/community/presentation/screens/community_dashboard_screen.dart';
 import '../../features/community/presentation/screens/join_community_screen.dart';
+import '../../features/tournaments/presentation/screens/registration_management_screen.dart';
 import '../shell/main_shell.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -128,6 +129,15 @@ final routerProvider = Provider<GoRouter>((ref) {
                     builder: (context, state) {
                       final id = int.parse(state.pathParameters['tournamentId']!);
                       return TournamentEditScreen(tournamentId: id);
+                    },
+                  ),
+                  GoRoute(
+                    path: 'registrations',
+                    name: 'tournament-registrations',
+                    builder: (context, state) {
+                      final id = int.parse(state.pathParameters['tournamentId']!);
+                      final cloudId = state.uri.queryParameters['cloudId']!;
+                      return RegistrationManagementScreen(tournamentId: id, cloudId: cloudId);
                     },
                   ),
                 ],

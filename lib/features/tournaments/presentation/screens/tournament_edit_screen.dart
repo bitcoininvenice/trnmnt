@@ -33,6 +33,8 @@ class _TournamentEditScreenState extends ConsumerState<TournamentEditScreen> {
   final _lossPointsController = TextEditingController(text: '1');
   final _timerMinutesController = TextEditingController(text: '10');
   
+  Map<int, int> _teamToGroup = {};
+  int _groupCount = 1;
   bool _includeConsolationFinals = false;
   int _timerValue = 10;
   bool _isLoading = false;
@@ -78,7 +80,7 @@ class _TournamentEditScreenState extends ConsumerState<TournamentEditScreen> {
         startDate: _startDate,
       );
 
-      await repo.setTournamentTeams(widget.tournamentId, _selectedTeamIds);
+      await repo.setTournamentTeams(widget.tournamentId, _selectedTeamIds, teamToGroup: _groupCount > 1 ? _teamToGroup : null);
       
       // Auto-sync after edit if published
       final tournament = await ref.read(tournamentByIdProvider(widget.tournamentId).future);
@@ -134,7 +136,9 @@ class _TournamentEditScreenState extends ConsumerState<TournamentEditScreen> {
               _includeConsolationFinals = tournament.includeConsolationFinals;
               _timerMinutesController.text = tournament.timerMinutes.toString();
               _timerValue = tournament.timerMinutes;
+              _groupCount = tournament.groupCount;
               _selectedTeamIds = teams.map((e) => e.team.id).toList();
+              _teamToGroup = { for (var e in teams) e.team.id : e.tournamentTeam.groupNumber };
               _isInit = true;
             }
 
@@ -489,21 +493,52 @@ class _TournamentEditScreenState extends ConsumerState<TournamentEditScreen> {
                 final isSelected = _selectedTeamIds.contains(team.id);
                 if (isReadOnly && !isSelected) return const SizedBox.shrink();
 
-                return CheckboxListTile(
-                  title: Text(team.name),
-                  value: isSelected,
-                  enabled: !isReadOnly,
-                  onChanged: (val) {
-                    setState(() {
-                      if (val == true) {
-                        if (!_selectedTeamIds.contains(team.id)) {
-                          _selectedTeamIds.add(team.id);
-                        }
-                      } else {
-                        _selectedTeamIds.remove(team.id);
-                      }
-                    });
-                  },
+                return Column(
+                  children: [
+                    CheckboxListTile(
+                      title: Text(team.name, style: TextStyle(fontWeight: isSelected ? FontWeight.bold : null)),
+                      value: isSelected,
+                      enabled: !isReadOnly,
+                      onChanged: (val) {
+                        setState(() {
+                          if (val == true) {
+                            if (!_selectedTeamIds.contains(team.id)) {
+                              _selectedTeamIds.add(team.id);
+                              _teamToGroup[team.id] = 1;
+                            }
+                          } else {
+                            _selectedTeamIds.remove(team.id);
+                            _teamToGroup.remove(team.id);
+                          }
+                        });
+                      },
+                    ),
+                    if (isSelected && _groupCount > 1)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 72, right: 16, bottom: 8),
+                        child: Row(
+                          children: [
+                            const Text('GIRONE:', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.orange)),
+                            const SizedBox(width: 12),
+                            ...List.generate(_groupCount, (i) {
+                              final groupNum = i + 1;
+                              final isCurrent = _teamToGroup[team.id] == groupNum;
+                              return Padding(
+                                padding: const EdgeInsets.only(right: 8),
+                                child: ChoiceChip(
+                                  label: Text(String.fromCharCode(65 + i), style: TextStyle(fontSize: 10, color: isCurrent ? Colors.white : Colors.orange)),
+                                  selected: isCurrent,
+                                  selectedColor: Colors.orange,
+                                  onSelected: isReadOnly ? null : (selected) {
+                                    if (selected) setState(() => _teamToGroup[team.id] = groupNum);
+                                  },
+                                ),
+                              );
+                            }),
+                          ],
+                        ),
+                      ),
+                  ],
                 );
               }),
           ],

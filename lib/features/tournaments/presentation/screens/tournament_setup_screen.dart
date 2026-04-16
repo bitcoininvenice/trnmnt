@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:trnmnt/features/sharing/data/share_repository.dart';
 import 'package:trnmnt/features/tournaments/data/tournaments_repository.dart';
 import 'package:trnmnt/features/teams/data/teams_repository.dart';
 import 'package:trnmnt/generated/l10n/app_localizations.dart';
@@ -45,6 +46,12 @@ class _TournamentSetupScreenState extends ConsumerState<TournamentSetupScreen> {
   Map<int, int> _teamToGroup = {}; // teamId -> groupNumber (1-based)
   List<String> _groupNames = [];
 
+  // Online Registration state
+  bool _enableOpenRegistrations = false;
+  int _maxTeams = 16;
+  bool _showLunch = true;
+  List<String> _lunchOptions = ['Pranzo al Sacco', 'Chiosco Ambulante'];
+
   // Realtime search location
   List<LocationSuggestion> _suggestions = [];
   Timer? _debounce;
@@ -59,7 +66,7 @@ class _TournamentSetupScreenState extends ConsumerState<TournamentSetupScreen> {
   }
 
   Future<void> _createTournament() async {
-    if (_selectedTeamIds.length < 2) {
+    if (!_enableOpenRegistrations && _selectedTeamIds.length < 2) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(AppLocalizations.of(context)!.selectAtLeastTwoTeams), backgroundColor: Colors.orange),
       );
@@ -91,6 +98,12 @@ class _TournamentSetupScreenState extends ConsumerState<TournamentSetupScreen> {
 
       await repo.setTournamentTeams(tournamentId, _selectedTeamIds, teamToGroup: _isMultiGroup ? _teamToGroup : null);
 
+      if (_enableOpenRegistrations) {
+        final shareRepo = ref.read(shareRepositoryProvider);
+        // Publish to cloud to get ID, but DON'T create registration settings yet
+        await shareRepo.publishToSupabaseFull(tournamentId);
+      }
+
       if (mounted) {
         context.go('/tournaments/$tournamentId');
       }
@@ -117,96 +130,123 @@ class _TournamentSetupScreenState extends ConsumerState<TournamentSetupScreen> {
           onPressed: () => context.go('/tournaments'),
         ),
       ),
-      body: Stepper(
-        key: ValueKey('setup_stepper_$_isMultiGroup'),
-        currentStep: _currentStep,
-        onStepContinue: () {
-          if (_currentStep == 0) {
-            if (_formKey.currentState!.validate()) {
-              setState(() => _currentStep = 1);
-            }
-          } else if (_currentStep == 1) {
-            setState(() => _currentStep = 2);
-          } else if (_currentStep == 2) {
-            if (_isMultiGroup) {
-              // Ensure all selected teams have a group assignment
-              for (var id in _selectedTeamIds) {
-                _teamToGroup.putIfAbsent(id, () => 1);
+      body: Stack(
+        children: [
+          Stepper(
+            currentStep: _currentStep,
+            onStepContinue: () {
+              if (_currentStep == 0) {
+                if (_formKey.currentState!.validate()) {
+                  setState(() => _currentStep = 1);
+                }
+              } else if (_currentStep < 3) {
+                setState(() => _currentStep += 1);
+              } else {
+                _createTournament();
               }
-              // Ensure group names are initialized and sized correctly
-              if (_groupNames.length != _groupCount) {
-                 final oldNames = List<String>.from(_groupNames);
-                 _groupNames = List.generate(_groupCount, (i) => i < oldNames.length ? oldNames[i] : 'Gruppo ${String.fromCharCode(65 + i)}');
+            },
+            onStepCancel: () {
+              if (_currentStep > 0) {
+                setState(() => _currentStep -= 1);
+              } else {
+                context.go('/tournaments');
               }
-              setState(() => _currentStep = 3);
-            } else {
-              _createTournament();
-            }
-          } else if (_currentStep == 3) {
-            _createTournament();
-          }
-        },
-        onStepCancel: () {
-          if (_currentStep > 0) {
-            setState(() => _currentStep -= 1);
-          } else {
-            context.go('/tournaments');
-          }
-        },
-        controlsBuilder: (context, details) {
-          return Padding(
-            padding: const EdgeInsets.only(top: 16),
-            child: Row(
-              children: [
-                ElevatedButton(
-                  onPressed: _isLoading ? null : details.onStepContinue,
-                  child: _isLoading
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : Text(_currentStep == (_isMultiGroup ? 3 : 2) ? AppLocalizations.of(context)!.createTournament : AppLocalizations.of(context)!.continueAction),
+            },
+            controlsBuilder: (context, details) {
+              return Padding(
+                padding: const EdgeInsets.only(top: 16),
+                child: Row(
+                  children: [
+                    ElevatedButton(
+                      onPressed: details.onStepContinue,
+                      child: Text(_currentStep == 3 ? AppLocalizations.of(context)!.createTournament : AppLocalizations.of(context)!.continueAction),
+                    ),
+                    const SizedBox(width: 12),
+                    TextButton(
+                      onPressed: details.onStepCancel,
+                      child: Text(_currentStep == 0 ? AppLocalizations.of(context)!.cancel : AppLocalizations.of(context)!.backAction),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 12),
-                TextButton(
-                  onPressed: details.onStepCancel,
-                  child: Text(_currentStep == 0 ? AppLocalizations.of(context)!.cancel : AppLocalizations.of(context)!.backAction),
-                ),
-              ],
+              );
+            },
+            steps: [
+              Step(
+                title: Text(AppLocalizations.of(context)!.infoStep),
+                subtitle: Text(AppLocalizations.of(context)!.infoSubtitle),
+                isActive: _currentStep >= 0,
+                state: _currentStep > 0 ? StepState.complete : StepState.indexed,
+                content: _buildInfoStep(),
+              ),
+              Step(
+                title: Text(AppLocalizations.of(context)!.configStep),
+                subtitle: Text(AppLocalizations.of(context)!.configSubtitle),
+                isActive: _currentStep >= 1,
+                state: _currentStep > 1 ? StepState.complete : StepState.indexed,
+                content: _buildConfigStep(),
+              ),
+              Step(
+                title: Text(_enableOpenRegistrations 
+                    ? AppLocalizations.of(context)!.selectTeamsOptional 
+                    : AppLocalizations.of(context)!.selectParticipatingTeams),
+                subtitle: Text(AppLocalizations.of(context)!.teamsSelected(_selectedTeamIds.length)),
+                isActive: _currentStep >= 2,
+                state: _currentStep > 2 ? StepState.complete : StepState.indexed,
+                content: _buildTeamsStep(),
+              ),
+              Step(
+                title: Text(_isMultiGroup ? AppLocalizations.of(context)!.editGroups : AppLocalizations.of(context)!.finalSummary),
+                subtitle: Text(_isMultiGroup ? AppLocalizations.of(context)!.distributeTeams : AppLocalizations.of(context)!.verifyAndCreate),
+                isActive: _currentStep >= 3,
+                state: _currentStep > 3 ? StepState.complete : StepState.indexed,
+                content: _isMultiGroup ? _buildGroupsStep() : _buildSummaryStep(),
+              ),
+            ],
+          ),
+          if (_isLoading)
+            Container(
+              color: Colors.black54,
+              child: const Center(
+                child: CircularProgressIndicator(color: Colors.orange),
+              ),
             ),
-          );
-        },
-        steps: [
-          Step(
-            title: Text(AppLocalizations.of(context)!.infoStep),
-            subtitle: Text(AppLocalizations.of(context)!.infoSubtitle),
-            isActive: _currentStep >= 0,
-            state: _currentStep > 0 ? StepState.complete : StepState.indexed,
-            content: _buildInfoStep(),
-          ),
-          Step(
-            title: Text(AppLocalizations.of(context)!.configStep),
-            subtitle: Text(AppLocalizations.of(context)!.configSubtitle),
-            isActive: _currentStep >= 1,
-            state: _currentStep > 1 ? StepState.complete : StepState.indexed,
-            content: _buildConfigStep(),
-          ),
-          Step(
-            title: Text(AppLocalizations.of(context)!.teamsStep),
-            subtitle: Text(AppLocalizations.of(context)!.teamsSelected(_selectedTeamIds.length)),
-            isActive: _currentStep >= 2,
-            state: _currentStep > 2 ? StepState.complete : StepState.indexed,
-            content: _buildTeamsStep(),
-          ),
-          if (_isMultiGroup)
-            Step(
-              title: Text(AppLocalizations.of(context)!.editGroups),
-              subtitle: Text(AppLocalizations.of(context)!.distributeTeams),
-              isActive: _currentStep >= 3,
-              state: StepState.indexed,
-              content: _buildGroupsStep(),
-            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSummaryStep() {
+    final l10n = AppLocalizations.of(context)!;
+    String modeLabel = _mode;
+    if (_mode == 'madness') modeLabel = 'Madness';
+    if (_mode == 'group_only') modeLabel = l10n.groupOnly;
+    if (_mode == 'elimination_only') modeLabel = l10n.eliminationOnly;
+    if (_mode == 'group_and_elimination') modeLabel = l10n.groupAndElimination;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(l10n.almostReady, style: const TextStyle(fontWeight: FontWeight.w900, color: Colors.orange)),
+        const SizedBox(height: 8),
+        Text(l10n.readyToCreateDesc, style: const TextStyle(color: Colors.white70, fontSize: 13)),
+        const SizedBox(height: 16),
+        _buildInfoCard(Icons.emoji_events, l10n.tournamentMode, modeLabel.toUpperCase()),
+        _buildInfoCard(Icons.public, l10n.onlineRegistrations, _enableOpenRegistrations ? l10n.active : l10n.inactive),
+        if (!_enableOpenRegistrations)
+          _buildInfoCard(Icons.group, l10n.teams, l10n.teamsSelected(_selectedTeamIds.length)),
+      ],
+    );
+  }
+
+  Widget _buildInfoCard(IconData icon, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: Colors.white24),
+          const SizedBox(width: 12),
+          Text('$label: ', style: const TextStyle(color: Colors.white54, fontSize: 12)),
+          Text(value, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
         ],
       ),
     );
@@ -245,8 +285,8 @@ class _TournamentSetupScreenState extends ConsumerState<TournamentSetupScreen> {
                   children: [
                     ListTile(
                       tileColor: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3),
-                      title: TextFormField(
-                        initialValue: groupIndex < _groupNames.length ? _groupNames[groupIndex] : 'Girone ${String.fromCharCode(65 + groupIndex)}',
+                    title: TextFormField(
+                        initialValue: groupIndex < _groupNames.length ? _groupNames[groupIndex] : '${AppLocalizations.of(context)!.groupPhase} ${String.fromCharCode(65 + groupIndex)}',
                         decoration: InputDecoration(
                           hintText: AppLocalizations.of(context)!.groupNameHint,
                           border: InputBorder.none,
@@ -511,9 +551,28 @@ class _TournamentSetupScreenState extends ConsumerState<TournamentSetupScreen> {
           value: _timerMinutes.toDouble(),
           min: 1,
           max: 20,
+          activeColor: Colors.orange,
           divisions: 19,
           label: '${_timerMinutes} min',
           onChanged: (value) => setState(() => _timerMinutes = value.round()),
+        ),
+
+        const SizedBox(height: 24),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.blue.withOpacity(0.05),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.blue.withOpacity(0.2)),
+          ),
+          child: SwitchListTile(
+            activeColor: Colors.blue,
+            contentPadding: EdgeInsets.zero,
+            title: Text(AppLocalizations.of(context)!.openWebRegistrations, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: Colors.blueAccent)),
+            subtitle: Text(AppLocalizations.of(context)!.openWebRegistrationsDesc),
+            value: _enableOpenRegistrations,
+            onChanged: (val) => setState(() => _enableOpenRegistrations = val),
+          ),
         ),
 
         if (_mode == 'group_only' || _mode == 'group_and_elimination') ...[
@@ -712,6 +771,28 @@ class _TournamentSetupScreenState extends ConsumerState<TournamentSetupScreen> {
           ),
         ),
       ],
+    );
+  }
+
+
+  Future<String?> _showSimpleInputDialog(String title) async {
+    final controller = TextEditingController();
+    return showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E293B),
+        title: Text(title, style: const TextStyle(color: Colors.white, fontSize: 14)),
+        content: TextField(
+          controller: controller, 
+          autofocus: true, 
+          style: const TextStyle(color: Colors.white),
+          decoration: const InputDecoration(focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.orange))),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('ANNULLA')),
+          TextButton(onPressed: () => Navigator.pop(context, controller.text), child: const Text('AGGIUNGI', style: TextStyle(color: Colors.orange))),
+        ],
+      ),
     );
   }
 

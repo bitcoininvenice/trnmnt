@@ -340,5 +340,64 @@
   "regenerateInvite": "RIGENERA",
   "generateInviteAction": "GENERA INVITO",
   "slugAlreadyExists": "Questo URL è già occupato da un'altra community.",
-  "close": "CHIUDI"
+  "close": "CHIUDI",
+  "registrations": "Iscrizioni",
+  "manageRegistrations": "Gestisci Iscrizioni",
+  "enableWebRegistrations": "Abilita Iscrizioni Online",
+  "registrationsNotActive": "ISCRIZIONI NON ATTIVE",
+  "createPublicPageDesc": "Crea la pagina pubblica per permettere alle squadre di iscriversi online.",
+  "activateNow": "ATTIVA ORA",
+  "configureRegistrations": "CONFIGURA ISCRIZIONI",
+  "maxTeamsLabel": "Numero Massimo Squadre",
+  "enableLunchChoice": "Abilita Scelta Pranzo",
+  "addOption": "Aggiungi Opzione",
+  "createPage": "CREA PAGINA",
+  "onlineRegistrationsEnabled": "Iscrizioni Online Abilitate!",
+  "registeredTeams": "SQUADRE ISCRITTE",
+  "registrationsClosed": "ISCRIZIONI CHIUSE",
+  "closeNow": "CHIUDI ORA",
+  "noRegistrationsYet": "Ancora nessuna iscrizione ricevuta",
+  "confirmed": "Confermato",
+  "players": "GIOCATORI",
+  "lunchOptions": "Opzioni Pranzo",
+  "deleteRegistration": "Elimina Iscrizione",
+  "confirmDeleteRegistration": "Sei sicuro di voler eliminare l'iscrizione di \"{team}\"?",
+  "@confirmDeleteRegistration": {
+    "placeholders": {
+      "team": {
+        "type": "String"
+      }
+    }
+  },
+  "registrationDeleted": "Iscrizione eliminata",
+  "linkCopied": "Link copiato negli appunti!",
+  "newOption": "Nuova Opzione",
+  "closeRegistrationsDesc": "Se chiudi le iscrizioni, non sarà più possibile per nuove squadre registrarsi via web. Il numero massimo di squadre verrà impostato a quello attuale.",
+  "confirmDeleteRegGeneric": "Sei sicuro di voler eliminare questa iscrizione?",
+  "confirmAction": "SÌ, ELIMINA",
+  "confirmImport": "CONFERMA E IMPORTA",
+  "teamAlreadyRegistered": "Questa squadra è già iscritta al torneo!",
+  "teamAdded": "Squadra {name} aggiunta!",
+  "@teamAdded": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "teamImported": "SQUADRE IMPORTATE",
+  "manualParticipants": "SQUADRE PARTECIPANTI",
+  "tournamentStages": "INFO",
+  "modeLegend": "Legenda Modalità",
+  "finals": "Finali",
+  "finalSummary": "RIEPILOGO FINALE",
+  "verifyAndCreate": "Verifica e crea",
+  "almostReady": "QUASI PRONTO!",
+  "readyToCreateDesc": "Tutto è configurato correttamente. Clicca su crea per iniziare il torneo.",
+  "onlineRegistrations": "Iscrizioni Online",
+  "active": "ATTIVE",
+  "inactive": "DISATTIVATE",
+  "openWebRegistrations": "ISCRIZIONI ONLINE APERTE",
+  "openWebRegistrationsDesc": "Le squadre potranno registrarsi via web. Pubblicazione Cloud immediata.",
+  "selectTeamsOptional": "Seleziona squadre (Opzionale)"
 }

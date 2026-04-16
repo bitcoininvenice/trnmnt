@@ -827,4 +827,149 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get close => 'CHIUDI';
+
+  @override
+  String get registrations => 'Iscrizioni';
+
+  @override
+  String get manageRegistrations => 'Gestisci Iscrizioni';
+
+  @override
+  String get enableWebRegistrations => 'Abilita Iscrizioni Online';
+
+  @override
+  String get registrationsNotActive => 'ISCRIZIONI NON ATTIVE';
+
+  @override
+  String get createPublicPageDesc =>
+      'Crea la pagina pubblica per permettere alle squadre di iscriversi online.';
+
+  @override
+  String get activateNow => 'ATTIVA ORA';
+
+  @override
+  String get configureRegistrations => 'CONFIGURA ISCRIZIONI';
+
+  @override
+  String get maxTeamsLabel => 'Numero Massimo Squadre';
+
+  @override
+  String get enableLunchChoice => 'Abilita Scelta Pranzo';
+
+  @override
+  String get addOption => 'Aggiungi Opzione';
+
+  @override
+  String get createPage => 'CREA PAGINA';
+
+  @override
+  String get onlineRegistrationsEnabled => 'Iscrizioni Online Abilitate!';
+
+  @override
+  String get registeredTeams => 'SQUADRE ISCRITTE';
+
+  @override
+  String get registrationsClosed => 'ISCRIZIONI CHIUSE';
+
+  @override
+  String get closeNow => 'CHIUDI ORA';
+
+  @override
+  String get noRegistrationsYet => 'Ancora nessuna iscrizione ricevuta';
+
+  @override
+  String get confirmed => 'Confermato';
+
+  @override
+  String get players => 'GIOCATORI';
+
+  @override
+  String get lunchOptions => 'Opzioni Pranzo';
+
+  @override
+  String get deleteRegistration => 'Elimina Iscrizione';
+
+  @override
+  String confirmDeleteRegistration(String team) {
+    return 'Sei sicuro di voler eliminare l\'iscrizione di \"$team\"?';
+  }
+
+  @override
+  String get registrationDeleted => 'Iscrizione eliminata';
+
+  @override
+  String get linkCopied => 'Link copiato negli appunti!';
+
+  @override
+  String get newOption => 'Nuova Opzione';
+
+  @override
+  String get closeRegistrationsDesc =>
+      'Se chiudi le iscrizioni, non sarà più possibile per nuove squadre registrarsi via web. Il numero massimo di squadre verrà impostato a quello attuale.';
+
+  @override
+  String get confirmDeleteRegGeneric =>
+      'Sei sicuro di voler eliminare questa iscrizione?';
+
+  @override
+  String get confirmAction => 'SÌ, ELIMINA';
+
+  @override
+  String get confirmImport => 'CONFERMA E IMPORTA';
+
+  @override
+  String get teamAlreadyRegistered =>
+      'Questa squadra è già iscritta al torneo!';
+
+  @override
+  String teamAdded(String name) {
+    return 'Squadra $name aggiunta!';
+  }
+
+  @override
+  String get teamImported => 'SQUADRE IMPORTATE';
+
+  @override
+  String get manualParticipants => 'SQUADRE PARTECIPANTI';
+
+  @override
+  String get tournamentStages => 'INFO';
+
+  @override
+  String get modeLegend => 'Legenda Modalità';
+
+  @override
+  String get finals => 'Finali';
+
+  @override
+  String get finalSummary => 'RIEPILOGO FINALE';
+
+  @override
+  String get verifyAndCreate => 'Verifica e crea';
+
+  @override
+  String get almostReady => 'QUASI PRONTO!';
+
+  @override
+  String get readyToCreateDesc =>
+      'Tutto è configurato correttamente. Clicca su crea per iniziare il torneo.';
+
+  @override
+  String get onlineRegistrations => 'Iscrizioni Online';
+
+  @override
+  String get active => 'ATTIVE';
+
+  @override
+  String get inactive => 'DISATTIVATE';
+
+  @override
+  String get openWebRegistrations => 'ISCRIZIONI ONLINE APERTE';
+
+  @override
+  String get openWebRegistrationsDesc =>
+      'Le squadre potranno registrarsi via web. Pubblicazione Cloud immediata.';
+
+  @override
+  String get selectTeamsOptional => 'Seleziona squadre (Opzionale)';
 }

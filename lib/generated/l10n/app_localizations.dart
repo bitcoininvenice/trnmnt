@@ -1645,6 +1645,276 @@ abstract class AppLocalizations {
   /// In it, this message translates to:
   /// **'CHIUDI'**
   String get close;
+
+  /// No description provided for @registrations.
+  ///
+  /// In it, this message translates to:
+  /// **'Iscrizioni'**
+  String get registrations;
+
+  /// No description provided for @manageRegistrations.
+  ///
+  /// In it, this message translates to:
+  /// **'Gestisci Iscrizioni'**
+  String get manageRegistrations;
+
+  /// No description provided for @enableWebRegistrations.
+  ///
+  /// In it, this message translates to:
+  /// **'Abilita Iscrizioni Online'**
+  String get enableWebRegistrations;
+
+  /// No description provided for @registrationsNotActive.
+  ///
+  /// In it, this message translates to:
+  /// **'ISCRIZIONI NON ATTIVE'**
+  String get registrationsNotActive;
+
+  /// No description provided for @createPublicPageDesc.
+  ///
+  /// In it, this message translates to:
+  /// **'Crea la pagina pubblica per permettere alle squadre di iscriversi online.'**
+  String get createPublicPageDesc;
+
+  /// No description provided for @activateNow.
+  ///
+  /// In it, this message translates to:
+  /// **'ATTIVA ORA'**
+  String get activateNow;
+
+  /// No description provided for @configureRegistrations.
+  ///
+  /// In it, this message translates to:
+  /// **'CONFIGURA ISCRIZIONI'**
+  String get configureRegistrations;
+
+  /// No description provided for @maxTeamsLabel.
+  ///
+  /// In it, this message translates to:
+  /// **'Numero Massimo Squadre'**
+  String get maxTeamsLabel;
+
+  /// No description provided for @enableLunchChoice.
+  ///
+  /// In it, this message translates to:
+  /// **'Abilita Scelta Pranzo'**
+  String get enableLunchChoice;
+
+  /// No description provided for @addOption.
+  ///
+  /// In it, this message translates to:
+  /// **'Aggiungi Opzione'**
+  String get addOption;
+
+  /// No description provided for @createPage.
+  ///
+  /// In it, this message translates to:
+  /// **'CREA PAGINA'**
+  String get createPage;
+
+  /// No description provided for @onlineRegistrationsEnabled.
+  ///
+  /// In it, this message translates to:
+  /// **'Iscrizioni Online Abilitate!'**
+  String get onlineRegistrationsEnabled;
+
+  /// No description provided for @registeredTeams.
+  ///
+  /// In it, this message translates to:
+  /// **'SQUADRE ISCRITTE'**
+  String get registeredTeams;
+
+  /// No description provided for @registrationsClosed.
+  ///
+  /// In it, this message translates to:
+  /// **'ISCRIZIONI CHIUSE'**
+  String get registrationsClosed;
+
+  /// No description provided for @closeNow.
+  ///
+  /// In it, this message translates to:
+  /// **'CHIUDI ORA'**
+  String get closeNow;
+
+  /// No description provided for @noRegistrationsYet.
+  ///
+  /// In it, this message translates to:
+  /// **'Ancora nessuna iscrizione ricevuta'**
+  String get noRegistrationsYet;
+
+  /// No description provided for @confirmed.
+  ///
+  /// In it, this message translates to:
+  /// **'Confermato'**
+  String get confirmed;
+
+  /// No description provided for @players.
+  ///
+  /// In it, this message translates to:
+  /// **'GIOCATORI'**
+  String get players;
+
+  /// No description provided for @lunchOptions.
+  ///
+  /// In it, this message translates to:
+  /// **'Opzioni Pranzo'**
+  String get lunchOptions;
+
+  /// No description provided for @deleteRegistration.
+  ///
+  /// In it, this message translates to:
+  /// **'Elimina Iscrizione'**
+  String get deleteRegistration;
+
+  /// No description provided for @confirmDeleteRegistration.
+  ///
+  /// In it, this message translates to:
+  /// **'Sei sicuro di voler eliminare l\'iscrizione di \"{team}\"?'**
+  String confirmDeleteRegistration(String team);
+
+  /// No description provided for @registrationDeleted.
+  ///
+  /// In it, this message translates to:
+  /// **'Iscrizione eliminata'**
+  String get registrationDeleted;
+
+  /// No description provided for @linkCopied.
+  ///
+  /// In it, this message translates to:
+  /// **'Link copiato negli appunti!'**
+  String get linkCopied;
+
+  /// No description provided for @newOption.
+  ///
+  /// In it, this message translates to:
+  /// **'Nuova Opzione'**
+  String get newOption;
+
+  /// No description provided for @closeRegistrationsDesc.
+  ///
+  /// In it, this message translates to:
+  /// **'Se chiudi le iscrizioni, non sarà più possibile per nuove squadre registrarsi via web. Il numero massimo di squadre verrà impostato a quello attuale.'**
+  String get closeRegistrationsDesc;
+
+  /// No description provided for @confirmDeleteRegGeneric.
+  ///
+  /// In it, this message translates to:
+  /// **'Sei sicuro di voler eliminare questa iscrizione?'**
+  String get confirmDeleteRegGeneric;
+
+  /// No description provided for @confirmAction.
+  ///
+  /// In it, this message translates to:
+  /// **'SÌ, ELIMINA'**
+  String get confirmAction;
+
+  /// No description provided for @confirmImport.
+  ///
+  /// In it, this message translates to:
+  /// **'CONFERMA E IMPORTA'**
+  String get confirmImport;
+
+  /// No description provided for @teamAlreadyRegistered.
+  ///
+  /// In it, this message translates to:
+  /// **'Questa squadra è già iscritta al torneo!'**
+  String get teamAlreadyRegistered;
+
+  /// No description provided for @teamAdded.
+  ///
+  /// In it, this message translates to:
+  /// **'Squadra {name} aggiunta!'**
+  String teamAdded(String name);
+
+  /// No description provided for @teamImported.
+  ///
+  /// In it, this message translates to:
+  /// **'SQUADRE IMPORTATE'**
+  String get teamImported;
+
+  /// No description provided for @manualParticipants.
+  ///
+  /// In it, this message translates to:
+  /// **'SQUADRE PARTECIPANTI'**
+  String get manualParticipants;
+
+  /// No description provided for @tournamentStages.
+  ///
+  /// In it, this message translates to:
+  /// **'INFO'**
+  String get tournamentStages;
+
+  /// No description provided for @modeLegend.
+  ///
+  /// In it, this message translates to:
+  /// **'Legenda Modalità'**
+  String get modeLegend;
+
+  /// No description provided for @finals.
+  ///
+  /// In it, this message translates to:
+  /// **'Finali'**
+  String get finals;
+
+  /// No description provided for @finalSummary.
+  ///
+  /// In it, this message translates to:
+  /// **'RIEPILOGO FINALE'**
+  String get finalSummary;
+
+  /// No description provided for @verifyAndCreate.
+  ///
+  /// In it, this message translates to:
+  /// **'Verifica e crea'**
+  String get verifyAndCreate;
+
+  /// No description provided for @almostReady.
+  ///
+  /// In it, this message translates to:
+  /// **'QUASI PRONTO!'**
+  String get almostReady;
+
+  /// No description provided for @readyToCreateDesc.
+  ///
+  /// In it, this message translates to:
+  /// **'Tutto è configurato correttamente. Clicca su crea per iniziare il torneo.'**
+  String get readyToCreateDesc;
+
+  /// No description provided for @onlineRegistrations.
+  ///
+  /// In it, this message translates to:
+  /// **'Iscrizioni Online'**
+  String get onlineRegistrations;
+
+  /// No description provided for @active.
+  ///
+  /// In it, this message translates to:
+  /// **'ATTIVE'**
+  String get active;
+
+  /// No description provided for @inactive.
+  ///
+  /// In it, this message translates to:
+  /// **'DISATTIVATE'**
+  String get inactive;
+
+  /// No description provided for @openWebRegistrations.
+  ///
+  /// In it, this message translates to:
+  /// **'ISCRIZIONI ONLINE APERTE'**
+  String get openWebRegistrations;
+
+  /// No description provided for @openWebRegistrationsDesc.
+  ///
+  /// In it, this message translates to:
+  /// **'Le squadre potranno registrarsi via web. Pubblicazione Cloud immediata.'**
+  String get openWebRegistrationsDesc;
+
+  /// No description provided for @selectTeamsOptional.
+  ///
+  /// In it, this message translates to:
+  /// **'Seleziona squadre (Opzionale)'**
+  String get selectTeamsOptional;
 }
 
 class _AppLocalizationsDelegate

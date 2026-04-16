@@ -823,4 +823,149 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get close => 'CLOSE';
+
+  @override
+  String get registrations => 'Registrations';
+
+  @override
+  String get manageRegistrations => 'Manage Registrations';
+
+  @override
+  String get enableWebRegistrations => 'Enable Online Registrations';
+
+  @override
+  String get registrationsNotActive => 'REGISTRATIONS NOT ACTIVE';
+
+  @override
+  String get createPublicPageDesc =>
+      'Create the public page to allow teams to register online.';
+
+  @override
+  String get activateNow => 'ACTIVATE NOW';
+
+  @override
+  String get configureRegistrations => 'CONFIGURE REGISTRATIONS';
+
+  @override
+  String get maxTeamsLabel => 'Maximum Number of Teams';
+
+  @override
+  String get enableLunchChoice => 'Enable Lunch Choice';
+
+  @override
+  String get addOption => 'Add Option';
+
+  @override
+  String get createPage => 'CREATE PAGE';
+
+  @override
+  String get onlineRegistrationsEnabled => 'Online Registrations Enabled!';
+
+  @override
+  String get registeredTeams => 'REGISTERED TEAMS';
+
+  @override
+  String get registrationsClosed => 'REGISTRATIONS CLOSED';
+
+  @override
+  String get closeNow => 'CLOSE NOW';
+
+  @override
+  String get noRegistrationsYet => 'No registrations received yet';
+
+  @override
+  String get confirmed => 'Confirmed';
+
+  @override
+  String get players => 'PLAYERS';
+
+  @override
+  String get lunchOptions => 'Lunch Options';
+
+  @override
+  String get deleteRegistration => 'Delete Registration';
+
+  @override
+  String confirmDeleteRegistration(String team) {
+    return 'Are you sure you want to delete the registration for \"$team\"?';
+  }
+
+  @override
+  String get registrationDeleted => 'Registration deleted';
+
+  @override
+  String get linkCopied => 'Link copied to clipboard!';
+
+  @override
+  String get newOption => 'New Option';
+
+  @override
+  String get closeRegistrationsDesc =>
+      'If you close registrations, it will no longer be possible for new teams to register via web. The maximum number of teams will be set to the current number.';
+
+  @override
+  String get confirmDeleteRegGeneric =>
+      'Are you sure you want to delete this registration?';
+
+  @override
+  String get confirmAction => 'YES, DELETE';
+
+  @override
+  String get confirmImport => 'CONFIRM AND IMPORT';
+
+  @override
+  String get teamAlreadyRegistered =>
+      'This team is already registered for this tournament!';
+
+  @override
+  String teamAdded(String name) {
+    return 'Team $name added!';
+  }
+
+  @override
+  String get teamImported => 'TEAM IMPORTED';
+
+  @override
+  String get manualParticipants => 'TEAMS';
+
+  @override
+  String get tournamentStages => 'INFO';
+
+  @override
+  String get modeLegend => 'Mode Legend';
+
+  @override
+  String get finals => 'Finals';
+
+  @override
+  String get finalSummary => 'FINAL SUMMARY';
+
+  @override
+  String get verifyAndCreate => 'Verify and create';
+
+  @override
+  String get almostReady => 'ALMOST READY!';
+
+  @override
+  String get readyToCreateDesc =>
+      'Everything is configured correctly. Click create to start the tournament.';
+
+  @override
+  String get onlineRegistrations => 'Online Registrations';
+
+  @override
+  String get active => 'ACTIVE';
+
+  @override
+  String get inactive => 'INACTIVE';
+
+  @override
+  String get openWebRegistrations => 'OPEN ONLINE REGISTRATIONS';
+
+  @override
+  String get openWebRegistrationsDesc =>
+      'Teams will be able to register via web. Immediate Cloud publishing.';
+
+  @override
+  String get selectTeamsOptional => 'Select Teams (Optional)';
 }

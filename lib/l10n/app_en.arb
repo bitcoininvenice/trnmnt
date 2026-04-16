@@ -340,5 +340,64 @@
   "regenerateInvite": "REGENERATE",
   "generateInviteAction": "GENERATE INVITE",
   "slugAlreadyExists": "This URL is already taken by another community.",
-  "close": "CLOSE"
+  "close": "CLOSE",
+  "registrations": "Registrations",
+  "manageRegistrations": "Manage Registrations",
+  "enableWebRegistrations": "Enable Online Registrations",
+  "registrationsNotActive": "REGISTRATIONS NOT ACTIVE",
+  "createPublicPageDesc": "Create the public page to allow teams to register online.",
+  "activateNow": "ACTIVATE NOW",
+  "configureRegistrations": "CONFIGURE REGISTRATIONS",
+  "maxTeamsLabel": "Maximum Number of Teams",
+  "enableLunchChoice": "Enable Lunch Choice",
+  "addOption": "Add Option",
+  "createPage": "CREATE PAGE",
+  "onlineRegistrationsEnabled": "Online Registrations Enabled!",
+  "registeredTeams": "REGISTERED TEAMS",
+  "registrationsClosed": "REGISTRATIONS CLOSED",
+  "closeNow": "CLOSE NOW",
+  "noRegistrationsYet": "No registrations received yet",
+  "confirmed": "Confirmed",
+  "players": "PLAYERS",
+  "lunchOptions": "Lunch Options",
+  "deleteRegistration": "Delete Registration",
+  "confirmDeleteRegistration": "Are you sure you want to delete the registration for \"{team}\"?",
+  "@confirmDeleteRegistration": {
+    "placeholders": {
+      "team": {
+        "type": "String"
+      }
+    }
+  },
+  "registrationDeleted": "Registration deleted",
+  "linkCopied": "Link copied to clipboard!",
+  "newOption": "New Option",
+  "closeRegistrationsDesc": "If you close registrations, it will no longer be possible for new teams to register via web. The maximum number of teams will be set to the current number.",
+  "confirmDeleteRegGeneric": "Are you sure you want to delete this registration?",
+  "confirmAction": "YES, DELETE",
+  "confirmImport": "CONFIRM AND IMPORT",
+  "teamAlreadyRegistered": "This team is already registered for this tournament!",
+  "teamAdded": "Team {name} added!",
+  "@teamAdded": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "teamImported": "TEAM IMPORTED",
+  "manualParticipants": "TEAMS",
+  "tournamentStages": "INFO",
+  "modeLegend": "Mode Legend",
+  "finals": "Finals",
+  "finalSummary": "FINAL SUMMARY",
+  "verifyAndCreate": "Verify and create",
+  "almostReady": "ALMOST READY!",
+  "readyToCreateDesc": "Everything is configured correctly. Click create to start the tournament.",
+  "onlineRegistrations": "Online Registrations",
+  "active": "ACTIVE",
+  "inactive": "INACTIVE",
+  "openWebRegistrations": "OPEN ONLINE REGISTRATIONS",
+  "openWebRegistrationsDesc": "Teams will be able to register via web. Immediate Cloud publishing.",
+  "selectTeamsOptional": "Select Teams (Optional)"
 }

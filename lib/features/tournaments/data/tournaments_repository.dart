@@ -268,6 +268,10 @@ class TournamentsRepository {
     ) > 0;
   }
 
+  Future<Tournament?> getTournamentById(int id) async {
+    return await (_db.select(_db.tournaments)..where((t) => t.id.equals(id))).getSingleOrNull();
+  }
+
   Future<bool> updateTwitchChannel(int id, String? twitchChannel) async {
     return await (_db.update(_db.tournaments)..where((t) => t.id.equals(id))).write(
       TournamentsCompanion(
