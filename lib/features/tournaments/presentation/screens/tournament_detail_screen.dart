@@ -49,24 +49,27 @@ class _TournamentDetailScreenState extends ConsumerState<TournamentDetailScreen>
   }
 
   Future<String?> _showSimpleInputDialog(String title) async {
-    String value = '';
+    final controller = TextEditingController();
     return showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF0F172A),
+        backgroundColor: const Color(0xFF1E293B),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text(title, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
         content: TextField(
-          autofocus: true,
+          controller: controller, 
+          autofocus: true, 
           style: const TextStyle(color: Colors.white),
-          decoration: const InputDecoration(
-            hintText: 'Inserisci valore...',
-            hintStyle: TextStyle(color: Colors.white24),
+          decoration: InputDecoration(
+            hintText: AppLocalizations.of(context)!.name,
+            hintStyle: const TextStyle(color: Colors.white24),
+            focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.orange)),
           ),
-          onChanged: (v) => value = v,
+          onSubmitted: (val) => Navigator.pop(context, val),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: Text(AppLocalizations.of(context)!.cancel.toUpperCase())),
-          ElevatedButton(onPressed: () => Navigator.pop(context, value), child: Text(AppLocalizations.of(context)!.addAction.toUpperCase())),
+          TextButton(onPressed: () => Navigator.pop(context), child: Text(AppLocalizations.of(context)!.cancel.toUpperCase(), style: const TextStyle(color: Colors.grey))),
+          TextButton(onPressed: () => Navigator.pop(context, controller.text), child: Text(AppLocalizations.of(context)!.addAction.toUpperCase(), style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.bold))),
         ],
       ),
     );
@@ -123,8 +126,8 @@ class _TournamentDetailScreenState extends ConsumerState<TournamentDetailScreen>
                   TextButton.icon(
                     onPressed: () async {
                       final name = await _showSimpleInputDialog(l10n.newOption);
-                      if (name != null && name.isNotEmpty) {
-                        setDialogState(() => lunchOptions.add(name));
+                      if (name != null && name.trim().isNotEmpty) {
+                        setDialogState(() => lunchOptions.add(name.trim()));
                       }
                     },
                     icon: const Icon(Icons.add, size: 16, color: Colors.orange),
@@ -227,7 +230,7 @@ class _TournamentDetailScreenState extends ConsumerState<TournamentDetailScreen>
                   ),
                 ),
                 actions: [
-                  if (tournament.cloudId != null)
+                  if (tournament.cloudId != null && tournament.isWebRegistrationEnabled)
                     Consumer(
                       builder: (context, ref, child) {
                         final settingsAsync = ref.watch(registrationSettingsProvider(tournament.cloudId!));
@@ -313,7 +316,7 @@ class _TournamentDetailScreenState extends ConsumerState<TournamentDetailScreen>
 
                       const SizedBox(height: 32),
                       
-                      if (tournament.cloudId != null) ...[
+                      if (tournament.cloudId != null && tournament.isWebRegistrationEnabled) ...[
                         Consumer(
                           builder: (context, ref, child) {
                             final settingsAsync = ref.watch(registrationSettingsProvider(tournament.cloudId!));
@@ -368,7 +371,7 @@ class _TournamentDetailScreenState extends ConsumerState<TournamentDetailScreen>
                         children: [
                           Text(
                             AppLocalizations.of(context)!.manualParticipants,
-                            style: const TextStyle(color: Colors.white70, fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 1.2),
+                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 1.2),
                           ),
                           TextButton(
                             onPressed: () => context.push('/tournaments/${widget.tournamentId}/edit'),
@@ -408,7 +411,7 @@ class _TournamentDetailScreenState extends ConsumerState<TournamentDetailScreen>
                       // Action Grid
                       Text(
                         AppLocalizations.of(context)!.tournamentStages,
-                        style: const TextStyle(color: Colors.white70, fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 1.2),
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 1.2),
                       ),
                       _buildActionCards(context, tournament),
                       

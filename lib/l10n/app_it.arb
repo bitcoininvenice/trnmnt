@@ -106,6 +106,7 @@
   "lightsTitle": "Luci",
   "saveAction": "SALVA",
   "newCourtTitle": "Nuovo Campetto",
+  "name": "Nome",
   "nameLabel": "Nome",
   "descLabel": "Descrizione",
   "tapMapInstruction": "Tocca la mappa per aggiungere",

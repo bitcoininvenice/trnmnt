@@ -94,6 +94,7 @@ class _TournamentSetupScreenState extends ConsumerState<TournamentSetupScreen> {
         hasPlayIn: _isMultiGroup ? _hasPlayIn : false,
         groupNames: _isMultiGroup ? jsonEncode(_groupNames) : null,
         communityId: ref.read(selectedCommunityIdProvider),
+        isWebRegistrationEnabled: _enableOpenRegistrations,
       );
 
       await repo.setTournamentTeams(tournamentId, _selectedTeamIds, teamToGroup: _isMultiGroup ? _teamToGroup : null);
@@ -561,9 +562,9 @@ class _TournamentSetupScreenState extends ConsumerState<TournamentSetupScreen> {
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.blue.withOpacity(0.05),
+            color: Colors.blue.withValues(alpha: 0.05),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.blue.withOpacity(0.2)),
+            border: Border.all(color: Colors.blue.withValues(alpha: 0.2)),
           ),
           child: SwitchListTile(
             activeColor: Colors.blue,
@@ -781,16 +782,22 @@ class _TournamentSetupScreenState extends ConsumerState<TournamentSetupScreen> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF1E293B),
-        title: Text(title, style: const TextStyle(color: Colors.white, fontSize: 14)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(title, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
         content: TextField(
           controller: controller, 
           autofocus: true, 
           style: const TextStyle(color: Colors.white),
-          decoration: const InputDecoration(focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.orange))),
+          decoration: InputDecoration(
+            hintText: AppLocalizations.of(context)!.name,
+            hintStyle: const TextStyle(color: Colors.white24),
+            focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.orange)),
+          ),
+          onSubmitted: (val) => Navigator.pop(context, val),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('ANNULLA')),
-          TextButton(onPressed: () => Navigator.pop(context, controller.text), child: const Text('AGGIUNGI', style: TextStyle(color: Colors.orange))),
+          TextButton(onPressed: () => Navigator.pop(context), child: Text(AppLocalizations.of(context)!.cancel.toUpperCase(), style: const TextStyle(color: Colors.grey))),
+          TextButton(onPressed: () => Navigator.pop(context, controller.text), child: Text(AppLocalizations.of(context)!.addAction.toUpperCase(), style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.bold))),
         ],
       ),
     );

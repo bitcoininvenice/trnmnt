@@ -122,8 +122,8 @@ class _RegistrationManagementScreenState extends ConsumerState<RegistrationManag
                   TextButton.icon(
                     onPressed: () async {
                       final name = await _showSimpleInputDialog(l10n.newOption);
-                      if (name != null && name.isNotEmpty) {
-                        setDialogState(() => lunchOptions.add(name));
+                      if (name != null && name.trim().isNotEmpty) {
+                        setDialogState(() => lunchOptions.add(name.trim()));
                       }
                     },
                     icon: const Icon(Icons.add, size: 16, color: Colors.orange),
@@ -169,22 +169,128 @@ class _RegistrationManagementScreenState extends ConsumerState<RegistrationManag
     }
   }
 
+  Future<void> _editSettings() async {
+    if (_settings == null) return;
+    
+    final l10n = AppLocalizations.of(context)!;
+    final maxTeamsController = TextEditingController(text: _settings!['max_teams'].toString());
+    bool showLunch = _settings!['show_lunch_options'] ?? true;
+    List<String> lunchOptions = List<String>.from(_settings!['lunch_options'] ?? []);
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text(l10n.configureRegistrations, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+          backgroundColor: const Color(0xFF0F172A),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: maxTeamsController,
+                  decoration: InputDecoration(
+                    labelText: l10n.maxTeamsLabel,
+                    labelStyle: const TextStyle(color: Colors.orange, fontSize: 12),
+                  ),
+                  keyboardType: TextInputType.number,
+                  style: const TextStyle(color: Colors.white),
+                ),
+                const SizedBox(height: 16),
+                SwitchListTile(
+                  title: Text(l10n.enableLunchChoice, style: const TextStyle(color: Colors.white, fontSize: 13)),
+                  value: showLunch,
+                  activeColor: Colors.orange,
+                  contentPadding: EdgeInsets.zero,
+                  onChanged: (v) => setDialogState(() => showLunch = v),
+                ),
+                if (showLunch) ...[
+                  const Divider(color: Colors.white24),
+                  ...lunchOptions.asMap().entries.map((entry) => Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Row(
+                      children: [
+                        Expanded(child: Text(entry.value, style: const TextStyle(color: Colors.white70, fontSize: 12))),
+                        IconButton(
+                          icon: const Icon(Icons.close, size: 16, color: Colors.red),
+                          onPressed: () => setDialogState(() => lunchOptions.removeAt(entry.key)),
+                        ),
+                      ],
+                    ),
+                  )),
+                  TextButton.icon(
+                    onPressed: () async {
+                      final name = await _showSimpleInputDialog(l10n.newOption);
+                      if (name != null && name.trim().isNotEmpty) {
+                        setDialogState(() => lunchOptions.add(name.trim()));
+                      }
+                    },
+                    icon: const Icon(Icons.add, size: 16, color: Colors.orange),
+                    label: Text(l10n.addOption, style: const TextStyle(color: Colors.orange, fontSize: 12)),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context), 
+              child: Text(l10n.cancel.toUpperCase(), style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold))
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+              child: Text(l10n.saveAction.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w900)),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (result == true) {
+      try {
+        setState(() => _isLoading = true);
+        await ref.read(shareRepositoryProvider).createRegistrationSettings(
+          cloudId: widget.cloudId,
+          maxTeams: int.tryParse(maxTeamsController.text) ?? 16,
+          showLunch: showLunch,
+          lunchOptions: lunchOptions,
+        );
+        _loadData();
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('${l10n.error}: $e'), backgroundColor: Colors.red),
+          );
+        }
+        if (mounted) setState(() => _isLoading = false);
+      }
+    }
+  }
+
   Future<String?> _showSimpleInputDialog(String title) async {
     final controller = TextEditingController();
     return showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF1E293B),
-        title: Text(title, style: const TextStyle(color: Colors.white, fontSize: 14)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(title, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
         content: TextField(
           controller: controller, 
           autofocus: true, 
           style: const TextStyle(color: Colors.white),
-          decoration: const InputDecoration(focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.orange))),
+          decoration: InputDecoration(
+            hintText: AppLocalizations.of(context)!.name,
+            hintStyle: const TextStyle(color: Colors.white24),
+            focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.orange)),
+          ),
+          onSubmitted: (val) => Navigator.pop(context, val),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: Text(AppLocalizations.of(context)!.cancel.toUpperCase())),
-          TextButton(onPressed: () => Navigator.pop(context, controller.text), child: Text(AppLocalizations.of(context)!.addAction.toUpperCase(), style: const TextStyle(color: Colors.orange))),
+          TextButton(onPressed: () => Navigator.pop(context), child: Text(AppLocalizations.of(context)!.cancel.toUpperCase(), style: const TextStyle(color: Colors.grey))),
+          TextButton(onPressed: () => Navigator.pop(context, controller.text), child: Text(AppLocalizations.of(context)!.addAction.toUpperCase(), style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.bold))),
         ],
       ),
     );
@@ -369,6 +475,12 @@ class _RegistrationManagementScreenState extends ConsumerState<RegistrationManag
         elevation: 0,
         centerTitle: true,
         actions: [
+          if (_settings != null)
+            IconButton(
+              icon: const Icon(Icons.settings, color: Colors.orangeAccent),
+              tooltip: l10n.configureRegistrations,
+              onPressed: _editSettings,
+            ),
           IconButton(
             icon: const Icon(Icons.copy_all, color: Colors.blueAccent),
             tooltip: l10n.copyLink,

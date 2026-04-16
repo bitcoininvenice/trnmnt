@@ -39,6 +39,7 @@ class _TournamentEditScreenState extends ConsumerState<TournamentEditScreen> {
   int _timerValue = 10;
   bool _isLoading = false;
   bool _isInit = false;
+  bool _isWebRegistrationEnabled = false;
 
   @override
   void dispose() {
@@ -81,6 +82,7 @@ class _TournamentEditScreenState extends ConsumerState<TournamentEditScreen> {
         includeConsolationFinals: _includeConsolationFinals,
         timerMinutes: int.tryParse(_timerMinutesController.text) ?? 10,
         startDate: _startDate,
+        isWebRegistrationEnabled: _isWebRegistrationEnabled,
       );
 
       await repo.setTournamentTeams(widget.tournamentId, _selectedTeamIds, teamToGroup: _groupCount > 1 ? _teamToGroup : null);
@@ -142,6 +144,7 @@ class _TournamentEditScreenState extends ConsumerState<TournamentEditScreen> {
               _groupCount = tournament.groupCount;
               _selectedTeamIds = teams.map((e) => e.team.id).toList();
               _teamToGroup = { for (var e in teams) e.team.id : e.tournamentTeam.groupNumber };
+              _isWebRegistrationEnabled = tournament.isWebRegistrationEnabled;
               _isInit = true;
             }
 
@@ -212,7 +215,7 @@ class _TournamentEditScreenState extends ConsumerState<TournamentEditScreen> {
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 16),
-                    _buildConfigFields(isReadOnly, isModeLocked),
+                    _buildConfigFields(isReadOnly, isModeLocked, tournament),
 
                     const SizedBox(height: 32),
                     Text(
@@ -263,7 +266,7 @@ class _TournamentEditScreenState extends ConsumerState<TournamentEditScreen> {
     );
   }
 
-  Widget _buildConfigFields(bool isReadOnly, bool isModeLocked) {
+  Widget _buildConfigFields(bool isReadOnly, bool isModeLocked, Tournament tournament) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -321,6 +324,17 @@ class _TournamentEditScreenState extends ConsumerState<TournamentEditScreen> {
             });
           },
         ),
+        if (tournament.isPublished) ...[
+          const SizedBox(height: 16),
+          SwitchListTile(
+            title: Text(AppLocalizations.of(context)!.openWebRegistrations, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.blueAccent)),
+            subtitle: Text(AppLocalizations.of(context)!.openWebRegistrationsDesc),
+            value: _isWebRegistrationEnabled,
+            onChanged: isReadOnly ? null : (val) => setState(() => _isWebRegistrationEnabled = val),
+            activeColor: Colors.blue,
+            contentPadding: EdgeInsets.zero,
+          ),
+        ],
       ],
     );
   }

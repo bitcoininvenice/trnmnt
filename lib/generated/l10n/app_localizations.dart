@@ -542,6 +542,12 @@ abstract class AppLocalizations {
   /// **'Nuovo Campetto'**
   String get newCourtTitle;
 
+  /// No description provided for @name.
+  ///
+  /// In it, this message translates to:
+  /// **'Nome'**
+  String get name;
+
   /// No description provided for @nameLabel.
   ///
   /// In it, this message translates to:

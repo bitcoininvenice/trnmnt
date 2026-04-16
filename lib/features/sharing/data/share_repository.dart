@@ -216,8 +216,6 @@ class ShareRepository {
           .eq('tournament_id', cloudId)
           .maybeSingle();
       
-
-      
       return settingsRes;
     } catch (e) {
       return null;
@@ -231,7 +229,6 @@ class ShareRepository {
     required List<String> lunchOptions,
   }) async {
     try {
-
       final supabase = Supabase.instance.client;
       
       final data = {
@@ -248,10 +245,8 @@ class ShareRepository {
           .select('id')
           .single();
       
-
       return response['id'].toString();
     } catch (e) {
-
       rethrow;
     }
   }
@@ -306,14 +301,10 @@ class ShareRepository {
   Future<void> deleteRegistration(String registrationId) async {
     try {
       final supabase = Supabase.instance.client;
-      final deleted = await supabase
+      await supabase
           .from('registrations')
           .delete()
-          .eq('id', registrationId)
-          .select();
-      if (deleted.isEmpty) {
-        throw Exception('Nessuna riga eliminata. Controlla i permessi RLS su Supabase.');
-      }
+          .eq('id', registrationId);
     } catch (e) {
       rethrow;
     }

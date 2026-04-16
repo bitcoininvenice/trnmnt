@@ -84,7 +84,7 @@ final cloudTournamentsProvider = StreamProvider<List<Map<String, dynamic>>>((ref
             // Silently handle format errors
           }
           return false;
-        }).take(3).toList();
+        }).take(5).toList();
       }
 
       // 1. Try with user selected filters
@@ -105,7 +105,7 @@ final cloudTournamentsProvider = StreamProvider<List<Map<String, dynamic>>>((ref
 
       // 5. If REALLY empty, but cloud has data, return the first 3 regardless of filtering
       if (allTournaments.isNotEmpty) {
-        return allTournaments.take(3).toList();
+        return allTournaments.take(5).toList();
       }
 
       return [];
@@ -202,6 +202,7 @@ class TournamentsRepository {
     String? groupNames,
     String? twitchChannel,
     String? communityId,
+    bool isWebRegistrationEnabled = false,
   }) async {
     return await _db.into(_db.tournaments).insert(
       TournamentsCompanion.insert(
@@ -221,6 +222,7 @@ class TournamentsRepository {
         groupNames: Value(groupNames),
         twitchChannel: Value(twitchChannel),
         communityId: Value(communityId),
+        isWebRegistrationEnabled: Value(isWebRegistrationEnabled),
       ),
     );
   }
@@ -244,6 +246,7 @@ class TournamentsRepository {
     String? groupNames,
     String? twitchChannel,
     String? customTicker,
+    bool? isWebRegistrationEnabled,
   }) async {
     return await (_db.update(_db.tournaments)..where((t) => t.id.equals(id))).write(
       TournamentsCompanion(
@@ -264,6 +267,7 @@ class TournamentsRepository {
         groupNames: groupNames != null ? Value(groupNames) : const Value.absent(),
         twitchChannel: twitchChannel != null ? Value(twitchChannel) : const Value.absent(),
         customTicker: customTicker != null ? Value(customTicker) : const Value.absent(),
+        isWebRegistrationEnabled: isWebRegistrationEnabled != null ? Value(isWebRegistrationEnabled) : const Value.absent(),
       ),
     ) > 0;
   }

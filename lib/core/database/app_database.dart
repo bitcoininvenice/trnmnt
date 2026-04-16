@@ -67,6 +67,7 @@ class Tournaments extends Table {
   TextColumn get scoringSystem => text().withDefault(const Constant('standard'))(); 
   BoolColumn get includeConsolationFinals => boolean().withDefault(const Constant(false))();
   IntColumn get timerMinutes => integer().withDefault(const Constant(10))();
+  BoolColumn get isWebRegistrationEnabled => boolean().withDefault(const Constant(false))();
   
   IntColumn get winnerTeamId => integer().nullable().references(Teams, #id)();
   TextColumn get communityId => text().nullable().references(Communities, #id)();
@@ -129,7 +130,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 14;
+  int get schemaVersion => 15;
 
   @override
   MigrationStrategy get migration {
@@ -183,6 +184,9 @@ class AppDatabase extends _$AppDatabase {
         }
         if (from < 14) {
           await m.addColumn(this.tournaments, this.tournaments.communityName);
+        }
+        if (from < 15) {
+          await m.addColumn(this.tournaments, this.tournaments.isWebRegistrationEnabled);
         }
       },
     );

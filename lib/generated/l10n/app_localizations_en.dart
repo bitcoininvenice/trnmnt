@@ -245,6 +245,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get newCourtTitle => 'New Court';
 
   @override
+  String get name => 'Name';
+
+  @override
   String get nameLabel => 'Name';
 
   @override

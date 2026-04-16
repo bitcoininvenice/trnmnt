@@ -1343,6 +1343,21 @@ class $TournamentsTable extends Tournaments
     requiredDuringInsert: false,
     defaultValue: const Constant(10),
   );
+  static const VerificationMeta _isWebRegistrationEnabledMeta =
+      const VerificationMeta('isWebRegistrationEnabled');
+  @override
+  late final GeneratedColumn<bool> isWebRegistrationEnabled =
+      GeneratedColumn<bool>(
+        'is_web_registration_enabled',
+        aliasedName,
+        false,
+        type: DriftSqlType.bool,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("is_web_registration_enabled" IN (0, 1))',
+        ),
+        defaultValue: const Constant(false),
+      );
   static const VerificationMeta _winnerTeamIdMeta = const VerificationMeta(
     'winnerTeamId',
   );
@@ -1419,6 +1434,7 @@ class $TournamentsTable extends Tournaments
     scoringSystem,
     includeConsolationFinals,
     timerMinutes,
+    isWebRegistrationEnabled,
     winnerTeamId,
     communityId,
     communityName,
@@ -1602,6 +1618,15 @@ class $TournamentsTable extends Tournaments
         ),
       );
     }
+    if (data.containsKey('is_web_registration_enabled')) {
+      context.handle(
+        _isWebRegistrationEnabledMeta,
+        isWebRegistrationEnabled.isAcceptableOrUnknown(
+          data['is_web_registration_enabled']!,
+          _isWebRegistrationEnabledMeta,
+        ),
+      );
+    }
     if (data.containsKey('winner_team_id')) {
       context.handle(
         _winnerTeamIdMeta,
@@ -1736,6 +1761,10 @@ class $TournamentsTable extends Tournaments
         DriftSqlType.int,
         data['${effectivePrefix}timer_minutes'],
       )!,
+      isWebRegistrationEnabled: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_web_registration_enabled'],
+      )!,
       winnerTeamId: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}winner_team_id'],
@@ -1787,6 +1816,7 @@ class Tournament extends DataClass implements Insertable<Tournament> {
   final String scoringSystem;
   final bool includeConsolationFinals;
   final int timerMinutes;
+  final bool isWebRegistrationEnabled;
   final int? winnerTeamId;
   final String? communityId;
   final String? communityName;
@@ -1815,6 +1845,7 @@ class Tournament extends DataClass implements Insertable<Tournament> {
     required this.scoringSystem,
     required this.includeConsolationFinals,
     required this.timerMinutes,
+    required this.isWebRegistrationEnabled,
     this.winnerTeamId,
     this.communityId,
     this.communityName,
@@ -1862,6 +1893,9 @@ class Tournament extends DataClass implements Insertable<Tournament> {
       includeConsolationFinals,
     );
     map['timer_minutes'] = Variable<int>(timerMinutes);
+    map['is_web_registration_enabled'] = Variable<bool>(
+      isWebRegistrationEnabled,
+    );
     if (!nullToAbsent || winnerTeamId != null) {
       map['winner_team_id'] = Variable<int>(winnerTeamId);
     }
@@ -1914,6 +1948,7 @@ class Tournament extends DataClass implements Insertable<Tournament> {
       scoringSystem: Value(scoringSystem),
       includeConsolationFinals: Value(includeConsolationFinals),
       timerMinutes: Value(timerMinutes),
+      isWebRegistrationEnabled: Value(isWebRegistrationEnabled),
       winnerTeamId: winnerTeamId == null && nullToAbsent
           ? const Value.absent()
           : Value(winnerTeamId),
@@ -1958,6 +1993,9 @@ class Tournament extends DataClass implements Insertable<Tournament> {
         json['includeConsolationFinals'],
       ),
       timerMinutes: serializer.fromJson<int>(json['timerMinutes']),
+      isWebRegistrationEnabled: serializer.fromJson<bool>(
+        json['isWebRegistrationEnabled'],
+      ),
       winnerTeamId: serializer.fromJson<int?>(json['winnerTeamId']),
       communityId: serializer.fromJson<String?>(json['communityId']),
       communityName: serializer.fromJson<String?>(json['communityName']),
@@ -1993,6 +2031,9 @@ class Tournament extends DataClass implements Insertable<Tournament> {
         includeConsolationFinals,
       ),
       'timerMinutes': serializer.toJson<int>(timerMinutes),
+      'isWebRegistrationEnabled': serializer.toJson<bool>(
+        isWebRegistrationEnabled,
+      ),
       'winnerTeamId': serializer.toJson<int?>(winnerTeamId),
       'communityId': serializer.toJson<String?>(communityId),
       'communityName': serializer.toJson<String?>(communityName),
@@ -2024,6 +2065,7 @@ class Tournament extends DataClass implements Insertable<Tournament> {
     String? scoringSystem,
     bool? includeConsolationFinals,
     int? timerMinutes,
+    bool? isWebRegistrationEnabled,
     Value<int?> winnerTeamId = const Value.absent(),
     Value<String?> communityId = const Value.absent(),
     Value<String?> communityName = const Value.absent(),
@@ -2055,6 +2097,8 @@ class Tournament extends DataClass implements Insertable<Tournament> {
     includeConsolationFinals:
         includeConsolationFinals ?? this.includeConsolationFinals,
     timerMinutes: timerMinutes ?? this.timerMinutes,
+    isWebRegistrationEnabled:
+        isWebRegistrationEnabled ?? this.isWebRegistrationEnabled,
     winnerTeamId: winnerTeamId.present ? winnerTeamId.value : this.winnerTeamId,
     communityId: communityId.present ? communityId.value : this.communityId,
     communityName: communityName.present
@@ -2113,6 +2157,9 @@ class Tournament extends DataClass implements Insertable<Tournament> {
       timerMinutes: data.timerMinutes.present
           ? data.timerMinutes.value
           : this.timerMinutes,
+      isWebRegistrationEnabled: data.isWebRegistrationEnabled.present
+          ? data.isWebRegistrationEnabled.value
+          : this.isWebRegistrationEnabled,
       winnerTeamId: data.winnerTeamId.present
           ? data.winnerTeamId.value
           : this.winnerTeamId,
@@ -2152,6 +2199,7 @@ class Tournament extends DataClass implements Insertable<Tournament> {
           ..write('scoringSystem: $scoringSystem, ')
           ..write('includeConsolationFinals: $includeConsolationFinals, ')
           ..write('timerMinutes: $timerMinutes, ')
+          ..write('isWebRegistrationEnabled: $isWebRegistrationEnabled, ')
           ..write('winnerTeamId: $winnerTeamId, ')
           ..write('communityId: $communityId, ')
           ..write('communityName: $communityName, ')
@@ -2185,6 +2233,7 @@ class Tournament extends DataClass implements Insertable<Tournament> {
     scoringSystem,
     includeConsolationFinals,
     timerMinutes,
+    isWebRegistrationEnabled,
     winnerTeamId,
     communityId,
     communityName,
@@ -2217,6 +2266,7 @@ class Tournament extends DataClass implements Insertable<Tournament> {
           other.scoringSystem == this.scoringSystem &&
           other.includeConsolationFinals == this.includeConsolationFinals &&
           other.timerMinutes == this.timerMinutes &&
+          other.isWebRegistrationEnabled == this.isWebRegistrationEnabled &&
           other.winnerTeamId == this.winnerTeamId &&
           other.communityId == this.communityId &&
           other.communityName == this.communityName &&
@@ -2247,6 +2297,7 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
   final Value<String> scoringSystem;
   final Value<bool> includeConsolationFinals;
   final Value<int> timerMinutes;
+  final Value<bool> isWebRegistrationEnabled;
   final Value<int?> winnerTeamId;
   final Value<String?> communityId;
   final Value<String?> communityName;
@@ -2275,6 +2326,7 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
     this.scoringSystem = const Value.absent(),
     this.includeConsolationFinals = const Value.absent(),
     this.timerMinutes = const Value.absent(),
+    this.isWebRegistrationEnabled = const Value.absent(),
     this.winnerTeamId = const Value.absent(),
     this.communityId = const Value.absent(),
     this.communityName = const Value.absent(),
@@ -2304,6 +2356,7 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
     this.scoringSystem = const Value.absent(),
     this.includeConsolationFinals = const Value.absent(),
     this.timerMinutes = const Value.absent(),
+    this.isWebRegistrationEnabled = const Value.absent(),
     this.winnerTeamId = const Value.absent(),
     this.communityId = const Value.absent(),
     this.communityName = const Value.absent(),
@@ -2334,6 +2387,7 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
     Expression<String>? scoringSystem,
     Expression<bool>? includeConsolationFinals,
     Expression<int>? timerMinutes,
+    Expression<bool>? isWebRegistrationEnabled,
     Expression<int>? winnerTeamId,
     Expression<String>? communityId,
     Expression<String>? communityName,
@@ -2365,6 +2419,8 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
       if (includeConsolationFinals != null)
         'include_consolation_finals': includeConsolationFinals,
       if (timerMinutes != null) 'timer_minutes': timerMinutes,
+      if (isWebRegistrationEnabled != null)
+        'is_web_registration_enabled': isWebRegistrationEnabled,
       if (winnerTeamId != null) 'winner_team_id': winnerTeamId,
       if (communityId != null) 'community_id': communityId,
       if (communityName != null) 'community_name': communityName,
@@ -2396,6 +2452,7 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
     Value<String>? scoringSystem,
     Value<bool>? includeConsolationFinals,
     Value<int>? timerMinutes,
+    Value<bool>? isWebRegistrationEnabled,
     Value<int?>? winnerTeamId,
     Value<String?>? communityId,
     Value<String?>? communityName,
@@ -2426,6 +2483,8 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
       includeConsolationFinals:
           includeConsolationFinals ?? this.includeConsolationFinals,
       timerMinutes: timerMinutes ?? this.timerMinutes,
+      isWebRegistrationEnabled:
+          isWebRegistrationEnabled ?? this.isWebRegistrationEnabled,
       winnerTeamId: winnerTeamId ?? this.winnerTeamId,
       communityId: communityId ?? this.communityId,
       communityName: communityName ?? this.communityName,
@@ -2507,6 +2566,11 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
     if (timerMinutes.present) {
       map['timer_minutes'] = Variable<int>(timerMinutes.value);
     }
+    if (isWebRegistrationEnabled.present) {
+      map['is_web_registration_enabled'] = Variable<bool>(
+        isWebRegistrationEnabled.value,
+      );
+    }
     if (winnerTeamId.present) {
       map['winner_team_id'] = Variable<int>(winnerTeamId.value);
     }
@@ -2548,6 +2612,7 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
           ..write('scoringSystem: $scoringSystem, ')
           ..write('includeConsolationFinals: $includeConsolationFinals, ')
           ..write('timerMinutes: $timerMinutes, ')
+          ..write('isWebRegistrationEnabled: $isWebRegistrationEnabled, ')
           ..write('winnerTeamId: $winnerTeamId, ')
           ..write('communityId: $communityId, ')
           ..write('communityName: $communityName, ')
@@ -5504,6 +5569,7 @@ typedef $$TournamentsTableCreateCompanionBuilder =
       Value<String> scoringSystem,
       Value<bool> includeConsolationFinals,
       Value<int> timerMinutes,
+      Value<bool> isWebRegistrationEnabled,
       Value<int?> winnerTeamId,
       Value<String?> communityId,
       Value<String?> communityName,
@@ -5534,6 +5600,7 @@ typedef $$TournamentsTableUpdateCompanionBuilder =
       Value<String> scoringSystem,
       Value<bool> includeConsolationFinals,
       Value<int> timerMinutes,
+      Value<bool> isWebRegistrationEnabled,
       Value<int?> winnerTeamId,
       Value<String?> communityId,
       Value<String?> communityName,
@@ -5765,6 +5832,11 @@ class $$TournamentsTableFilterComposer
 
   ColumnFilters<int> get timerMinutes => $composableBuilder(
     column: $table.timerMinutes,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isWebRegistrationEnabled => $composableBuilder(
+    column: $table.isWebRegistrationEnabled,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -6024,6 +6096,11 @@ class $$TournamentsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get isWebRegistrationEnabled => $composableBuilder(
+    column: $table.isWebRegistrationEnabled,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get communityName => $composableBuilder(
     column: $table.communityName,
     builder: (column) => ColumnOrderings(column),
@@ -6182,6 +6259,11 @@ class $$TournamentsTableAnnotationComposer
 
   GeneratedColumn<int> get timerMinutes => $composableBuilder(
     column: $table.timerMinutes,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get isWebRegistrationEnabled => $composableBuilder(
+    column: $table.isWebRegistrationEnabled,
     builder: (column) => column,
   );
 
@@ -6372,6 +6454,7 @@ class $$TournamentsTableTableManager
                 Value<String> scoringSystem = const Value.absent(),
                 Value<bool> includeConsolationFinals = const Value.absent(),
                 Value<int> timerMinutes = const Value.absent(),
+                Value<bool> isWebRegistrationEnabled = const Value.absent(),
                 Value<int?> winnerTeamId = const Value.absent(),
                 Value<String?> communityId = const Value.absent(),
                 Value<String?> communityName = const Value.absent(),
@@ -6400,6 +6483,7 @@ class $$TournamentsTableTableManager
                 scoringSystem: scoringSystem,
                 includeConsolationFinals: includeConsolationFinals,
                 timerMinutes: timerMinutes,
+                isWebRegistrationEnabled: isWebRegistrationEnabled,
                 winnerTeamId: winnerTeamId,
                 communityId: communityId,
                 communityName: communityName,
@@ -6430,6 +6514,7 @@ class $$TournamentsTableTableManager
                 Value<String> scoringSystem = const Value.absent(),
                 Value<bool> includeConsolationFinals = const Value.absent(),
                 Value<int> timerMinutes = const Value.absent(),
+                Value<bool> isWebRegistrationEnabled = const Value.absent(),
                 Value<int?> winnerTeamId = const Value.absent(),
                 Value<String?> communityId = const Value.absent(),
                 Value<String?> communityName = const Value.absent(),
@@ -6458,6 +6543,7 @@ class $$TournamentsTableTableManager
                 scoringSystem: scoringSystem,
                 includeConsolationFinals: includeConsolationFinals,
                 timerMinutes: timerMinutes,
+                isWebRegistrationEnabled: isWebRegistrationEnabled,
                 winnerTeamId: winnerTeamId,
                 communityId: communityId,
                 communityName: communityName,

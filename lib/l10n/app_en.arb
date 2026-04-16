@@ -106,6 +106,7 @@
   "lightsTitle": "Lights",
   "saveAction": "SAVE",
   "newCourtTitle": "New Court",
+  "name": "Name",
   "nameLabel": "Name",
   "descLabel": "Description",
   "tapMapInstruction": "Tap map to add a court",
