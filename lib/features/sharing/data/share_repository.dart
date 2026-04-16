@@ -206,6 +206,25 @@ class ShareRepository {
     }
   }
 
+  /// Sends a special event (bomba, buzzer beater, etc) to Supabase for web animations
+  Future<void> sendMatchEvent({
+    required String cloudId,
+    required int matchId,
+    required String type,
+    String? teamSide,
+  }) async {
+    try {
+      final supabase = Supabase.instance.client;
+      await supabase.from('match_events').insert({
+        'tournament_id': cloudId,
+        'match_id': matchId.toString(),
+        'type': type,
+        'team_side': teamSide,
+      });
+    } catch (e) {
+    }
+  }
+
   /// Registration System Methods
   Future<Map<String, dynamic>?> fetchRegistrationSettings(String cloudId) async {
     try {

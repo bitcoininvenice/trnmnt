@@ -174,23 +174,54 @@ class _MatchScreenState extends ConsumerState<MatchScreen> {
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
-                        child: VintageScoreColumn(
-                          teamName: matchWithTeams.homeTeam?.name ?? 'Home',
-                          score: _homeScore ?? 0,
-                          onScoreChanged: isReadOnly ? null : (val) => setState(() => _homeScore = val),
+                        child: Column(
+                          children: [
+                            VintageScoreColumn(
+                              teamName: matchWithTeams.homeTeam?.name ?? 'Home',
+                              score: _homeScore ?? 0,
+                              onScoreChanged: isReadOnly ? null : (val) {
+                                setState(() => _homeScore = val);
+                                ref.read(activeGameProvider.notifier).syncManualScoreWithCloud(
+                                  tournamentId: match.tournamentId, 
+                                  matchId: match.id, 
+                                  homeScore: val, 
+                                  awayScore: _awayScore ?? 0, 
+                                  homeName: matchWithTeams.homeTeam?.name ?? 'Home', 
+                                  awayName: matchWithTeams.awayTeam?.name ?? 'Away'
+                                );
+                              },
+                            ),
+                            // Removed Special Shots from manual mode
+                          ],
                         ),
                       ),
                       const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 16),
+                        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 20),
                         child: Text('VS', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white54, fontFamily: 'monospace')),
                       ),
                       Expanded(
-                        child: VintageScoreColumn(
-                          teamName: matchWithTeams.awayTeam?.name ?? 'Away',
-                          score: _awayScore ?? 0,
-                          onScoreChanged: isReadOnly ? null : (val) => setState(() => _awayScore = val),
+                        child: Column(
+                          children: [
+                            VintageScoreColumn(
+                              teamName: matchWithTeams.awayTeam?.name ?? 'Away',
+                              score: _awayScore ?? 0,
+                              onScoreChanged: isReadOnly ? null : (val) {
+                                setState(() => _awayScore = val);
+                                ref.read(activeGameProvider.notifier).syncManualScoreWithCloud(
+                                  tournamentId: match.tournamentId, 
+                                  matchId: match.id, 
+                                  homeScore: _homeScore ?? 0, 
+                                  awayScore: val, 
+                                  homeName: matchWithTeams.homeTeam?.name ?? 'Home', 
+                                  awayName: matchWithTeams.awayTeam?.name ?? 'Away'
+                                );
+                              },
+                            ),
+                            // Removed Special Shots from manual mode
+                          ],
                         ),
                       ),
                     ],
@@ -254,25 +285,55 @@ class _MatchScreenState extends ConsumerState<MatchScreen> {
         ],
       ),
       body: SafeArea(
-        child: Column(
-          children: [
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(child: VintageScoreColumn(teamName: activeGame.homeTeamName, score: activeGame.homeScore, onScoreChanged: (val) => notifier.updateHomeScore(val))),
+                  Expanded(
+                    child: Column(
+                      children: [
+                        VintageScoreColumn(teamName: activeGame.homeTeamName, score: activeGame.homeScore, onScoreChanged: (val) => notifier.updateHomeScore(val)),
+                        const SizedBox(height: 12),
+                        _buildSpecialShotsRow(
+                          'A', 
+                          notifier,
+                          matchId: activeGame.matchId,
+                          tournamentId: activeGame.matchData?.match.tournamentId,
+                          homeName: activeGame.homeTeamName,
+                          awayName: activeGame.awayTeamName,
+                        ),
+                      ],
+                    ),
+                  ),
                   _buildPeriodColumn(activeGame, notifier),
-                  Expanded(child: VintageScoreColumn(teamName: activeGame.awayTeamName, score: activeGame.awayScore, onScoreChanged: (val) => notifier.updateAwayScore(val))),
+                  Expanded(
+                    child: Column(
+                      children: [
+                        VintageScoreColumn(teamName: activeGame.awayTeamName, score: activeGame.awayScore, onScoreChanged: (val) => notifier.updateAwayScore(val)),
+                        const SizedBox(height: 12),
+                        _buildSpecialShotsRow(
+                          'B', 
+                          notifier,
+                          matchId: activeGame.matchId,
+                          tournamentId: activeGame.matchData?.match.tournamentId,
+                          homeName: activeGame.homeTeamName,
+                          awayName: activeGame.awayTeamName,
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
             const Divider(height: 16, thickness: 1, color: Colors.white10),
-            
-            // Duration selector (only for standalone or before starting)
             if (!activeGame.isRunning && activeGame.matchId == null)
               _buildDurationSelector(activeGame, notifier),
-
-            Expanded(
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 24),
               child: Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -326,8 +387,9 @@ class _MatchScreenState extends ConsumerState<MatchScreen> {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildPeriodColumn(GameState state, GameNotifier notifier) {
     return Padding(
@@ -372,6 +434,111 @@ class _MatchScreenState extends ConsumerState<MatchScreen> {
       width: size, height: size,
       decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: color, width: 2)),
       child: IconButton(icon: Icon(icon, color: color, size: size * 0.5), onPressed: onPressed),
+    );
+  }
+
+  Widget _buildSpecialShotsRow(
+    String side, 
+    GameNotifier notifier, {
+    bool localStateOnly = false, 
+    bool isHome = true,
+    int? matchId,
+    int? tournamentId,
+    String? homeName,
+    String? awayName,
+  }) {
+    return Column(
+      children: [
+        // Three Pointer Button (BOMBA)
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange.shade900,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            onPressed: () {
+               if (localStateOnly) {
+                  final newScore = (isHome ? (_homeScore ?? 0) : (_awayScore ?? 0)) + 3;
+                  setState(() {
+                    if (isHome) _homeScore = newScore;
+                    else _awayScore = newScore;
+                  });
+                  // Sync updated score to cloud
+                  if (matchId != null && tournamentId != null) {
+                    notifier.syncManualScoreWithCloud(
+                      tournamentId: tournamentId,
+                      matchId: matchId,
+                      homeScore: _homeScore ?? 0,
+                      awayScore: _awayScore ?? 0,
+                      homeName: homeName ?? 'Home',
+                      awayName: awayName ?? 'Away',
+                    );
+                  }
+               }
+               notifier.triggerSpecialShot(
+                 'three_pointer', 
+                 side,
+                 manualMatchId: matchId,
+                 manualTournamentId: tournamentId,
+               );
+            },
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.bolt, size: 16),
+                SizedBox(width: 4),
+                Text('BOMBA +3', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, fontFamily: 'monospace')),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        // Secondary Special Shots
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            _shortLabelButton(
+              icon: Icons.notifications_active, 
+              color: Colors.red.shade800, 
+              onTap: () => notifier.triggerSpecialShot(
+                'buzzer_beater', 
+                side,
+                manualMatchId: matchId,
+                manualTournamentId: tournamentId,
+              )
+            ),
+            _shortLabelButton(
+              icon: Icons.auto_awesome, 
+              color: Colors.purple.shade800, 
+              onTap: () => notifier.triggerSpecialShot(
+                'circus_shot', 
+                side,
+                manualMatchId: matchId,
+                manualTournamentId: tournamentId,
+              )
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _shortLabelButton({required IconData icon, required Color color, required VoidCallback onTap}) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.2),
+          border: Border.all(color: color.withValues(alpha: 0.5)),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Icon(icon, size: 20, color: color),
+      ),
     );
   }
 }

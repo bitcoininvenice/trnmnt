@@ -207,6 +207,70 @@ class GameNotifier extends StateNotifier<GameState> {
     );
   }
 
+  void triggerSpecialShot(String type, String side, {int? manualMatchId, int? manualTournamentId}) async {
+    final effectiveMatchId = manualMatchId ?? state.matchId;
+    if (effectiveMatchId == null) return;
+    
+    // 1. Logic: Auto-increment for three_pointer
+    if (type == 'three_pointer') {
+      if (side == 'A') {
+        if (state.matchId != null) updateHomeScore(state.homeScore + 3);
+      } else {
+        if (state.matchId != null) updateAwayScore(state.awayScore + 3);
+      }
+    }
+
+    // 2. Broadcast EVENT to Supabase for animations
+    final tId = manualTournamentId ?? state.matchData?.match.tournamentId;
+    if (tId != null) {
+      try {
+        final t = await _ref.read(tournamentByIdProvider(tId).future);
+        final cloudId = t?.cloudId;
+        
+        if (cloudId != null) {
+          await _ref.read(shareRepositoryProvider).sendMatchEvent(
+            cloudId: cloudId,
+            matchId: effectiveMatchId,
+            type: type,
+            teamSide: side,
+          );
+        }
+      } catch (e) {
+      }
+    }
+
+    HapticFeedback.lightImpact();
+  }
+
+  /// Manually syncs score to live_matches table (useful for manual mode updates)
+  Future<void> syncManualScoreWithCloud({
+    required int tournamentId,
+    required int matchId,
+    required int homeScore,
+    required int awayScore,
+    required String homeName,
+    required String awayName,
+  }) async {
+    try {
+      final tournament = await _ref.read(tournamentByIdProvider(tournamentId).future);
+      if (tournament == null || tournament.cloudId == null) {
+        return;
+      }
+
+      await _ref.read(shareRepositoryProvider).updateLiveMatch(
+        cloudId: tournament.cloudId!,
+        matchId: matchId,
+        homeScore: homeScore,
+        awayScore: awayScore,
+        timer: '--:--',
+        homeName: homeName,
+        awayName: awayName,
+        isRunning: false,
+      );
+    } catch (e) {
+    }
+  }
+
   /// Pushes tiny status updates specifically to the live_matches table
   Future<void> _syncToLive({bool force = false}) async {
     if (state.matchId == null) return;
