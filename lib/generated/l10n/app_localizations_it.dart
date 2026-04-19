@@ -770,6 +770,12 @@ class AppLocalizationsIt extends AppLocalizations {
   String get twitchHint => 'Es: venicestreetball';
 
   @override
+  String get youtubeVideoLabel => 'ID VIDEO YOUTUBE';
+
+  @override
+  String get youtubeHint => 'Es: dQw4w9WgXcQ';
+
+  @override
   String get customTickerLabel => 'TESTO SCORREVOLE (TICKER)';
 
   @override

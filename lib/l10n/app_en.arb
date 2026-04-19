@@ -317,6 +317,8 @@
   "locationHint": "Ex: Venice Beach Courts",
   "twitchChannelLabel": "TWITCH CHANNEL",
   "twitchHint": "Ex: venicestreetball",
+  "youtubeVideoLabel": "YOUTUBE VIDEO ID",
+  "youtubeHint": "Ex: dQw4w9WgXcQ",
   "customTickerLabel": "CUSTOM TICKER TEXT",
   "tickerHint": "Sponsors, community announcements...",
   "tickerAutoDesc": "Leave empty to use system-generated text.",

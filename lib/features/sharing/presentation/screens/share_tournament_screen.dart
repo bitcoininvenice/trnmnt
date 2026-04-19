@@ -32,6 +32,7 @@ class _ShareTournamentScreenState extends ConsumerState<ShareTournamentScreen> {
   ShareType _shareType = ShareType.web;
   bool _isTesting = false;
   final _twitchController = TextEditingController();
+  final _youtubeController = TextEditingController();
   final _tickerController = TextEditingController();
   final _locationController = TextEditingController();
 
@@ -44,6 +45,7 @@ class _ShareTournamentScreenState extends ConsumerState<ShareTournamentScreen> {
   @override
   void dispose() {
     _twitchController.dispose();
+    _youtubeController.dispose();
     _tickerController.dispose();
     _locationController.dispose();
     super.dispose();
@@ -60,6 +62,9 @@ class _ShareTournamentScreenState extends ConsumerState<ShareTournamentScreen> {
           _locationController.text = tournament.location;
           if (tournament.twitchChannel != null) {
             _twitchController.text = tournament.twitchChannel!;
+          }
+          if (tournament.youtubeVideoId != null) {
+            _youtubeController.text = tournament.youtubeVideoId!;
           }
           if (tournament.customTicker != null) {
             _tickerController.text = tournament.customTicker!;
@@ -89,13 +94,15 @@ class _ShareTournamentScreenState extends ConsumerState<ShareTournamentScreen> {
       final tournamentsRepo = ref.read(tournamentsRepositoryProvider);
       
       final twitchChannel = _twitchController.text.trim();
+      final youtubeVideoId = _youtubeController.text.trim();
       final customTicker = _tickerController.text.trim();
       final location = _locationController.text.trim();
       
       await tournamentsRepo.updateTournament(
         id: widget.tournamentId, 
-        twitchChannel: twitchChannel,
-        customTicker: customTicker,
+        twitchChannel: twitchChannel.isNotEmpty ? twitchChannel : null,
+        youtubeVideoId: youtubeVideoId.isNotEmpty ? youtubeVideoId : null,
+        customTicker: customTicker.isNotEmpty ? customTicker : null,
         location: location.isNotEmpty ? location : null,
       );
 
@@ -195,6 +202,9 @@ class _ShareTournamentScreenState extends ConsumerState<ShareTournamentScreen> {
         }
         if (_twitchController.text.isEmpty && tournament.twitchChannel != null) {
           _twitchController.text = tournament.twitchChannel!;
+        }
+        if (_youtubeController.text.isEmpty && tournament.youtubeVideoId != null) {
+          _youtubeController.text = tournament.youtubeVideoId!;
         }
         if (_tickerController.text.isEmpty && tournament.customTicker != null) {
           _tickerController.text = tournament.customTicker!;
@@ -332,6 +342,15 @@ class _ShareTournamentScreenState extends ConsumerState<ShareTournamentScreen> {
                       label: l10n.twitchChannelLabel,
                       hint: l10n.twitchHint,
                       icon: Icons.live_tv_rounded,
+                    ),
+                    const SizedBox(height: 16),
+
+                    // YouTube integration
+                    _buildField(
+                      controller: _youtubeController,
+                      label: l10n.youtubeVideoLabel,
+                      hint: l10n.youtubeHint,
+                      icon: Icons.video_library_rounded,
                     ),
                     const SizedBox(height: 16),
 

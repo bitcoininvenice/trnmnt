@@ -182,8 +182,11 @@ class ShareRepository {
   }) async {
     try {
       final supabase = Supabase.instance.client;
+      // Use a composite ID to allow multiple live matches per tournament
+      final compositeId = '${cloudId}_$matchId';
+      
       await supabase.from('live_matches').upsert({
-        'id': cloudId,
+        'id': compositeId,
         'home_score': homeScore,
         'away_score': awayScore,
         'timer': timer,
@@ -191,6 +194,7 @@ class ShareRepository {
         'away_team_name': awayName,
         'is_running': isRunning,
         'last_update': DateTime.now().toIso8601String(),
+        'tournament_id': cloudId, // Added to facilitate filtering
       });
     } catch (_) {
       // Silent error for production
@@ -200,7 +204,8 @@ class ShareRepository {
   Future<void> clearLiveMatch(String cloudId, int matchId) async {
     try {
       final supabase = Supabase.instance.client;
-      await supabase.from('live_matches').delete().eq('id', cloudId);
+      final compositeId = '${cloudId}_$matchId';
+      await supabase.from('live_matches').delete().eq('id', compositeId);
     } catch (e) {
       // Silent error
     }

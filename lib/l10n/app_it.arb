@@ -317,6 +317,8 @@
   "locationHint": "Es: Playground San Alvise",
   "twitchChannelLabel": "CANALE TWITCH",
   "twitchHint": "Es: venicestreetball",
+  "youtubeVideoLabel": "ID VIDEO YOUTUBE",
+  "youtubeHint": "Es: dQw4w9WgXcQ",
   "customTickerLabel": "TESTO SCORREVOLE (TICKER)",
   "tickerHint": "Sponsor, annunci community...",
   "tickerAutoDesc": "Lascia vuoto per utilizzare il testo generato dal sistema.",

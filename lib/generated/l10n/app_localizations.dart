@@ -1538,6 +1538,18 @@ abstract class AppLocalizations {
   /// **'Es: venicestreetball'**
   String get twitchHint;
 
+  /// No description provided for @youtubeVideoLabel.
+  ///
+  /// In it, this message translates to:
+  /// **'ID VIDEO YOUTUBE'**
+  String get youtubeVideoLabel;
+
+  /// No description provided for @youtubeHint.
+  ///
+  /// In it, this message translates to:
+  /// **'Es: dQw4w9WgXcQ'**
+  String get youtubeHint;
+
   /// No description provided for @customTickerLabel.
   ///
   /// In it, this message translates to:

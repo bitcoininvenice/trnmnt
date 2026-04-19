@@ -248,8 +248,8 @@ class _MadnessScreenState extends ConsumerState<MadnessScreen> {
     TournamentTeamWithTeam? challenger = queue.removeAt(0);
 
     for (final m in matches) {
-      final h = m.match.homeScore ?? 0;
-      final a = m.match.awayScore ?? 0;
+      final h = (m.match.homeScore ?? 0) as int;
+      final a = (m.match.awayScore ?? 0) as int;
 
       if (h > a) {
         // King stays
@@ -438,8 +438,8 @@ class _MadnessScreenState extends ConsumerState<MadnessScreen> {
     }
 
     for (final m in matches) {
-      final h = m.match.homeScore ?? 0;
-      final a = m.match.awayScore ?? 0;
+      final h = (m.match.homeScore ?? 0) as int;
+      final a = (m.match.awayScore ?? 0) as int;
       
       final homeStats = stats[m.match.homeTeamId];
       final awayStats = stats[m.match.awayTeamId];

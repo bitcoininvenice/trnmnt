@@ -7,6 +7,7 @@ import 'package:path/path.dart' as p;
 part 'app_database.g.dart';
 
 /// Communities table
+@DataClassName('Community')
 class Communities extends Table {
   TextColumn get id => text()(); // Cloud UUID
   TextColumn get name => text().withLength(min: 1, max: 100)();
@@ -28,6 +29,7 @@ class Communities extends Table {
 }
 
 /// Teams table
+@DataClassName('Team')
 class Teams extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get name => text().withLength(min: 1, max: 50)();
@@ -37,6 +39,7 @@ class Teams extends Table {
 }
 
 /// Tournaments table
+@DataClassName('Tournament')
 class Tournaments extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get name => text().withLength(min: 1, max: 100)();
@@ -59,6 +62,7 @@ class Tournaments extends Table {
   BoolColumn get hasPlayIn => boolean().withDefault(const Constant(false))();
   TextColumn get groupNames => text().nullable()(); 
   TextColumn get twitchChannel => text().nullable()();
+  TextColumn get youtubeVideoId => text().nullable()();
   TextColumn get customTicker => text().nullable()(); 
   
   IntColumn get winPoints => integer().withDefault(const Constant(3))();
@@ -77,6 +81,7 @@ class Tournaments extends Table {
 }
 
 /// Link table between Tournaments and Teams
+@DataClassName('TournamentTeam')
 class TournamentTeams extends Table {
   IntColumn get tournamentId => integer().references(Tournaments, #id)();
   IntColumn get teamId => integer().references(Teams, #id)();
@@ -88,6 +93,7 @@ class TournamentTeams extends Table {
 }
 
 /// Matches table
+@DataClassName('TournamentMatch')
 class Matches extends Table {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get tournamentId => integer().references(Tournaments, #id)();
@@ -108,6 +114,7 @@ class Matches extends Table {
 }
 
 /// Courts / Fields table
+@DataClassName('Court')
 class Courts extends Table {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get tournamentId => integer().nullable().references(Tournaments, #id, onDelete: KeyAction.cascade)();
@@ -130,7 +137,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 15;
+  int get schemaVersion => 16;
 
   @override
   MigrationStrategy get migration {
@@ -187,6 +194,9 @@ class AppDatabase extends _$AppDatabase {
         }
         if (from < 15) {
           await m.addColumn(this.tournaments, this.tournaments.isWebRegistrationEnabled);
+        }
+        if (from < 16) {
+          await m.addColumn(this.tournaments, this.tournaments.youtubeVideoId);
         }
       },
     );

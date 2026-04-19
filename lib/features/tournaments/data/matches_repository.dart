@@ -39,7 +39,7 @@ final groupMatchesProvider = FutureProvider.family<List<MatchWithTeams>, int>((r
 
 /// Combined match data with team info
 class MatchWithTeams {
-  final Matche match;
+  final TournamentMatch match;
   final Team? homeTeam;
   final Team? awayTeam;
 

@@ -1257,6 +1257,17 @@ class $TournamentsTable extends Tournaments
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _youtubeVideoIdMeta = const VerificationMeta(
+    'youtubeVideoId',
+  );
+  @override
+  late final GeneratedColumn<String> youtubeVideoId = GeneratedColumn<String>(
+    'youtube_video_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _customTickerMeta = const VerificationMeta(
     'customTicker',
   );
@@ -1427,6 +1438,7 @@ class $TournamentsTable extends Tournaments
     hasPlayIn,
     groupNames,
     twitchChannel,
+    youtubeVideoId,
     customTicker,
     winPoints,
     drawPoints,
@@ -1561,6 +1573,15 @@ class $TournamentsTable extends Tournaments
         twitchChannel.isAcceptableOrUnknown(
           data['twitch_channel']!,
           _twitchChannelMeta,
+        ),
+      );
+    }
+    if (data.containsKey('youtube_video_id')) {
+      context.handle(
+        _youtubeVideoIdMeta,
+        youtubeVideoId.isAcceptableOrUnknown(
+          data['youtube_video_id']!,
+          _youtubeVideoIdMeta,
         ),
       );
     }
@@ -1733,6 +1754,10 @@ class $TournamentsTable extends Tournaments
         DriftSqlType.string,
         data['${effectivePrefix}twitch_channel'],
       ),
+      youtubeVideoId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}youtube_video_id'],
+      ),
       customTicker: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}custom_ticker'],
@@ -1809,6 +1834,7 @@ class Tournament extends DataClass implements Insertable<Tournament> {
   final bool hasPlayIn;
   final String? groupNames;
   final String? twitchChannel;
+  final String? youtubeVideoId;
   final String? customTicker;
   final int winPoints;
   final int drawPoints;
@@ -1838,6 +1864,7 @@ class Tournament extends DataClass implements Insertable<Tournament> {
     required this.hasPlayIn,
     this.groupNames,
     this.twitchChannel,
+    this.youtubeVideoId,
     this.customTicker,
     required this.winPoints,
     required this.drawPoints,
@@ -1881,6 +1908,9 @@ class Tournament extends DataClass implements Insertable<Tournament> {
     }
     if (!nullToAbsent || twitchChannel != null) {
       map['twitch_channel'] = Variable<String>(twitchChannel);
+    }
+    if (!nullToAbsent || youtubeVideoId != null) {
+      map['youtube_video_id'] = Variable<String>(youtubeVideoId);
     }
     if (!nullToAbsent || customTicker != null) {
       map['custom_ticker'] = Variable<String>(customTicker);
@@ -1939,6 +1969,9 @@ class Tournament extends DataClass implements Insertable<Tournament> {
       twitchChannel: twitchChannel == null && nullToAbsent
           ? const Value.absent()
           : Value(twitchChannel),
+      youtubeVideoId: youtubeVideoId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(youtubeVideoId),
       customTicker: customTicker == null && nullToAbsent
           ? const Value.absent()
           : Value(customTicker),
@@ -1984,6 +2017,7 @@ class Tournament extends DataClass implements Insertable<Tournament> {
       hasPlayIn: serializer.fromJson<bool>(json['hasPlayIn']),
       groupNames: serializer.fromJson<String?>(json['groupNames']),
       twitchChannel: serializer.fromJson<String?>(json['twitchChannel']),
+      youtubeVideoId: serializer.fromJson<String?>(json['youtubeVideoId']),
       customTicker: serializer.fromJson<String?>(json['customTicker']),
       winPoints: serializer.fromJson<int>(json['winPoints']),
       drawPoints: serializer.fromJson<int>(json['drawPoints']),
@@ -2022,6 +2056,7 @@ class Tournament extends DataClass implements Insertable<Tournament> {
       'hasPlayIn': serializer.toJson<bool>(hasPlayIn),
       'groupNames': serializer.toJson<String?>(groupNames),
       'twitchChannel': serializer.toJson<String?>(twitchChannel),
+      'youtubeVideoId': serializer.toJson<String?>(youtubeVideoId),
       'customTicker': serializer.toJson<String?>(customTicker),
       'winPoints': serializer.toJson<int>(winPoints),
       'drawPoints': serializer.toJson<int>(drawPoints),
@@ -2058,6 +2093,7 @@ class Tournament extends DataClass implements Insertable<Tournament> {
     bool? hasPlayIn,
     Value<String?> groupNames = const Value.absent(),
     Value<String?> twitchChannel = const Value.absent(),
+    Value<String?> youtubeVideoId = const Value.absent(),
     Value<String?> customTicker = const Value.absent(),
     int? winPoints,
     int? drawPoints,
@@ -2089,6 +2125,9 @@ class Tournament extends DataClass implements Insertable<Tournament> {
     twitchChannel: twitchChannel.present
         ? twitchChannel.value
         : this.twitchChannel,
+    youtubeVideoId: youtubeVideoId.present
+        ? youtubeVideoId.value
+        : this.youtubeVideoId,
     customTicker: customTicker.present ? customTicker.value : this.customTicker,
     winPoints: winPoints ?? this.winPoints,
     drawPoints: drawPoints ?? this.drawPoints,
@@ -2138,6 +2177,9 @@ class Tournament extends DataClass implements Insertable<Tournament> {
       twitchChannel: data.twitchChannel.present
           ? data.twitchChannel.value
           : this.twitchChannel,
+      youtubeVideoId: data.youtubeVideoId.present
+          ? data.youtubeVideoId.value
+          : this.youtubeVideoId,
       customTicker: data.customTicker.present
           ? data.customTicker.value
           : this.customTicker,
@@ -2192,6 +2234,7 @@ class Tournament extends DataClass implements Insertable<Tournament> {
           ..write('hasPlayIn: $hasPlayIn, ')
           ..write('groupNames: $groupNames, ')
           ..write('twitchChannel: $twitchChannel, ')
+          ..write('youtubeVideoId: $youtubeVideoId, ')
           ..write('customTicker: $customTicker, ')
           ..write('winPoints: $winPoints, ')
           ..write('drawPoints: $drawPoints, ')
@@ -2226,6 +2269,7 @@ class Tournament extends DataClass implements Insertable<Tournament> {
     hasPlayIn,
     groupNames,
     twitchChannel,
+    youtubeVideoId,
     customTicker,
     winPoints,
     drawPoints,
@@ -2259,6 +2303,7 @@ class Tournament extends DataClass implements Insertable<Tournament> {
           other.hasPlayIn == this.hasPlayIn &&
           other.groupNames == this.groupNames &&
           other.twitchChannel == this.twitchChannel &&
+          other.youtubeVideoId == this.youtubeVideoId &&
           other.customTicker == this.customTicker &&
           other.winPoints == this.winPoints &&
           other.drawPoints == this.drawPoints &&
@@ -2290,6 +2335,7 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
   final Value<bool> hasPlayIn;
   final Value<String?> groupNames;
   final Value<String?> twitchChannel;
+  final Value<String?> youtubeVideoId;
   final Value<String?> customTicker;
   final Value<int> winPoints;
   final Value<int> drawPoints;
@@ -2319,6 +2365,7 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
     this.hasPlayIn = const Value.absent(),
     this.groupNames = const Value.absent(),
     this.twitchChannel = const Value.absent(),
+    this.youtubeVideoId = const Value.absent(),
     this.customTicker = const Value.absent(),
     this.winPoints = const Value.absent(),
     this.drawPoints = const Value.absent(),
@@ -2349,6 +2396,7 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
     this.hasPlayIn = const Value.absent(),
     this.groupNames = const Value.absent(),
     this.twitchChannel = const Value.absent(),
+    this.youtubeVideoId = const Value.absent(),
     this.customTicker = const Value.absent(),
     this.winPoints = const Value.absent(),
     this.drawPoints = const Value.absent(),
@@ -2380,6 +2428,7 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
     Expression<bool>? hasPlayIn,
     Expression<String>? groupNames,
     Expression<String>? twitchChannel,
+    Expression<String>? youtubeVideoId,
     Expression<String>? customTicker,
     Expression<int>? winPoints,
     Expression<int>? drawPoints,
@@ -2411,6 +2460,7 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
       if (hasPlayIn != null) 'has_play_in': hasPlayIn,
       if (groupNames != null) 'group_names': groupNames,
       if (twitchChannel != null) 'twitch_channel': twitchChannel,
+      if (youtubeVideoId != null) 'youtube_video_id': youtubeVideoId,
       if (customTicker != null) 'custom_ticker': customTicker,
       if (winPoints != null) 'win_points': winPoints,
       if (drawPoints != null) 'draw_points': drawPoints,
@@ -2445,6 +2495,7 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
     Value<bool>? hasPlayIn,
     Value<String?>? groupNames,
     Value<String?>? twitchChannel,
+    Value<String?>? youtubeVideoId,
     Value<String?>? customTicker,
     Value<int>? winPoints,
     Value<int>? drawPoints,
@@ -2475,6 +2526,7 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
       hasPlayIn: hasPlayIn ?? this.hasPlayIn,
       groupNames: groupNames ?? this.groupNames,
       twitchChannel: twitchChannel ?? this.twitchChannel,
+      youtubeVideoId: youtubeVideoId ?? this.youtubeVideoId,
       customTicker: customTicker ?? this.customTicker,
       winPoints: winPoints ?? this.winPoints,
       drawPoints: drawPoints ?? this.drawPoints,
@@ -2543,6 +2595,9 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
     if (twitchChannel.present) {
       map['twitch_channel'] = Variable<String>(twitchChannel.value);
     }
+    if (youtubeVideoId.present) {
+      map['youtube_video_id'] = Variable<String>(youtubeVideoId.value);
+    }
     if (customTicker.present) {
       map['custom_ticker'] = Variable<String>(customTicker.value);
     }
@@ -2605,6 +2660,7 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
           ..write('hasPlayIn: $hasPlayIn, ')
           ..write('groupNames: $groupNames, ')
           ..write('twitchChannel: $twitchChannel, ')
+          ..write('youtubeVideoId: $youtubeVideoId, ')
           ..write('customTicker: $customTicker, ')
           ..write('winPoints: $winPoints, ')
           ..write('drawPoints: $drawPoints, ')
@@ -2951,7 +3007,8 @@ class TournamentTeamsCompanion extends UpdateCompanion<TournamentTeam> {
   }
 }
 
-class $MatchesTable extends Matches with TableInfo<$MatchesTable, Matche> {
+class $MatchesTable extends Matches
+    with TableInfo<$MatchesTable, TournamentMatch> {
   @override
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
@@ -3138,7 +3195,7 @@ class $MatchesTable extends Matches with TableInfo<$MatchesTable, Matche> {
   static const String $name = 'matches';
   @override
   VerificationContext validateIntegrity(
-    Insertable<Matche> instance, {
+    Insertable<TournamentMatch> instance, {
     bool isInserting = false,
   }) {
     final context = VerificationContext();
@@ -3244,9 +3301,9 @@ class $MatchesTable extends Matches with TableInfo<$MatchesTable, Matche> {
   @override
   Set<GeneratedColumn> get $primaryKey => {id};
   @override
-  Matche map(Map<String, dynamic> data, {String? tablePrefix}) {
+  TournamentMatch map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return Matche(
+    return TournamentMatch(
       id: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}id'],
@@ -3308,7 +3365,7 @@ class $MatchesTable extends Matches with TableInfo<$MatchesTable, Matche> {
   }
 }
 
-class Matche extends DataClass implements Insertable<Matche> {
+class TournamentMatch extends DataClass implements Insertable<TournamentMatch> {
   final int id;
   final int tournamentId;
   final int? homeTeamId;
@@ -3322,7 +3379,7 @@ class Matche extends DataClass implements Insertable<Matche> {
   final int? groupNumber;
   final DateTime? scheduledAt;
   final DateTime createdAt;
-  const Matche({
+  const TournamentMatch({
     required this.id,
     required this.tournamentId,
     this.homeTeamId,
@@ -3398,12 +3455,12 @@ class Matche extends DataClass implements Insertable<Matche> {
     );
   }
 
-  factory Matche.fromJson(
+  factory TournamentMatch.fromJson(
     Map<String, dynamic> json, {
     ValueSerializer? serializer,
   }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
-    return Matche(
+    return TournamentMatch(
       id: serializer.fromJson<int>(json['id']),
       tournamentId: serializer.fromJson<int>(json['tournamentId']),
       homeTeamId: serializer.fromJson<int?>(json['homeTeamId']),
@@ -3439,7 +3496,7 @@ class Matche extends DataClass implements Insertable<Matche> {
     };
   }
 
-  Matche copyWith({
+  TournamentMatch copyWith({
     int? id,
     int? tournamentId,
     Value<int?> homeTeamId = const Value.absent(),
@@ -3453,7 +3510,7 @@ class Matche extends DataClass implements Insertable<Matche> {
     Value<int?> groupNumber = const Value.absent(),
     Value<DateTime?> scheduledAt = const Value.absent(),
     DateTime? createdAt,
-  }) => Matche(
+  }) => TournamentMatch(
     id: id ?? this.id,
     tournamentId: tournamentId ?? this.tournamentId,
     homeTeamId: homeTeamId.present ? homeTeamId.value : this.homeTeamId,
@@ -3468,8 +3525,8 @@ class Matche extends DataClass implements Insertable<Matche> {
     scheduledAt: scheduledAt.present ? scheduledAt.value : this.scheduledAt,
     createdAt: createdAt ?? this.createdAt,
   );
-  Matche copyWithCompanion(MatchesCompanion data) {
-    return Matche(
+  TournamentMatch copyWithCompanion(MatchesCompanion data) {
+    return TournamentMatch(
       id: data.id.present ? data.id.value : this.id,
       tournamentId: data.tournamentId.present
           ? data.tournamentId.value
@@ -3500,7 +3557,7 @@ class Matche extends DataClass implements Insertable<Matche> {
 
   @override
   String toString() {
-    return (StringBuffer('Matche(')
+    return (StringBuffer('TournamentMatch(')
           ..write('id: $id, ')
           ..write('tournamentId: $tournamentId, ')
           ..write('homeTeamId: $homeTeamId, ')
@@ -3537,7 +3594,7 @@ class Matche extends DataClass implements Insertable<Matche> {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      (other is Matche &&
+      (other is TournamentMatch &&
           other.id == this.id &&
           other.tournamentId == this.tournamentId &&
           other.homeTeamId == this.homeTeamId &&
@@ -3553,7 +3610,7 @@ class Matche extends DataClass implements Insertable<Matche> {
           other.createdAt == this.createdAt);
 }
 
-class MatchesCompanion extends UpdateCompanion<Matche> {
+class MatchesCompanion extends UpdateCompanion<TournamentMatch> {
   final Value<int> id;
   final Value<int> tournamentId;
   final Value<int?> homeTeamId;
@@ -3597,7 +3654,7 @@ class MatchesCompanion extends UpdateCompanion<Matche> {
     this.scheduledAt = const Value.absent(),
     this.createdAt = const Value.absent(),
   }) : tournamentId = Value(tournamentId);
-  static Insertable<Matche> custom({
+  static Insertable<TournamentMatch> custom({
     Expression<int>? id,
     Expression<int>? tournamentId,
     Expression<int>? homeTeamId,
@@ -5562,6 +5619,7 @@ typedef $$TournamentsTableCreateCompanionBuilder =
       Value<bool> hasPlayIn,
       Value<String?> groupNames,
       Value<String?> twitchChannel,
+      Value<String?> youtubeVideoId,
       Value<String?> customTicker,
       Value<int> winPoints,
       Value<int> drawPoints,
@@ -5593,6 +5651,7 @@ typedef $$TournamentsTableUpdateCompanionBuilder =
       Value<bool> hasPlayIn,
       Value<String?> groupNames,
       Value<String?> twitchChannel,
+      Value<String?> youtubeVideoId,
       Value<String?> customTicker,
       Value<int> winPoints,
       Value<int> drawPoints,
@@ -5672,9 +5731,8 @@ final class $$TournamentsTableReferences
     );
   }
 
-  static MultiTypedResultKey<$MatchesTable, List<Matche>> _matchesRefsTable(
-    _$AppDatabase db,
-  ) => MultiTypedResultKey.fromTable(
+  static MultiTypedResultKey<$MatchesTable, List<TournamentMatch>>
+  _matchesRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
     db.matches,
     aliasName: $_aliasNameGenerator(db.tournaments.id, db.matches.tournamentId),
   );
@@ -5797,6 +5855,11 @@ class $$TournamentsTableFilterComposer
 
   ColumnFilters<String> get twitchChannel => $composableBuilder(
     column: $table.twitchChannel,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get youtubeVideoId => $composableBuilder(
+    column: $table.youtubeVideoId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -6061,6 +6124,11 @@ class $$TournamentsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get youtubeVideoId => $composableBuilder(
+    column: $table.youtubeVideoId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get customTicker => $composableBuilder(
     column: $table.customTicker,
     builder: (column) => ColumnOrderings(column),
@@ -6226,6 +6294,11 @@ class $$TournamentsTableAnnotationComposer
 
   GeneratedColumn<String> get twitchChannel => $composableBuilder(
     column: $table.twitchChannel,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get youtubeVideoId => $composableBuilder(
+    column: $table.youtubeVideoId,
     builder: (column) => column,
   );
 
@@ -6447,6 +6520,7 @@ class $$TournamentsTableTableManager
                 Value<bool> hasPlayIn = const Value.absent(),
                 Value<String?> groupNames = const Value.absent(),
                 Value<String?> twitchChannel = const Value.absent(),
+                Value<String?> youtubeVideoId = const Value.absent(),
                 Value<String?> customTicker = const Value.absent(),
                 Value<int> winPoints = const Value.absent(),
                 Value<int> drawPoints = const Value.absent(),
@@ -6476,6 +6550,7 @@ class $$TournamentsTableTableManager
                 hasPlayIn: hasPlayIn,
                 groupNames: groupNames,
                 twitchChannel: twitchChannel,
+                youtubeVideoId: youtubeVideoId,
                 customTicker: customTicker,
                 winPoints: winPoints,
                 drawPoints: drawPoints,
@@ -6507,6 +6582,7 @@ class $$TournamentsTableTableManager
                 Value<bool> hasPlayIn = const Value.absent(),
                 Value<String?> groupNames = const Value.absent(),
                 Value<String?> twitchChannel = const Value.absent(),
+                Value<String?> youtubeVideoId = const Value.absent(),
                 Value<String?> customTicker = const Value.absent(),
                 Value<int> winPoints = const Value.absent(),
                 Value<int> drawPoints = const Value.absent(),
@@ -6536,6 +6612,7 @@ class $$TournamentsTableTableManager
                 hasPlayIn: hasPlayIn,
                 groupNames: groupNames,
                 twitchChannel: twitchChannel,
+                youtubeVideoId: youtubeVideoId,
                 customTicker: customTicker,
                 winPoints: winPoints,
                 drawPoints: drawPoints,
@@ -6648,7 +6725,7 @@ class $$TournamentsTableTableManager
                         await $_getPrefetchedData<
                           Tournament,
                           $TournamentsTable,
-                          Matche
+                          TournamentMatch
                         >(
                           currentTable: table,
                           referencedTable: $$TournamentsTableReferences
@@ -7151,7 +7228,7 @@ typedef $$MatchesTableUpdateCompanionBuilder =
     });
 
 final class $$MatchesTableReferences
-    extends BaseReferences<_$AppDatabase, $MatchesTable, Matche> {
+    extends BaseReferences<_$AppDatabase, $MatchesTable, TournamentMatch> {
   $$MatchesTableReferences(super.$_db, super.$_table, super.$_typedResult);
 
   static $TournamentsTable _tournamentIdTable(_$AppDatabase db) =>
@@ -7588,14 +7665,14 @@ class $$MatchesTableTableManager
         RootTableManager<
           _$AppDatabase,
           $MatchesTable,
-          Matche,
+          TournamentMatch,
           $$MatchesTableFilterComposer,
           $$MatchesTableOrderingComposer,
           $$MatchesTableAnnotationComposer,
           $$MatchesTableCreateCompanionBuilder,
           $$MatchesTableUpdateCompanionBuilder,
-          (Matche, $$MatchesTableReferences),
-          Matche,
+          (TournamentMatch, $$MatchesTableReferences),
+          TournamentMatch,
           PrefetchHooks Function({
             bool tournamentId,
             bool homeTeamId,
@@ -7757,14 +7834,14 @@ typedef $$MatchesTableProcessedTableManager =
     ProcessedTableManager<
       _$AppDatabase,
       $MatchesTable,
-      Matche,
+      TournamentMatch,
       $$MatchesTableFilterComposer,
       $$MatchesTableOrderingComposer,
       $$MatchesTableAnnotationComposer,
       $$MatchesTableCreateCompanionBuilder,
       $$MatchesTableUpdateCompanionBuilder,
-      (Matche, $$MatchesTableReferences),
-      Matche,
+      (TournamentMatch, $$MatchesTableReferences),
+      TournamentMatch,
       PrefetchHooks Function({
         bool tournamentId,
         bool homeTeamId,

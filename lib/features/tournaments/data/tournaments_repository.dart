@@ -201,6 +201,7 @@ class TournamentsRepository {
     bool hasPlayIn = false,
     String? groupNames,
     String? twitchChannel,
+    String? youtubeVideoId,
     String? communityId,
     bool isWebRegistrationEnabled = false,
   }) async {
@@ -221,6 +222,7 @@ class TournamentsRepository {
         hasPlayIn: Value(hasPlayIn),
         groupNames: Value(groupNames),
         twitchChannel: Value(twitchChannel),
+        youtubeVideoId: Value(youtubeVideoId),
         communityId: Value(communityId),
         isWebRegistrationEnabled: Value(isWebRegistrationEnabled),
       ),
@@ -245,6 +247,7 @@ class TournamentsRepository {
     bool? hasPlayIn,
     String? groupNames,
     String? twitchChannel,
+    String? youtubeVideoId,
     String? customTicker,
     bool? isWebRegistrationEnabled,
   }) async {
@@ -266,6 +269,7 @@ class TournamentsRepository {
         hasPlayIn: hasPlayIn != null ? Value(hasPlayIn) : const Value.absent(),
         groupNames: groupNames != null ? Value(groupNames) : const Value.absent(),
         twitchChannel: twitchChannel != null ? Value(twitchChannel) : const Value.absent(),
+        youtubeVideoId: youtubeVideoId != null ? Value(youtubeVideoId) : const Value.absent(),
         customTicker: customTicker != null ? Value(customTicker) : const Value.absent(),
         isWebRegistrationEnabled: isWebRegistrationEnabled != null ? Value(isWebRegistrationEnabled) : const Value.absent(),
       ),
@@ -280,6 +284,15 @@ class TournamentsRepository {
     return await (_db.update(_db.tournaments)..where((t) => t.id.equals(id))).write(
       TournamentsCompanion(
         twitchChannel: Value(twitchChannel),
+      ),
+    ) > 0;
+  }
+
+  Future<bool> updateVideoIds(int id, {String? twitchChannel, String? youtubeVideoId}) async {
+    return await (_db.update(_db.tournaments)..where((t) => t.id.equals(id))).write(
+      TournamentsCompanion(
+        twitchChannel: twitchChannel != null ? Value(twitchChannel) : const Value.absent(),
+        youtubeVideoId: youtubeVideoId != null ? Value(youtubeVideoId) : const Value.absent(),
       ),
     ) > 0;
   }
