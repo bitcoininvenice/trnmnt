@@ -121,7 +121,7 @@ final standingsProvider = FutureProvider.family<Map<int, List<StandingEntry>>, i
 });
 
 class StandingsScreen extends ConsumerStatefulWidget {
-  final int tournamentId;
+  final dynamic tournamentId;
 
   const StandingsScreen({super.key, required this.tournamentId});
 
@@ -130,12 +130,20 @@ class StandingsScreen extends ConsumerStatefulWidget {
 }
 
 class _StandingsScreenState extends ConsumerState<StandingsScreen> {
+  int? get _localId => int.tryParse(widget.tournamentId.toString());
+  bool get _isGuest => _localId == null;
+
   @override
   Widget build(BuildContext context) {
     if (!mounted) return const SizedBox.shrink();
 
-    final standingsAsync = ref.watch(standingsProvider(widget.tournamentId));
-    final tournamentAsync = ref.watch(tournamentByIdProvider(widget.tournamentId));
+    if (_isGuest) {
+      return _buildGuestStandings(context, ref);
+    }
+
+    final localId = _localId!;
+    final standingsAsync = ref.watch(standingsProvider(localId));
+    final tournamentAsync = ref.watch(tournamentByIdProvider(localId));
 
     return tournamentAsync.when(
       loading: () => Scaffold(
@@ -215,6 +223,127 @@ class _StandingsScreenState extends ConsumerState<StandingsScreen> {
           },
         );
       }
+    );
+  }
+
+  Widget _buildGuestStandings(BuildContext context, WidgetRef ref) {
+    final cloudId = widget.tournamentId.toString();
+    final cloudDetail = ref.watch(cloudTournamentDetailProvider(cloudId));
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Classifica (Ospite)'),
+        backgroundColor: Colors.blueGrey.withValues(alpha: 0.1),
+      ),
+      body: cloudDetail.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (err, _) => Center(child: Text('Errore: $err')),
+        data: (data) {
+          if (data == null) return const Center(child: Text('Torneo non trovato'));
+          final tournamentData = data['data'] as Map<String, dynamic>?;
+          if (tournamentData == null) return const Center(child: Text('Dati non disponibili'));
+
+          // 1. Extract tournament config
+          final tournament = tournamentData['tournament'] as Map<String, dynamic>;
+          final winPoints = tournament['winPoints'] as int? ?? 2;
+          final drawPoints = tournament['drawPoints'] as int? ?? 0;
+          final lossPoints = tournament['lossPoints'] as int? ?? 1;
+          final qualifiers = tournament['qualifiersPerGroup'] as int? ?? 2;
+
+          // 2. Extract teams and matches
+          final teams = tournamentData['teams'] as List? ?? [];
+          final matches = tournamentData['matches'] as List? ?? [];
+
+          // 3. Group by groupNumber
+          final Map<int, Map<int, StandingEntry>> groupStandings = {};
+          
+          // Use stable identifiers if possible, but map is local for calculation
+          for (final t in teams) {
+            final gn = t['groupNumber'] as int? ?? 1;
+            final tId = t['id'] as int;
+            groupStandings.putIfAbsent(gn, () => {});
+            groupStandings[gn]![tId] = StandingEntry(
+              teamId: tId,
+              teamName: t['name'] as String? ?? 'Team',
+            );
+          }
+
+          // 4. Update standings from matches
+          for (final m in matches) {
+            if (m['isCompleted'] != true || m['isBye'] == true || m['phase'] != 'group') continue;
+
+            final gn = m['groupNumber'] as int? ?? 1;
+            if (!groupStandings.containsKey(gn)) continue;
+            final standings = groupStandings[gn]!;
+
+            final homeId = m['homeTeamId'] as int?;
+            final awayId = m['awayTeamId'] as int?;
+            if (homeId == null || awayId == null) continue;
+
+            final homeScore = m['homeScore'] as int? ?? 0;
+            final awayScore = m['awayScore'] as int? ?? 0;
+
+            if (standings.containsKey(homeId)) {
+              final home = standings[homeId]!;
+              home.played++;
+              home.pointsFor += homeScore;
+              home.pointsAgainst += awayScore;
+              if (homeScore > awayScore) { home.won++; home.classificationPoints += winPoints; }
+              else if (homeScore < awayScore) { home.lost++; home.classificationPoints += lossPoints; }
+              else { home.drawn++; home.classificationPoints += drawPoints; }
+            }
+
+            if (standings.containsKey(awayId)) {
+              final away = standings[awayId]!;
+              away.played++;
+              away.pointsFor += awayScore;
+              away.pointsAgainst += homeScore;
+              if (awayScore > homeScore) { away.won++; away.classificationPoints += winPoints; }
+              else if (awayScore < homeScore) { away.lost++; away.classificationPoints += lossPoints; }
+              else { away.drawn++; away.classificationPoints += drawPoints; }
+            }
+          }
+
+          // 5. Finalize sorting
+          final Map<int, List<StandingEntry>> result = {};
+          for (final entry in groupStandings.entries) {
+            final sorted = entry.value.values.toList()
+              ..sort((a, b) {
+                final pointsComp = b.classificationPoints.compareTo(a.classificationPoints);
+                if (pointsComp != 0) return pointsComp;
+                final diffComp = b.pointsDiff.compareTo(a.pointsDiff);
+                if (diffComp != 0) return diffComp;
+                return b.pointsFor.compareTo(a.pointsFor);
+              });
+            result[entry.key] = sorted;
+          }
+
+          if (result.isEmpty) return _buildEmptyState(context);
+
+          final groupNumbers = result.keys.toList()..sort();
+          if (groupNumbers.length <= 1) {
+            return _buildSingleGroupBody(context, result[groupNumbers.first]!, qualifiers);
+          }
+
+          return DefaultTabController(
+            length: groupNumbers.length,
+            child: Scaffold(
+              appBar: AppBar(
+                toolbarHeight: 0,
+                bottom: TabBar(
+                  isScrollable: true,
+                  tabs: groupNumbers.map((gn) => Tab(text: 'Girone $gn')).toList(),
+                ),
+              ),
+              body: TabBarView(
+                children: groupNumbers.map((gn) {
+                  return _buildSingleGroupBody(context, result[gn]!, qualifiers);
+                }).toList(),
+              ),
+            ),
+          );
+        },
+      ),
     );
   }
 

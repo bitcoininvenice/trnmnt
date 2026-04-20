@@ -11,6 +11,7 @@ import 'package:trnmnt/core/providers/theme_provider.dart';
 import 'package:trnmnt/core/providers/locale_provider.dart';
 import 'package:trnmnt/core/providers/api_config_provider.dart';
 import 'package:trnmnt/core/providers/icon_provider.dart';
+import 'package:trnmnt/core/providers/default_tab_provider.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -115,6 +116,22 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 DropdownMenuItem(value: AppThemeMode.light, child: Text(AppLocalizations.of(context)!.lightTheme)),
               ],
               onChanged: (mode) => ref.read(themeProvider.notifier).setTheme(mode!),
+            ),
+          ),
+          const Divider(),
+
+          _buildSectionHeader(context, AppLocalizations.of(context)!.defaultHomeScreen),
+          ListTile(
+            leading: const Icon(Icons.home_outlined, color: Colors.purple),
+            title: Text(AppLocalizations.of(context)!.defaultHomeScreen),
+            trailing: DropdownButton<int>(
+              value: ref.watch(defaultTabProvider),
+              underline: const SizedBox(),
+              items: [
+                DropdownMenuItem(value: 0, child: Text(AppLocalizations.of(context)!.dashboard)),
+                DropdownMenuItem(value: 1, child: Text(AppLocalizations.of(context)!.hub)),
+              ],
+              onChanged: (index) => ref.read(defaultTabProvider.notifier).setDefaultTab(index!),
             ),
           ),
           const Divider(),

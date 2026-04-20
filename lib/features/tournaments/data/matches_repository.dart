@@ -142,6 +142,16 @@ class MatchesRepository {
     return success;
   }
 
+  /// Manually update teams in a match
+  Future<bool> updateMatchTeams(int matchId, {int? homeTeamId, int? awayTeamId}) async {
+    return await (_db.update(_db.matches)..where((m) => m.id.equals(matchId))).write(
+      MatchesCompanion(
+        homeTeamId: Value(homeTeamId),
+        awayTeamId: Value(awayTeamId),
+      ),
+    ) > 0;
+  }
+
   /// Propagate winner/loser to next round
   Future<void> _propagateBracketWinner(int matchId, int homeScore, int awayScore) async {
     // Get the completed match
@@ -159,54 +169,34 @@ class MatchesRepository {
 
     // Determine next match based on current phase and round
     if (match.phase == 'play_in') {
-      nextPhase = 'semifinal';
-      // Cross-seeding: Play-in 1 winner goes to SF 2, Play-in 2 winner to SF 1
-      nextRound = (match.round == 1) ? 2 : 1; 
-      isHomeSlot = false; // They fill the Away slot (Home are the seeds A1/B1)
+      // Find what's next. If no semifinals exist, it must be final.
+      final hasSF = await (_db.select(_db.matches)..where((m) => m.tournamentId.equals(match.tournamentId) & m.phase.equals('semifinal'))).get().then((l) => l.isNotEmpty);
+      nextPhase = hasSF ? 'semifinal' : 'final';
+      // If going to final, round is 1. If SF, cross-seed or direct.
+      nextRound = hasSF ? ((match.round == 1) ? 2 : 1) : 1; 
+      isHomeSlot = false; 
+    } else if (match.phase == 'round_of_16') {
+      nextPhase = 'quarterfinal';
+      nextRound = (match.round + 1) ~/ 2;
+      isHomeSlot = (match.round % 2 != 0);
     } else if (match.phase == 'quarterfinal') {
       nextPhase = 'semifinal';
-      // QF1(1) -> SF1(1) Home
-      // QF2(2) -> SF1(1) Away
-      // QF3(3) -> SF2(2) Home
-      // QF4(4) -> SF2(2) Away
-      nextRound = (match.round <= 2) ? 1 : 2;
-      isHomeSlot = (match.round % 2 != 0); // 1, 3 -> Home; 2, 4 -> Away
-
-      // Handle losers for 5th-8th bracket
-      // Logic: Losers of QF go to Consolation Semifinals (if they exist)
-      // Check if 'consolation_semifinal' matches exist in DB (meaning 8 team bracket with consolation)
-      // We assume they exist if it's an 8-team QF.
+      nextRound = (match.round + 1) ~/ 2;
+      isHomeSlot = (match.round % 2 != 0);
+      
       if (loserId != null) {
-         // QF1 Loser -> CSF1(1) Home
-         // QF2 Loser -> CSF1(1) Away
-         // QF3 Loser -> CSF2(2) Home
-         // QF4 Loser -> CSF2(2) Away
-         await _updateNextMatch(
-          match.tournamentId,
-          'consolation_semifinal',
-          nextRound,
-          isHomeSlot,
-          loserId,
-        );
+         await _updateNextMatch(match.tournamentId, 'consolation_semifinal', nextRound, isHomeSlot, loserId);
       }
     } else if (match.phase == 'semifinal') {
       nextPhase = 'final';
       nextRound = 1;
-      // SF1(1) -> Final(1) Home
-      // SF2(2) -> Final(1) Away
       isHomeSlot = (match.round == 1);
 
-      // Consolation Final (3rd/4th)
       if (loserId != null) {
-        await _updateNextMatch(
-          match.tournamentId,
-          'third_place',
-          1,
-          isHomeSlot,
-          loserId,
-        );
+        await _updateNextMatch(match.tournamentId, 'third_place', 1, isHomeSlot, loserId);
       }
-    } else if (match.phase == 'consolation_semifinal') {
+    }
+ else if (match.phase == 'consolation_semifinal') {
       // Winners go to 5th/6th place final
       // Losers go to 7th/8th place final
       nextPhase = 'fifth_place';
@@ -287,6 +277,16 @@ class MatchesRepository {
     return await (_db.delete(_db.matches)
       ..where((m) => m.tournamentId.equals(tournamentId) & m.phase.equals(phase)))
       .go();
+  }
+
+  /// Delete a single match by ID
+  Future<int> deleteMatch(int matchId) async {
+    return await (_db.delete(_db.matches)..where((m) => m.id.equals(matchId))).go();
+  }
+
+  /// Delete multiple matches by IDs
+  Future<int> deleteMatches(List<int> matchIds) async {
+    return await (_db.delete(_db.matches)..where((m) => m.id.isIn(matchIds))).go();
   }
 }
 

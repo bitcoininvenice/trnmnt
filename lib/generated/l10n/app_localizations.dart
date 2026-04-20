@@ -107,7 +107,7 @@ abstract class AppLocalizations {
   /// No description provided for @teams.
   ///
   /// In it, this message translates to:
-  /// **'Squadre'**
+  /// **'Le mie squadre'**
   String get teams;
 
   /// No description provided for @singleMatch.
@@ -809,8 +809,8 @@ abstract class AppLocalizations {
   /// No description provided for @periodLabel.
   ///
   /// In it, this message translates to:
-  /// **'PERIODO'**
-  String get periodLabel;
+  /// **'PERIODO {period}'**
+  String periodLabel(Object period);
 
   /// No description provided for @selectAtLeastTwoTeams.
   ///
@@ -1097,8 +1097,14 @@ abstract class AppLocalizations {
   /// No description provided for @tournamentDate.
   ///
   /// In it, this message translates to:
-  /// **'Data Torneo'**
+  /// **'Data e orario inizio torneo'**
   String get tournamentDate;
+
+  /// No description provided for @tournamentEndDate.
+  ///
+  /// In it, this message translates to:
+  /// **'Data e orario fine torneo'**
+  String get tournamentEndDate;
 
   /// No description provided for @navHome.
   ///
@@ -1427,8 +1433,14 @@ abstract class AppLocalizations {
   /// No description provided for @liveHighlights.
   ///
   /// In it, this message translates to:
-  /// **'LIVE HIGHLIGHTS'**
+  /// **'WEB LIVE HIGHLIGHTS'**
   String get liveHighlights;
+
+  /// No description provided for @statsOverview.
+  ///
+  /// In it, this message translates to:
+  /// **'STATISTICHE APP'**
+  String get statsOverview;
 
   /// No description provided for @noTournamentsAtMoment.
   ///
@@ -1933,6 +1945,102 @@ abstract class AppLocalizations {
   /// In it, this message translates to:
   /// **'Seleziona squadre (Opzionale)'**
   String get selectTeamsOptional;
+
+  /// No description provided for @publishToCloud_switch.
+  ///
+  /// In it, this message translates to:
+  /// **'Pubblica su Cloud'**
+  String get publishToCloud_switch;
+
+  /// No description provided for @publishToCloud_subtitle.
+  ///
+  /// In it, this message translates to:
+  /// **'Rendi il risultato visibile online in tempo reale e condividi il link!'**
+  String get publishToCloud_subtitle;
+
+  /// No description provided for @matchTitle_label.
+  ///
+  /// In it, this message translates to:
+  /// **'Titolo Match (opzionale)'**
+  String get matchTitle_label;
+
+  /// No description provided for @matchTitle_hint.
+  ///
+  /// In it, this message translates to:
+  /// **'es: Finale Regionale - Court 1'**
+  String get matchTitle_hint;
+
+  /// No description provided for @twitch_label.
+  ///
+  /// In it, this message translates to:
+  /// **'Username Twitch (opzionale)'**
+  String get twitch_label;
+
+  /// No description provided for @twitch_hint.
+  ///
+  /// In it, this message translates to:
+  /// **'es: trnmnt_official'**
+  String get twitch_hint;
+
+  /// No description provided for @explorer.
+  ///
+  /// In it, this message translates to:
+  /// **'Esplora'**
+  String get explorer;
+
+  /// No description provided for @cloudHub.
+  ///
+  /// In it, this message translates to:
+  /// **'TRNMNT Hub'**
+  String get cloudHub;
+
+  /// No description provided for @liveMatches.
+  ///
+  /// In it, this message translates to:
+  /// **'Partite Live'**
+  String get liveMatches;
+
+  /// No description provided for @exploreHub.
+  ///
+  /// In it, this message translates to:
+  /// **'Esplora i tornei e le partite live dal cloud'**
+  String get exploreHub;
+
+  /// No description provided for @noLiveMatches.
+  ///
+  /// In it, this message translates to:
+  /// **'Nessuna partita live in corso'**
+  String get noLiveMatches;
+
+  /// No description provided for @errorLoadingData.
+  ///
+  /// In it, this message translates to:
+  /// **'Errore nel caricamento dei dati'**
+  String get errorLoadingData;
+
+  /// No description provided for @hubSubtitle.
+  ///
+  /// In it, this message translates to:
+  /// **'Hub aggiornamenti e risultati live'**
+  String get hubSubtitle;
+
+  /// No description provided for @defaultHomeScreen.
+  ///
+  /// In it, this message translates to:
+  /// **'Schermata Iniziale'**
+  String get defaultHomeScreen;
+
+  /// No description provided for @dashboard.
+  ///
+  /// In it, this message translates to:
+  /// **'Dashboard'**
+  String get dashboard;
+
+  /// No description provided for @hub.
+  ///
+  /// In it, this message translates to:
+  /// **'HUB'**
+  String get hub;
 }
 
 class _AppLocalizationsDelegate

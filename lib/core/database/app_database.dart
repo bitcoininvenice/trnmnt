@@ -76,6 +76,10 @@ class Tournaments extends Table {
   IntColumn get winnerTeamId => integer().nullable().references(Teams, #id)();
   TextColumn get communityId => text().nullable().references(Communities, #id)();
   TextColumn get communityName => text().nullable()();
+  
+  IntColumn get courtCount => integer().withDefault(const Constant(1))();
+  IntColumn get lunchDuration => integer().withDefault(const Constant(0))();
+  DateTimeColumn get endDate => dateTime().nullable()();
 
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 }
@@ -137,7 +141,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 16;
+  int get schemaVersion => 18;
 
   @override
   MigrationStrategy get migration {
@@ -197,6 +201,13 @@ class AppDatabase extends _$AppDatabase {
         }
         if (from < 16) {
           await m.addColumn(this.tournaments, this.tournaments.youtubeVideoId);
+        }
+        if (from < 17) {
+          await m.addColumn(tournaments, tournaments.courtCount);
+          await m.addColumn(tournaments, tournaments.lunchDuration);
+        }
+        if (from < 18) {
+          await m.addColumn(tournaments, tournaments.endDate);
         }
       },
     );

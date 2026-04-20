@@ -12,27 +12,105 @@ import 'dart:io';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../game/providers/game_provider.dart';
 
-class HomeScreen extends ConsumerWidget {
+import 'package:trnmnt/core/providers/default_tab_provider.dart';
+
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends ConsumerState<HomeScreen> {
+  late PageController _pageController;
+  late int _currentPage;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentPage = ref.read(defaultTabProvider);
+    _pageController = PageController(initialPage: _currentPage);
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  String _getTranslatedMode(BuildContext context, String? mode) {
+    final l10n = AppLocalizations.of(context)!;
+    String label;
+    switch (mode) {
+      case 'group_only':
+        label = l10n.groupOnly;
+        break;
+      case 'elimination_only':
+        label = l10n.eliminationOnly;
+        break;
+      case 'group_and_elimination':
+        label = l10n.groupAndElimination;
+        break;
+      case 'madness':
+        label = l10n.madness;
+        break;
+      default:
+        label = mode?.replaceAll('_', ' ') ?? l10n.groupOnly;
+    }
+    return label.toUpperCase();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final activeGame = ref.watch(activeGameProvider);
     final customIconPath = ref.watch(customIconProvider);
-    final currentCommunity = ref.watch(currentCommunityProvider).valueOrNull;
-    final statsAsync = ref.watch(appStatsProvider);
     final l10n = AppLocalizations.of(context)!;
-    
-    return Scaffold(
-      body: CustomScrollView(
-        slivers: [
-          // Header Section (Concept 3 Hero style)
+
+    return NestedScrollView(
+      headerSliverBuilder: (context, innerBoxIsScrolled) {
+        return [
           SliverAppBar(
-            expandedHeight: 150,
+            expandedHeight: 160,
             pinned: true,
-            leading: IconButton(
-              icon: const Icon(Icons.menu, color: Colors.white),
-              onPressed: () => Scaffold.of(context).openDrawer(),
+            leading: Builder(
+              builder: (context) => IconButton(
+                icon: const Icon(Icons.menu, color: Colors.white),
+                onPressed: () => Scaffold.of(context).openDrawer(),
+              ),
+            ),
+            bottom: PreferredSize(
+              preferredSize: const Size.fromHeight(20),
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(2, (index) {
+                    final isSelected = _currentPage == index;
+                    return GestureDetector(
+                      onTap: () {
+                        _pageController.animateToPage(index, duration: 300.ms, curve: Curves.easeInOut);
+                      },
+                      child: AnimatedContainer(
+                        duration: 300.ms,
+                        margin: const EdgeInsets.symmetric(horizontal: 4),
+                        width: isSelected ? 24 : 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: isSelected ? Colors.orange : Colors.white24,
+                          borderRadius: BorderRadius.circular(4),
+                          boxShadow: isSelected ? [
+                            BoxShadow(
+                              color: Colors.orange.withValues(alpha: 0.4),
+                              blurRadius: 8,
+                              spreadRadius: 1,
+                            )
+                          ] : null,
+                        ),
+                      ),
+                    );
+                  }),
+                ),
+              ),
             ),
             flexibleSpace: FlexibleSpaceBar(
               background: Container(
@@ -58,7 +136,7 @@ class HomeScreen extends ConsumerWidget {
                       ),
                     ),
                     Padding(
-                      padding: const EdgeInsets.all(24.0),
+                      padding: const EdgeInsets.fromLTRB(24, 24, 24, 48),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.end,
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -88,43 +166,17 @@ class HomeScreen extends ConsumerWidget {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'TRNMNT',
+                                    _currentPage == 0 ? 'TRNMNT' : 'TRNMNT HUB',
                                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                                       color: Colors.white,
                                       fontWeight: FontWeight.bold,
                                       letterSpacing: 2,
                                     ),
-                                  ),
+                                  ).animate(key: ValueKey('title_$_currentPage')).fadeIn(duration: 400.ms).slideX(begin: -0.2),
                                   Text(
-                                    l10n.appSubtitle,
+                                    _currentPage == 0 ? l10n.appSubtitle : l10n.hubSubtitle,
                                     style: const TextStyle(color: Colors.white70, fontSize: 13),
-                                  ),
-                                  if (currentCommunity != null) ...[
-                                    const SizedBox(height: 6),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white.withValues(alpha: 0.1),
-                                        borderRadius: BorderRadius.circular(15),
-                                        border: Border.all(color: Colors.white10),
-                                      ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          const Icon(Icons.hub_outlined, size: 10, color: Colors.orange),
-                                          const SizedBox(width: 4),
-                                          Text(
-                                            currentCommunity.name,
-                                            style: const TextStyle(
-                                              color: Colors.orange,
-                                              fontSize: 10,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
+                                  ).animate(key: ValueKey('subtitle_$_currentPage')).fadeIn(duration: 600.ms, delay: 200.ms),
                                 ],
                               ),
                             ],
@@ -137,178 +189,193 @@ class HomeScreen extends ConsumerWidget {
               ),
             ),
           ),
-
-          // Cloud Tournaments Slider
-          SliverToBoxAdapter(
-            child: _CloudTournamentsSlider(),
-          ),
-
-
-          // Unified Active Match Resume Section
-          if (activeGame.matchId != null || 
-              activeGame.isRunning || 
-              activeGame.homeScore > 0 || 
-              activeGame.awayScore > 0 ||
-              activeGame.isFinished)
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                child: Card(
-                  color: (activeGame.matchId != null ? Colors.orange : Colors.purple).withValues(alpha: 0.1),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    side: BorderSide(color: activeGame.matchId != null ? Colors.orange : Colors.purple, width: 1),
-                  ),
-                  child: InkWell(
-                    onTap: () {
-                      if (activeGame.matchId != null) {
-                         context.push('/tournaments/${activeGame.matchData!.match.tournamentId}/match/${activeGame.matchId}');
-                      } else {
-                         context.pushNamed(
-                          'single-match-board',
-                          extra: {
-                            'homeTeamName': activeGame.homeTeamName,
-                            'awayTeamName': activeGame.awayTeamName,
-                          },
-                        );
-                      }
-                    },
-                    borderRadius: BorderRadius.circular(16),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Row(
-                        children: [
-                          Icon(
-                            activeGame.matchId != null ? Icons.flash_on : Icons.sports_basketball, 
-                            color: activeGame.matchId != null ? Colors.orange : Colors.purple, 
-                            size: 32
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  activeGame.matchId != null ? l10n.activeTournamentMatch : l10n.matchInProgress,
-                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                                ),
-                                Text(
-                                  '${activeGame.homeTeamName} ${activeGame.homeScore} - ${activeGame.awayScore} ${activeGame.awayTeamName} (${activeGame.formattedTime})',
-                                  style: const TextStyle(color: Colors.white70),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const Icon(Icons.chevron_right, color: Colors.grey),
-                        ],
-                      ),
-                    ),
-                  ),
-                ).animate().slideY(begin: 0.1, duration: 400.ms).fadeIn(),
-              ),
-            ),
-
-          SliverToBoxAdapter(
-            child: statsAsync.when(
-              data: (stats) {
-                return StatsOverviewWidget(stats: stats);
-              },
-              loading: () {
-                return const Padding(
-                  padding: EdgeInsets.all(32.0),
-                  child: Center(child: CircularProgressIndicator()),
-                );
-              },
-              error: (e, s) {
-                return const SizedBox.shrink();
-              },
-            ),
-          ),
-
-          // Quick Actions Grid
-          SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
-            sliver: SliverGrid.count(
-              crossAxisCount: 2,
-              childAspectRatio: 1.4,
-              mainAxisSpacing: 12,
-              crossAxisSpacing: 12,
-              children: [
-                _buildQuickAction(
-                  context,
-                  icon: Icons.storefront,
-                  title: l10n.myCommunity,
-                  subtitle: ref.watch(currentCommunityProvider).when(
-                    data: (c) => c?.name ?? l10n.manageYourBrand,
-                    loading: () => '...',
-                    error: (_, __) => l10n.manageYourBrand,
-                  ),
-                  color: Colors.pink,
-                  onTap: () => context.push('/community'),
-                ).animate().fadeIn(delay: 500.ms).scale(),
-                _buildQuickAction(
-                  context,
-                  icon: Icons.sports_basketball,
-                  title: AppLocalizations.of(context)!.singleMatch,
-                  subtitle: AppLocalizations.of(context)!.manageSingleMatch,
-                  color: Colors.purple,
-                  onTap: () => context.go('/single-match-setup'),
-                ).animate().fadeIn(delay: 550.ms).scale(),
-                _buildQuickAction(
-                  context,
-                  icon: Icons.emoji_events,
-                  title: AppLocalizations.of(context)!.tournaments,
-                  subtitle: AppLocalizations.of(context)!.createAndManage,
-                  color: Colors.orange,
-                  onTap: () => context.go('/tournaments'),
-                ).animate().fadeIn(delay: 600.ms).scale(),
-                _buildQuickAction(
-                  context,
-                  icon: Icons.groups,
-                  title: AppLocalizations.of(context)!.teams,
-                  subtitle: AppLocalizations.of(context)!.manageTeams,
-                  color: Colors.blue,
-                  onTap: () => context.go('/teams'),
-                ).animate().fadeIn(delay: 650.ms).scale(),
-                _buildQuickAction(
-                  context,
-                  icon: Icons.qr_code_scanner,
-                  title: AppLocalizations.of(context)!.scanTournament,
-                  subtitle: AppLocalizations.of(context)!.syncFromScout,
-                  color: Colors.indigo,
-                  onTap: () => context.push('/scan'),
-                ).animate().fadeIn(delay: 700.ms).scale(),
-                _buildQuickAction(
-                  context,
-                  icon: Icons.emoji_events,
-                  title: AppLocalizations.of(context)!.hallOfFame,
-                  subtitle: AppLocalizations.of(context)!.viewWinners,
-                  color: Colors.amber,
-                  onTap: () => context.go('/stats'),
-                ).animate().fadeIn(delay: 750.ms).scale(),
-                _buildQuickAction(
-                  context,
-                  icon: Icons.map,
-                  title: AppLocalizations.of(context)!.map,
-                  subtitle: AppLocalizations.of(context)!.courtsMap,
-                  color: Colors.teal,
-                  onTap: () => context.go('/map'),
-                ).animate().fadeIn(delay: 800.ms).scale(),
-                _buildQuickAction(
-                  context,
-                  icon: Icons.settings,
-                  title: AppLocalizations.of(context)!.settings,
-                  subtitle: AppLocalizations.of(context)!.appOptions,
-                  color: Colors.grey,
-                  onTap: () => context.go('/settings'),
-                ).animate().fadeIn(delay: 850.ms).scale(),
-              ],
-            ),
-          ),
-
-          const SliverToBoxAdapter(child: SizedBox(height: 32)),
+        ];
+      },
+      body: PageView(
+        controller: _pageController,
+        onPageChanged: (page) {
+          setState(() => _currentPage = page);
+        },
+        children: [
+          _LocalDashboard(activeGame: activeGame),
+          const _HubDashboard(),
         ],
       ),
+    );
+  }
+}
+
+
+class _LocalDashboard extends ConsumerWidget {
+  final dynamic activeGame;
+  const _LocalDashboard({required this.activeGame});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final statsAsync = ref.watch(appStatsProvider);
+    final l10n = AppLocalizations.of(context)!;
+
+    return CustomScrollView(
+      key: const PageStorageKey('local_dashboard'),
+      slivers: [
+        // Removed _CloudTournamentsSlider from here
+
+        if (activeGame.matchId != null || 
+            activeGame.isRunning || 
+            activeGame.homeScore > 0 || 
+            activeGame.awayScore > 0 ||
+            activeGame.isFinished)
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+              child: Card(
+                color: (activeGame.matchId != null ? Colors.orange : Colors.purple).withValues(alpha: 0.1),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: BorderSide(color: activeGame.matchId != null ? Colors.orange : Colors.purple, width: 1),
+                ),
+                child: InkWell(
+                  onTap: () {
+                    if (activeGame.matchId != null) {
+                       context.push('/hub');
+                    } else {
+                       context.pushNamed(
+                        'single-match-board',
+                        extra: {
+                          'homeTeamName': activeGame.homeTeamName,
+                          'awayTeamName': activeGame.awayTeamName,
+                        },
+                      );
+                    }
+                  },
+                  borderRadius: BorderRadius.circular(16),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Row(
+                      children: [
+                        Icon(
+                          activeGame.matchId != null ? Icons.flash_on : Icons.sports_basketball, 
+                          color: activeGame.matchId != null ? Colors.orange : Colors.purple, 
+                          size: 32
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                activeGame.matchId != null ? l10n.activeTournamentMatch : l10n.matchInProgress,
+                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                              ),
+                              Text(
+                                '${activeGame.homeTeamName} ${activeGame.homeScore} - ${activeGame.awayScore} ${activeGame.awayTeamName} (${activeGame.formattedTime})',
+                                style: const TextStyle(color: Colors.white70),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(Icons.chevron_right, color: Colors.grey),
+                      ],
+                    ),
+                  ),
+                ),
+              ).animate().slideY(begin: 0.1, duration: 400.ms).fadeIn(),
+            ),
+          ),
+
+        SliverToBoxAdapter(
+          child: statsAsync.when(
+            data: (stats) {
+              return StatsOverviewWidget(stats: stats);
+            },
+            loading: () => const Center(child: Padding(
+              padding: EdgeInsets.all(24.0),
+              child: CircularProgressIndicator(),
+            )),
+            error: (e, s) => const SizedBox.shrink(),
+          ),
+        ),
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+          sliver: SliverGrid.count(
+            crossAxisCount: 2,
+            childAspectRatio: 1.85,
+            mainAxisSpacing: 6,
+            crossAxisSpacing: 6,
+            children: [
+              _buildQuickAction(
+                context,
+                icon: Icons.storefront,
+                title: l10n.myCommunity,
+                subtitle: ref.watch(currentCommunityProvider).when(
+                  data: (c) => c?.name ?? l10n.manageYourBrand,
+                  loading: () => '...',
+                  error: (_, __) => l10n.manageYourBrand,
+                ),
+                color: Colors.pink,
+                onTap: () => context.push('/community'),
+              ).animate().fadeIn(delay: 50.ms).scale(),
+              _buildQuickAction(
+                context,
+                icon: Icons.sports_basketball,
+                title: l10n.singleMatch,
+                subtitle: l10n.manageSingleMatch,
+                color: Colors.purple,
+                onTap: () => context.go('/single-match-setup'),
+              ).animate().fadeIn(delay: 100.ms).scale(),
+              _buildQuickAction(
+                context,
+                icon: Icons.emoji_events,
+                title: l10n.tournaments,
+                subtitle: l10n.createAndManage,
+                color: Colors.orange,
+                onTap: () => context.go('/tournaments'),
+              ).animate().fadeIn(delay: 150.ms).scale(),
+              _buildQuickAction(
+                context,
+                icon: Icons.groups,
+                title: l10n.teams,
+                subtitle: l10n.manageTeams,
+                color: Colors.blue,
+                onTap: () => context.go('/teams'),
+              ).animate().fadeIn(delay: 200.ms).scale(),
+              _buildQuickAction(
+                context,
+                icon: Icons.qr_code_scanner,
+                title: l10n.scanTournament,
+                subtitle: l10n.syncFromScout,
+                color: Colors.indigo,
+                onTap: () => context.push('/scan'),
+              ).animate().fadeIn(delay: 250.ms).scale(),
+              _buildQuickAction(
+                context,
+                icon: Icons.military_tech,
+                title: l10n.hallOfFame,
+                subtitle: l10n.viewWinners,
+                color: Colors.amber,
+                onTap: () => context.go('/stats'),
+              ).animate().fadeIn(delay: 300.ms).scale(),
+              _buildQuickAction(
+                context,
+                icon: Icons.map,
+                title: l10n.map,
+                subtitle: l10n.courtsMap,
+                color: Colors.teal,
+                onTap: () => context.go('/map'),
+              ).animate().fadeIn(delay: 350.ms).scale(),
+              _buildQuickAction(
+                context,
+                icon: Icons.settings,
+                title: l10n.settings,
+                subtitle: l10n.appOptions,
+                color: Colors.grey,
+                onTap: () => context.go('/settings'),
+              ).animate().fadeIn(delay: 400.ms).scale(),
+            ],
+          ),
+        ),
+        const SliverToBoxAdapter(child: SizedBox(height: 32)),
+      ],
     );
   }
 
@@ -324,7 +391,7 @@ class HomeScreen extends ConsumerWidget {
       elevation: 0,
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
         side: BorderSide(color: color.withValues(alpha: 0.1), width: 1),
       ),
       child: InkWell(
@@ -340,28 +407,28 @@ class HomeScreen extends ConsumerWidget {
               ],
             ),
           ),
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, color: color, size: 28),
+              Icon(icon, color: color, size: 24),
               const Spacer(),
               Text(
                 title,
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
-                  fontSize: 15,
+                  fontSize: 14,
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
-              const SizedBox(height: 2),
+              const SizedBox(height: 1),
               Text(
                 subtitle,
                 style: TextStyle(
                   color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
-                  fontSize: 11,
+                  fontSize: 10,
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -372,27 +439,250 @@ class HomeScreen extends ConsumerWidget {
       ),
     );
   }
+}
 
-  String _getTranslatedMode(BuildContext context, String? mode) {
+class _HubDashboard extends ConsumerStatefulWidget {
+  const _HubDashboard();
+
+  @override
+  ConsumerState<_HubDashboard> createState() => _HubDashboardState();
+}
+
+class _HubDashboardState extends ConsumerState<_HubDashboard> with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    String label;
-    switch (mode) {
-      case 'group_only':
-        label = l10n.groupOnly;
-        break;
-      case 'elimination_only':
-        label = l10n.eliminationOnly;
-        break;
-      case 'group_and_elimination':
-        label = l10n.groupAndElimination;
-        break;
-      case 'madness':
-        label = l10n.madness;
-        break;
-      default:
-        label = mode?.replaceAll('_', ' ') ?? l10n.groupOnly;
-    }
-    return label.toUpperCase();
+    
+    return Column(
+      children: [
+        _CloudTournamentsSlider(), // Removed const
+        TabBar(
+          controller: _tabController,
+          indicatorColor: Colors.orange,
+          labelColor: Colors.orange,
+          unselectedLabelColor: Colors.grey,
+          labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+          tabs: [
+            Tab(text: l10n.tournaments.toUpperCase()),
+            Tab(text: l10n.liveMatches.toUpperCase()),
+          ],
+        ),
+        Expanded(
+          child: TabBarView(
+            controller: _tabController,
+            children: [
+              const _CloudTournamentsList(),
+              const _CloudLiveMatchesList(),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _CloudTournamentsList extends ConsumerWidget {
+  const _CloudTournamentsList();
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tournamentsAsync = ref.watch(cloudTournamentsProvider);
+    final l10n = AppLocalizations.of(context)!;
+
+    return tournamentsAsync.when(
+      data: (tournaments) {
+        if (tournaments.isEmpty) {
+          return Center(child: Text(l10n.noTournamentsAtMoment, style: const TextStyle(color: Colors.grey)));
+        }
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: tournaments.length,
+          itemBuilder: (context, index) {
+             final data = tournaments[index];
+             return _WideCloudTournamentCard(data: data);
+          },
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator(color: Colors.orange)),
+      error: (e, s) => Center(child: Text('${l10n.errorLoadingData}: $e')),
+    );
+  }
+}
+
+class _CloudLiveMatchesList extends ConsumerWidget {
+  const _CloudLiveMatchesList();
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final liveMatchesAsync = ref.watch(cloudLiveMatchesProvider);
+    final l10n = AppLocalizations.of(context)!;
+
+    return liveMatchesAsync.when(
+      data: (matches) {
+        if (matches.isEmpty) {
+          return Center(child: Text(l10n.noLiveMatches, style: const TextStyle(color: Colors.grey)));
+        }
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: matches.length,
+          itemBuilder: (context, index) {
+            final match = matches[index];
+            return _WideLiveMatchCard(match: match);
+          },
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator(color: Colors.orange)),
+      error: (e, s) => Center(child: Text('${l10n.errorLoadingData}: $e')),
+    );
+  }
+}
+
+class _WideCloudTournamentCard extends StatelessWidget {
+  final Map<String, dynamic> data;
+  const _WideCloudTournamentCard({required this.data});
+
+  @override
+  Widget build(BuildContext context) {
+    final tournamentMap = Map<String, dynamic>.from(data['tournament'] ?? {});
+    final id = data['id']?.toString();
+    final l10n = AppLocalizations.of(context)!;
+    
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      color: const Color(0xFF1E293B),
+      child: InkWell(
+        onTap: () {
+          if (id != null) {
+            context.push('/hub/tournament/$id');
+          }
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                   Expanded(
+                    child: Text(
+                      tournamentMap['name']?.toString().toUpperCase() ?? l10n.tournaments.toUpperCase(),
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  const Icon(Icons.chevron_right, color: Colors.grey),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                   const Icon(Icons.location_on, size: 14, color: Colors.orange),
+                   const SizedBox(width: 4),
+                   Expanded(
+                     child: Text(
+                       tournamentMap['location']?.toString() ?? '', 
+                       style: const TextStyle(color: Colors.white70, fontSize: 13),
+                       overflow: TextOverflow.ellipsis,
+                     ),
+                   ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    ).animate().fadeIn().slideX(begin: 0.1);
+  }
+}
+
+class _WideLiveMatchCard extends StatelessWidget {
+  final Map<String, dynamic> match;
+  const _WideLiveMatchCard({required this.match});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      color: const Color(0xFF1E293B),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            if (match['match_title'] != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Text(
+                  match['match_title'].toString().toUpperCase(),
+                  style: const TextStyle(color: Colors.orange, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1),
+                ),
+              ),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    match['home_team_name'] ?? 'Team A',
+                    textAlign: TextAlign.right,
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    '${match['home_score'] ?? 0} - ${match['away_score'] ?? 0}',
+                    style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.w900, fontSize: 18),
+                  ),
+                ),
+                Expanded(
+                  child: Text(
+                    match['away_team_name'] ?? 'Team B',
+                    textAlign: TextAlign.left,
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.timer_outlined, size: 12, color: Colors.grey),
+                const SizedBox(width: 4),
+                Text(
+                  l10n.periodLabel(match['period']?.toString() ?? '1'),
+                  style: const TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    ).animate().fadeIn().slideX(begin: -0.1);
   }
 }
 
@@ -402,12 +692,13 @@ class _CloudTournamentsSlider extends ConsumerWidget {
     final cloudTournamentsAsync = ref.watch(cloudTournamentsProvider);
     final currentFilters = ref.watch(cloudFilterProvider);
     final l10n = AppLocalizations.of(context)!;
+    final homeState = context.findAncestorStateOfType<_HomeScreenState>();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
           child: Row(
             children: [
               Text(
@@ -429,8 +720,31 @@ class _CloudTournamentsSlider extends ConsumerWidget {
                 ),
               ).animate(onPlay: (c) => c.repeat()).fadeIn(duration: 500.ms).fadeOut(duration: 500.ms),
               const Spacer(),
-              
-              // Multi-select Dropdown (PopupMenuButton)
+              cloudTournamentsAsync.maybeWhen(
+                error: (_, __) => IconButton(
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  icon: Icon(Icons.cloud_off, size: 14, color: Colors.red.withValues(alpha: 0.6)),
+                  onPressed: () => ref.refresh(cloudTournamentsProvider),
+                  tooltip: "Offline - Tap to reconnect",
+                ),
+                loading: () => Icon(Icons.cloud_queue, size: 14, color: Colors.grey.withValues(alpha: 0.5))
+                    .animate(onPlay: (c) => c.repeat())
+                    .fadeIn(duration: 800.ms)
+                    .then()
+                    .fadeOut(duration: 800.ms),
+                orElse: () => Icon(Icons.cloud_done, size: 14, color: Colors.green.withValues(alpha: 0.4)),
+              ),
+              if (cloudTournamentsAsync.hasError) ...[
+                const SizedBox(width: 4),
+                IconButton(
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  icon: const Icon(Icons.refresh, size: 14, color: Colors.grey),
+                  onPressed: () => ref.refresh(cloudTournamentsProvider),
+                ),
+              ],
+              const SizedBox(width: 4),
               PopupMenuButton<CloudFilter>(
                 icon: const Icon(Icons.tune, size: 18, color: Colors.grey),
                 onSelected: (filter) {
@@ -467,7 +781,7 @@ class _CloudTournamentsSlider extends ConsumerWidget {
             }
 
             return SizedBox(
-              height: 150,
+              height: 131,
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -485,13 +799,37 @@ class _CloudTournamentsSlider extends ConsumerWidget {
                     tournament: tournament, 
                     communitySlug: dbSlug,
                     tournamentId: dbId,
+                    translatedMode: homeState?._getTranslatedMode(context, tournament['mode'] as String?) ?? (tournament['mode']?.toString().toUpperCase() ?? ''),
                   );
                 },
               ),
             );
           },
-          loading: () => const SizedBox(height: 100, child: Center(child: CircularProgressIndicator())),
-          error: (e, s) => const SizedBox.shrink(),
+          loading: () => SizedBox(
+            height: 131,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              itemCount: 3,
+              itemBuilder: (context, index) => const _CloudTournamentSkeleton(),
+            ),
+          ),
+          error: (e, s) => SizedBox(
+            height: 80, 
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.cloud_off, size: 24, color: Colors.grey.withValues(alpha: 0.5)),
+                  const SizedBox(height: 8),
+                  Text(
+                    "Cloud Sync Offline", 
+                    style: TextStyle(color: Colors.grey.withValues(alpha: 0.5), fontSize: 11, fontWeight: FontWeight.bold)
+                  ),
+                ],
+              )
+            )
+          ),
         ),
       ],
     );
@@ -519,11 +857,13 @@ class _CloudTournamentCard extends StatelessWidget {
   final Map<String, dynamic> tournament;
   final String? communitySlug;
   final String? tournamentId;
+  final String translatedMode;
 
   const _CloudTournamentCard({
     required this.tournament,
     this.communitySlug,
     this.tournamentId,
+    required this.translatedMode,
   });
 
   @override
@@ -552,7 +892,6 @@ class _CloudTournamentCard extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: Stack(
         children: [
-          // Background Court Texture (simulated with opacity)
           Positioned(
             right: -20,
             bottom: -20,
@@ -564,7 +903,7 @@ class _CloudTournamentCard extends StatelessWidget {
           ),
           
           Padding(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(10),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -587,7 +926,7 @@ class _CloudTournamentCard extends StatelessWidget {
                           style: TextStyle(color: Colors.orange.withValues(alpha: 0.8), fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1),
                         ),
                         Text(
-                          _getTranslatedMode(context, tournament['mode'] as String?),
+                          translatedMode,
                           style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1),
                         ),
                       ],
@@ -599,12 +938,12 @@ class _CloudTournamentCard extends StatelessWidget {
                   style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w900,
-                    fontSize: 18,
+                    fontSize: 16,
                     letterSpacing: -0.5,
                     height: 1.1,
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 4),
                 Row(
                   children: [
                     const Icon(Icons.location_on, color: Colors.orange, size: 14),
@@ -631,23 +970,10 @@ class _CloudTournamentCard extends StatelessWidget {
                   var webUrl = tournament['webUrl'] as String?;
                   final String? effectiveId = tournamentId ?? tournament['id']?.toString();
                   
-                  // Use standardized fallback matching frontend logic
-                  // Use tournaments/ path as requested definitively
-                  if ((webUrl == null || webUrl.isEmpty) && effectiveId != null) {
-                    webUrl = 'https://trnmnt.vercel.app/it/tournaments/$effectiveId';
-                  }
-
-                  if (webUrl != null && webUrl.isNotEmpty) {
-                    final Uri url = Uri.parse(webUrl);
-                    launchUrl(url, mode: LaunchMode.externalApplication);
-                  } else {
-                    if (effectiveId != null) {
-                      context.pushNamed(
-                        'tournament-detail',
-                        pathParameters: {'tournamentId': effectiveId},
-                      );
+                   if (effectiveId != null) {
+                      context.push('/hub/tournament/$effectiveId');
                     }
-                  }
+                  
                 },
               ),
             ),
@@ -659,7 +985,6 @@ class _CloudTournamentCard extends StatelessWidget {
 
   Widget _buildStatusBadge(BuildContext context, Map<String, dynamic> tournament) {
     final dateVal = tournament['startDate'];
-    
     DateTime? startDate;
     if (dateVal is String) {
       startDate = DateTime.tryParse(dateVal);
@@ -668,35 +993,40 @@ class _CloudTournamentCard extends StatelessWidget {
     }
     
     final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    
-    // Check if tournament is concluded (has a winner)
     final winnerTeamId = tournament['winnerTeamId'];
     final isCompleted = winnerTeamId != null;
 
     final l10n = AppLocalizations.of(context)!;
-    String label = l10n.live;
-    Color color = Colors.green;
-    IconData icon = Icons.sensors;
+    Color color = Colors.blue;
+    IconData icon = Icons.calendar_today;
+    String label = l10n.upcoming;
 
     if (isCompleted) {
       label = l10n.concluded;
       color = Colors.grey;
       icon = Icons.check_circle_outline;
     } else if (startDate != null) {
-      // Create a date-only version of startDate for comparison
-      final startDay = DateTime(startDate.year, startDate.month, startDate.day);
-      
-      if (startDay.isAfter(today)) {
+      final endDateVal = tournament['endDate'];
+      DateTime? endDate;
+      if (endDateVal is String) {
+        endDate = DateTime.tryParse(endDateVal);
+      } else if (endDateVal is int) {
+        endDate = DateTime.fromMillisecondsSinceEpoch(endDateVal);
+      }
+      endDate ??= startDate.add(const Duration(hours: 8));
+
+      if (now.isBefore(startDate)) {
         label = l10n.upcoming;
         color = Colors.blue;
         icon = Icons.calendar_today;
-      } else if (startDay.isBefore(today)) {
-        // If it was in the past and is not completed, it should probably be marked as 'Concluso' 
-        // to reflect it's no longer live as per user request.
+      } else if (now.isAfter(endDate)) {
         label = l10n.concluded;
         color = Colors.grey;
         icon = Icons.check_circle_outline;
+      } else {
+        label = l10n.live;
+        color = Colors.green;
+        icon = Icons.sensors;
       }
     }
 
@@ -723,37 +1053,40 @@ class _CloudTournamentCard extends StatelessWidget {
 
   String _formatDate(dynamic dateVal) {
     if (dateVal == null) return '';
-    
     DateTime? date;
     if (dateVal is String) {
       date = DateTime.tryParse(dateVal);
     } else if (dateVal is int) {
       date = DateTime.fromMillisecondsSinceEpoch(dateVal);
     }
-
     if (date == null) return '';
     return '${date.day}/${date.month}/${date.year}';
   }
+}
 
-  String _getTranslatedMode(BuildContext context, String? mode) {
-    final l10n = AppLocalizations.of(context)!;
-    String label;
-    switch (mode) {
-      case 'group_only':
-        label = l10n.groupOnly;
-        break;
-      case 'elimination_only':
-        label = l10n.eliminationOnly;
-        break;
-      case 'group_and_elimination':
-        label = l10n.groupAndElimination;
-        break;
-      case 'madness':
-        label = l10n.madness;
-        break;
-      default:
-        label = mode?.replaceAll('_', ' ') ?? l10n.groupOnly;
-    }
-    return label.toUpperCase();
+class _CloudTournamentSkeleton extends StatelessWidget {
+  const _CloudTournamentSkeleton();
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 280,
+      margin: const EdgeInsets.symmetric(horizontal: 4),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.grey.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(width: 80, height: 20, decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(8))),
+          const Spacer(),
+          Container(width: 200, height: 18, decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(4))),
+          const SizedBox(height: 8),
+          Container(width: 120, height: 12, decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(4))),
+        ],
+      ),
+    ).animate(onPlay: (c) => c.repeat()).shimmer(duration: 1500.ms, color: Colors.orange.withValues(alpha: 0.1));
   }
 }

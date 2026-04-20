@@ -116,74 +116,90 @@ class MainShell extends ConsumerWidget {
                 ],
               ),
             ),
-            ListTile(
-              leading: const Icon(Icons.hub_outlined, color: Colors.orange),
-              title: Text(l10n.myCommunity),
-              subtitle: Text(l10n.manageBrandsLogos),
-              onTap: () {
-                Navigator.pop(context);
-                context.push('/community');
-              },
+            Expanded(
+              child: ListView(
+                padding: EdgeInsets.zero,
+                children: [
+                  ListTile(
+                    leading: const Icon(Icons.language_outlined, color: Colors.orange),
+                    title: Text(l10n.cloudHub),
+                    subtitle: Text(l10n.exploreHub),
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.push('/hub');
+                    },
+                  ),
+                  const Divider(),
+                  ListTile(
+                    leading: const Icon(Icons.hub_outlined, color: Colors.orange),
+                    title: Text(l10n.myCommunity),
+                    subtitle: Text(l10n.manageBrandsLogos),
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.push('/community');
+                    },
+                  ),
+                  const Divider(),
+                  ListTile(
+                    leading: const Icon(Icons.emoji_events_outlined),
+                    title: Text(l10n.tournaments),
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.push('/tournaments');
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.groups_outlined),
+                    title: Text(l10n.teams),
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.push('/teams');
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.sports_basketball_outlined),
+                    title: Text(l10n.singleMatch),
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.push('/single-match-setup');
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.qr_code_scanner),
+                    title: Text(l10n.scanTournament),
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.push('/scan');
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.group_add_outlined),
+                    title: Text(l10n.joinCommunity),
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.push('/community/join');
+                    },
+                  ),
+                  const Divider(),
+                  ListTile(
+                    leading: const Icon(Icons.military_tech_outlined),
+                    title: Text(l10n.hallOfFame),
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.push('/stats');
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.map_outlined),
+                    title: Text(l10n.map),
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.push('/map');
+                    },
+                  ),
+                ],
+              ),
             ),
-            const Divider(),
-            ListTile(
-              leading: const Icon(Icons.emoji_events_outlined),
-              title: Text(l10n.tournaments),
-              onTap: () {
-                Navigator.pop(context);
-                context.push('/tournaments');
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.groups_outlined),
-              title: Text(l10n.teams),
-              onTap: () {
-                Navigator.pop(context);
-                context.push('/teams');
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.sports_basketball_outlined),
-              title: Text(l10n.singleMatch),
-              onTap: () {
-                Navigator.pop(context);
-                context.push('/single-match-setup');
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.qr_code_scanner),
-              title: Text(l10n.scanTournament),
-              onTap: () {
-                Navigator.pop(context);
-                context.push('/scan');
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.group_add_outlined),
-              title: Text(l10n.joinCommunity),
-              onTap: () {
-                Navigator.pop(context);
-                context.push('/community/join');
-              },
-            ),
-            const Divider(),
-            ListTile(
-              leading: const Icon(Icons.military_tech_outlined),
-              title: Text(l10n.hallOfFame),
-              onTap: () {
-                Navigator.pop(context);
-                context.push('/stats');
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.map_outlined),
-              title: Text(l10n.map),
-              onTap: () {
-                Navigator.pop(context);
-                context.push('/map');
-              },
-            ),
-            const Spacer(),
             const Divider(),
             ListTile(
               leading: const Icon(Icons.settings_outlined),
@@ -193,7 +209,7 @@ class MainShell extends ConsumerWidget {
                 context.push('/settings');
               },
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: MediaQuery.of(context).padding.bottom + 8),
           ],
         ),
       ),

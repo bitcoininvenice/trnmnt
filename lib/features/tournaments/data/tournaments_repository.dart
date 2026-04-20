@@ -112,10 +112,19 @@ final cloudTournamentsProvider = StreamProvider<List<Map<String, dynamic>>>((ref
     });
 });
 
-/// Providers for filtering
+/// Provider for filtering
 final tournamentSearchQueryProvider = StateProvider<String>((ref) => '');
 final tournamentModeFilterProvider = StateProvider<String?>((ref) => null);
 final tournamentStatusFilterProvider = StateProvider<String>((ref) => 'all'); // Default to local as requested
+
+/// Provider for a specific cloud tournament by UUID
+final cloudTournamentDetailProvider = StreamProvider.family<Map<String, dynamic>?, String>((ref, cloudId) {
+  final supabase = Supabase.instance.client;
+  return supabase.from('published_tournaments')
+    .stream(primaryKey: ['id'])
+    .eq('id', cloudId)
+    .map((data) => data.isNotEmpty ? data.first : null);
+});
 
 /// Provider for filtered tournaments
 final filteredTournamentsProvider = Provider<AsyncValue<List<Tournament>>>((ref) {
@@ -204,6 +213,9 @@ class TournamentsRepository {
     String? youtubeVideoId,
     String? communityId,
     bool isWebRegistrationEnabled = false,
+    int courtCount = 1,
+    int lunchDuration = 0,
+    DateTime? endDate,
   }) async {
     return await _db.into(_db.tournaments).insert(
       TournamentsCompanion.insert(
@@ -225,6 +237,9 @@ class TournamentsRepository {
         youtubeVideoId: Value(youtubeVideoId),
         communityId: Value(communityId),
         isWebRegistrationEnabled: Value(isWebRegistrationEnabled),
+        courtCount: Value(courtCount),
+        lunchDuration: Value(lunchDuration),
+        endDate: Value(endDate),
       ),
     );
   }
@@ -250,6 +265,9 @@ class TournamentsRepository {
     String? youtubeVideoId,
     String? customTicker,
     bool? isWebRegistrationEnabled,
+    int? courtCount,
+    int? lunchDuration,
+    DateTime? endDate,
   }) async {
     return await (_db.update(_db.tournaments)..where((t) => t.id.equals(id))).write(
       TournamentsCompanion(
@@ -272,6 +290,9 @@ class TournamentsRepository {
         youtubeVideoId: youtubeVideoId != null ? Value(youtubeVideoId) : const Value.absent(),
         customTicker: customTicker != null ? Value(customTicker) : const Value.absent(),
         isWebRegistrationEnabled: isWebRegistrationEnabled != null ? Value(isWebRegistrationEnabled) : const Value.absent(),
+        courtCount: courtCount != null ? Value(courtCount) : const Value.absent(),
+        lunchDuration: lunchDuration != null ? Value(lunchDuration) : const Value.absent(),
+        endDate: endDate != null ? Value(endDate) : const Value.absent(),
       ),
     ) > 0;
   }
@@ -343,6 +364,24 @@ class TournamentsRepository {
     );
   }
 }
+
+/// Provider for specific cloud match detail
+final cloudLiveMatchDetailProvider = StreamProvider.family<Map<String, dynamic>?, String>((ref, matchId) {
+  final supabase = Supabase.instance.client;
+  return supabase.from('live_matches')
+    .stream(primaryKey: ['id'])
+    .eq('id', matchId)
+    .map((data) => data.isNotEmpty ? data.first : null);
+});
+
+/// Provider for all live matches in the cloud
+final cloudLiveMatchesProvider = StreamProvider<List<Map<String, dynamic>>>((ref) {
+  final supabase = Supabase.instance.client;
+  return supabase.from('live_matches')
+    .stream(primaryKey: ['id'])
+    .order('last_update', ascending: false)
+    .map((data) => data);
+});
 
 /// Provider for tournaments repository
 final tournamentsRepositoryProvider = Provider<TournamentsRepository>((ref) {

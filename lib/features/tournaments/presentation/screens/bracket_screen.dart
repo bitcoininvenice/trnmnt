@@ -62,7 +62,7 @@ final bracketProvider = FutureProvider.family<Map<String, List<BracketMatch>>, i
 final playSpareggiProvider = StateProvider.family<bool, int>((ref, id) => true);
 
 class BracketScreen extends ConsumerStatefulWidget {
-  final int tournamentId;
+  final dynamic tournamentId;
 
   const BracketScreen({super.key, required this.tournamentId});
 
@@ -73,14 +73,22 @@ class BracketScreen extends ConsumerStatefulWidget {
 class _BracketScreenState extends ConsumerState<BracketScreen> {
   bool _isProcessing = false;
 
+  int? get _localId => int.tryParse(widget.tournamentId.toString());
+  bool get _isGuest => _localId == null;
+
   @override
   Widget build(BuildContext context) {
     // 1. Defensive check
     if (!mounted) return const SizedBox.shrink();
 
+    if (_isGuest) {
+      return _buildGuestBracket(context, ref);
+    }
+
+    final localId = _localId!;
     // 2. Unconditional watches at the top (Riverpod best practice)
-    final bracketAsync = ref.watch(bracketProvider(widget.tournamentId));
-    final tournamentAsync = ref.watch(tournamentByIdProvider(widget.tournamentId));
+    final bracketAsync = ref.watch(bracketProvider(localId));
+    final tournamentAsync = ref.watch(tournamentByIdProvider(localId));
 
     // 3. Early return for processing state
     if (_isProcessing) {
@@ -107,7 +115,7 @@ class _BracketScreenState extends ConsumerState<BracketScreen> {
           IconButton(
             icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
             tooltip: 'Elimina e ricrea',
-            onPressed: () => _softDeleteBracket(context, ref, widget.tournamentId),
+            onPressed: () => _softDeleteBracket(context, ref, localId),
           ),
         ],
       ),
@@ -436,6 +444,8 @@ class _BracketScreenState extends ConsumerState<BracketScreen> {
     final phases = ['play_in', 'round_of_16', 'quarterfinal', 'semifinal', 'final'];
     final consolationPhases = ['consolation_semifinal', 'third_place', 'fifth_place', 'seventh_place'];
 
+    final activePhases = phases.where((p) => bracket.containsKey(p)).toList();
+
     // Determine tournament winner
     String? tournamentWinner;
     if (bracket.containsKey('final')) {
@@ -472,23 +482,9 @@ class _BracketScreenState extends ConsumerState<BracketScreen> {
               ),
               child: Column(
                 children: [
-                  const Text(
-                    '🏆 VINCITORE 🏆',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 2,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    tournamentWinner,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                   const Text('🏆 VINCITORE 🏆', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 2)),
+                   const SizedBox(height: 8),
+                   Text(tournamentWinner, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
                 ],
               ),
             ),
@@ -496,65 +492,86 @@ class _BracketScreenState extends ConsumerState<BracketScreen> {
           // Main bracket area
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: phases.where((p) => bracket.containsKey(p)).map((phase) {
-                    return _buildPhaseColumn(context, phase, bracket[phase]!);
-                  }).toList(),
-                ),
-                
-                // Consolation finals
-                if (bracket.keys.any((k) => consolationPhases.contains(k))) ...[
-                  const SizedBox(height: 32),
-                  const Divider(),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Tabellone 5°-8° Posto',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: consolationPhases.where((p) => bracket.containsKey(p)).map((phase) {
-                      return _buildPhaseColumn(context, phase, bracket[phase]!);
-                    }).toList(),
-                  ),
-                ],
-              ],
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 32),
+            child: CustomPaint(
+              painter: BracketPainter(bracket: bracket, activePhases: activePhases),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: activePhases.map((phase) {
+                  return _buildPhaseColumn(context, phase, bracket[phase]!, activePhases.indexOf(phase));
+                }).toList(),
+              ),
             ),
           ),
-          const SizedBox(height: 32),
+          
+          // Consolation finals (simplified)
+          if (bracket.keys.any((k) => consolationPhases.contains(k))) ...[
+            const SizedBox(height: 32),
+            const Divider(),
+            Padding(
+               padding: const EdgeInsets.all(16),
+               child: Text('Tabellone Consolazione', style: Theme.of(context).textTheme.titleMedium),
+            ),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: consolationPhases.where((p) => bracket.containsKey(p)).map((phase) {
+                  return _buildPhaseColumn(context, phase, bracket[phase]!, 0);
+                }).toList(),
+              ),
+            ),
+          ],
+          const SizedBox(height: 120), // Increased bottom padding for lines visibility
         ],
       ),
     );
   }
 
-  Widget _buildPhaseColumn(BuildContext context, String phase, List<BracketMatch> matches) {
+  Widget _buildPhaseColumn(BuildContext context, String phase, List<BracketMatch> matches, int phaseIdx) {
+    // Standard bracket spacing logic
+    final double initialPadding = pow(2, phaseIdx).toDouble() * 30 - 30;
+    final double matchGap = pow(2, phaseIdx).toDouble() * 100 - 100;
+
     return Padding(
-      padding: const EdgeInsets.only(right: 24),
+      padding: const EdgeInsets.only(right: 64), // Space for connectors
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Text(
-            _getPhaseLabel(phase),
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.bold,
+          SizedBox(
+            width: 180,
+            child: Text(
+              _getPhaseLabel(phase).toUpperCase(),
+              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1),
+              textAlign: TextAlign.center,
             ),
           ),
-          const SizedBox(height: 16),
-          ...matches.map((match) => _buildMatchCard(context, null, match)),
+          const SizedBox(height: 24),
+          SizedBox(height: initialPadding), // Offset for centering
+          ...matches.map((match) => Column(
+            children: [
+              _buildMatchCard(context, null, match),
+              SizedBox(height: 16 + matchGap), // Dynamic gap
+            ],
+          )),
         ],
       ),
     );
   }
 
   Widget _buildMatchCard(BuildContext context, String? label, BracketMatch match) {
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      margin: const EdgeInsets.only(bottom: 16),
+    final bool isCompleted = match.isCompleted;
+    final bool homeWon = isCompleted && (match.homeScore ?? 0) > (match.awayScore ?? 0);
+    final bool awayWon = isCompleted && (match.awayScore ?? 0) > (match.homeScore ?? 0);
+
+    return Container(
+      width: 180,
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+      ),
       child: InkWell(
         onTap: () {
           if (match.matchId != null) {
@@ -564,18 +581,17 @@ class _BracketScreenState extends ConsumerState<BracketScreen> {
             });
           }
         },
-        child: Container(
-          width: 180,
+        child: Padding(
           padding: const EdgeInsets.all(12),
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              if (label != null) ...[
-                Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-                const SizedBox(height: 8),
-              ],
-              _buildTeamRow(context, match.homeTeam, match.homeScore, match.isCompleted && (match.homeScore ?? 0) > (match.awayScore ?? 0)),
-              const Divider(height: 16),
-              _buildTeamRow(context, match.awayTeam, match.awayScore, match.isCompleted && (match.awayScore ?? 0) > (match.homeScore ?? 0)),
+              _buildTeamRow(context, match.homeTeam, match.homeScore, homeWon, match.matchId, true),
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 4),
+                child: Divider(height: 1, color: Colors.white10),
+              ),
+              _buildTeamRow(context, match.awayTeam, match.awayScore, awayWon, match.matchId, false),
             ],
           ),
         ),
@@ -583,48 +599,105 @@ class _BracketScreenState extends ConsumerState<BracketScreen> {
     );
   }
 
-  Widget _buildTeamRow(BuildContext context, String? teamName, int? score, bool isWinner) {
-    return Row(
-      children: [
-        Expanded(
-          child: Text(
-            teamName ?? 'TBD',
-            style: TextStyle(
-              fontWeight: isWinner ? FontWeight.bold : FontWeight.normal,
-              color: teamName == null ? Colors.grey : null,
-            ),
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-        if (score != null)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: isWinner ? Colors.green.withValues(alpha: 0.2) : Colors.grey.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: Text(
-              '$score',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: isWinner ? Colors.green : null,
+  Widget _buildTeamRow(BuildContext context, String? teamName, int? score, bool isWinner, int? matchId, bool isHome) {
+    return InkWell(
+      onLongPress: matchId == null ? null : () => _showTeamPicker(context, matchId, isHome),
+      borderRadius: BorderRadius.circular(4),
+      child: SizedBox(
+        height: 24,
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                (teamName ?? 'TBD').toUpperCase(),
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: isWinner ? FontWeight.w900 : FontWeight.w500,
+                  color: teamName == null ? Colors.white24 : (isWinner ? Colors.orange : Colors.white70),
+                  letterSpacing: 0.5,
+                ),
+                overflow: TextOverflow.ellipsis,
               ),
             ),
-          ),
-      ],
+            if (score != null)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: isWinner ? Colors.orange.withValues(alpha: 0.2) : Colors.white.withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  '$score',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontFamily: 'monospace',
+                    fontWeight: FontWeight.bold,
+                    color: isWinner ? Colors.orange : Colors.white38,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
     );
+  }
+
+  Future<void> _showTeamPicker(BuildContext context, int matchId, bool isHome) async {
+    final teamsAsync = await ref.read(tournamentTeamsProvider(widget.tournamentId).future);
+    if (!context.mounted) return;
+
+    final selectedTeam = await showDialog<Team>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(isHome ? 'Seleziona Squadra Casa' : 'Seleziona Squadra Trasferta'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount: teamsAsync.length,
+            itemBuilder: (context, index) {
+              final team = teamsAsync[index].team;
+              return ListTile(
+                leading: (team.logoPath != null && team.logoPath!.isNotEmpty) 
+                  ? Image.network(team.logoPath!, width: 24, height: 24, errorBuilder: (_, __, ___) => const Icon(Icons.shield))
+                  : const Icon(Icons.shield),
+                title: Text(team.name),
+                onTap: () => Navigator.pop(context, team),
+              );
+            },
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('ANNULLA')),
+        ],
+      ),
+    );
+
+    if (!context.mounted) return;
+    if (selectedTeam == null) return;
+    
+    final repo = ref.read(matchesRepositoryProvider);
+    if (isHome) {
+      await repo.updateMatchTeams(matchId, homeTeamId: selectedTeam.id);
+    } else {
+      await repo.updateMatchTeams(matchId, awayTeamId: selectedTeam.id);
+    }
+    
+    ref.invalidate(bracketProvider(widget.tournamentId));
   }
 
   String _getPhaseLabel(String phase) {
     switch (phase) {
       case 'play_in':
-        return 'Spareggi';
+        return 'Play-In';
+      case 'round_of_32':
+        return 'Sedicesimi';
       case 'round_of_16':
         return 'Ottavi';
       case 'quarterfinal':
         return 'Quarti';
       case 'semifinal':
-        return 'Semifinali';
+        return 'Semifinale';
       case 'final':
         return '🏆 Finale';
       case 'consolation_semifinal':
@@ -694,5 +767,124 @@ class _BracketScreenState extends ConsumerState<BracketScreen> {
         setState(() => _isProcessing = false);
       }
     }
+  }
+}
+
+class BracketPainter extends CustomPainter {
+  final Map<String, List<BracketMatch>> bracket;
+  final List<String> activePhases;
+
+  BracketPainter({required this.bracket, required this.activePhases});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.15)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.0;
+
+    const double cardWidth = 180.0;
+    const double columnGap = 64.0;
+    const double cardHeight = 73.0; // Precise height after paddings/borders
+    const double cardVerticalMargin = 16.0;
+    const double headerHeight = 36.0; // Text height + spacing
+
+    for (int i = 0; i < activePhases.length - 1; i++) {
+        final currentPhase = activePhases[i];
+        final nextPhase = activePhases[i + 1];
+        final currentMatches = bracket[currentPhase] ?? [];
+
+        // Setup paints for glow effect
+        final glowPaint = Paint()
+            ..color = Colors.orange.withValues(alpha: 0.1)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 6.0
+            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4.0);
+
+        for (int mIdx = 0; mIdx < currentMatches.length; mIdx++) {
+            // Find target match index
+            final int targetMatchIdx = mIdx ~/ 2;
+            final isUpperBranch = mIdx % 2 == 0;
+
+            final double phaseIdx = i.toDouble();
+            final double currentMatchGap = pow(2, phaseIdx).toDouble() * 100 - 100;
+            final double currentInitialPadding = pow(2, phaseIdx).toDouble() * 30 - 30;
+            
+            final double startY = headerHeight + currentInitialPadding + (mIdx * (cardHeight + cardVerticalMargin + currentMatchGap)) + cardHeight / 2;
+            
+            final double xStart = (i * (cardWidth + columnGap)) + cardWidth;
+            final double xMid = xStart + columnGap / 2;
+            final double xEnd = (i + 1) * (cardWidth + columnGap);
+            
+            final double nextPhaseIdx = phaseIdx + 1;
+            final double nextMatchGap = pow(2, nextPhaseIdx).toDouble() * 100 - 100;
+            final double nextInitialPadding = pow(2, nextPhaseIdx).toDouble() * 30 - 30;
+            final double endY = headerHeight + nextInitialPadding + (targetMatchIdx * (cardHeight + cardVerticalMargin + nextMatchGap)) + (isUpperBranch ? cardHeight * 0.35 : cardHeight * 0.65);
+
+            final path = Path();
+            path.moveTo(xStart, startY);
+            
+            // Standard elbow logic
+            path.lineTo(xMid - 12, startY);
+            path.quadraticBezierTo(xMid, startY, xMid, startY + (endY > startY ? 12 : -12));
+            path.lineTo(xMid, endY - (endY > startY ? 12 : -12));
+            path.quadraticBezierTo(xMid, endY, xMid + 12, endY);
+            path.lineTo(xEnd, endY);
+
+            canvas.drawPath(path, glowPaint);
+            canvas.drawPath(path, paint);
+        }
+    }
+  }
+
+  @override
+  bool shouldRepaint(CustomPainter oldDelegate) => true;
+}
+
+extension on _BracketScreenState {
+  Widget _buildGuestBracket(BuildContext context, WidgetRef ref) {
+    final cloudId = widget.tournamentId.toString();
+    final cloudDetail = ref.watch(cloudTournamentDetailProvider(cloudId));
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Eliminatoria (Ospite)'),
+        backgroundColor: Colors.blueGrey.withValues(alpha: 0.1),
+      ),
+      body: cloudDetail.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (err, _) => Center(child: Text('Errore: $err')),
+        data: (data) {
+          if (data == null) return const Center(child: Text('Torneo non trovato'));
+          final tournamentData = data['data'] as Map<String, dynamic>?;
+          if (tournamentData == null) return const Center(child: Text('Dati non disponibili'));
+
+          final List<dynamic> rawMatches = tournamentData['matches'] as List? ?? [];
+          final bracket = <String, List<BracketMatch>>{};
+          
+          for (final m in rawMatches) {
+            final phase = m['phase'] as String;
+            if (phase == 'group') continue;
+
+            bracket.putIfAbsent(phase, () => []).add(BracketMatch(
+              matchId: m['id'] as int?,
+              phase: phase,
+              homeTeam: m['homeTeamName'] as String?,
+              awayTeam: m['awayTeamName'] as String?,
+              homeScore: m['homeScore'] as int?,
+              awayScore: m['awayScore'] as int?,
+              isCompleted: m['isCompleted'] as bool? ?? false,
+              position: m['round'] as int? ?? 1,
+            ));
+          }
+
+          if (bracket.isEmpty) {
+             return Center(child: Text('Nessun tabellone generato', style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Colors.grey)));
+          }
+
+          return _buildBracketView(context, bracket);
+        },
+      ),
+    );
   }
 }

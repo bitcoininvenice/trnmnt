@@ -40,6 +40,7 @@ class _TournamentEditScreenState extends ConsumerState<TournamentEditScreen> {
   bool _isLoading = false;
   bool _isInit = false;
   bool _isWebRegistrationEnabled = false;
+  DateTime? _endDate;
 
   @override
   void dispose() {
@@ -83,6 +84,7 @@ class _TournamentEditScreenState extends ConsumerState<TournamentEditScreen> {
         timerMinutes: int.tryParse(_timerMinutesController.text) ?? 10,
         startDate: _startDate,
         isWebRegistrationEnabled: _isWebRegistrationEnabled,
+        endDate: _endDate,
       );
 
       await repo.setTournamentTeams(widget.tournamentId, _selectedTeamIds, teamToGroup: _groupCount > 1 ? _teamToGroup : null);
@@ -145,6 +147,7 @@ class _TournamentEditScreenState extends ConsumerState<TournamentEditScreen> {
               _selectedTeamIds = teams.map((e) => e.team.id).toList();
               _teamToGroup = { for (var e in teams) e.team.id : e.tournamentTeam.groupNumber };
               _isWebRegistrationEnabled = tournament.isWebRegistrationEnabled;
+              _endDate = tournament.endDate;
               _isInit = true;
             }
 
@@ -207,7 +210,9 @@ class _TournamentEditScreenState extends ConsumerState<TournamentEditScreen> {
                       validator: (value) => (value == null || value.trim().isEmpty) ? AppLocalizations.of(context)!.enterTournamentLocation : null,
                     ),
                     const SizedBox(height: 16),
-                    _buildDateField(isReadOnly),
+                    _buildDateField(isReadOnly, context),
+                    const SizedBox(height: 16),
+                    _buildEndDateField(isReadOnly, context),
                     
                     const SizedBox(height: 32),
                     Text(
@@ -236,8 +241,7 @@ class _TournamentEditScreenState extends ConsumerState<TournamentEditScreen> {
     );
   }
 
-  Widget _buildDateField(bool isReadOnly) {
-    final dateStr = "${_startDate.day}/${_startDate.month}/${_startDate.year}";
+  Widget _buildDateField(bool isReadOnly, BuildContext context) {
     return InkWell(
       onTap: isReadOnly ? null : () async {
         final picked = await showDatePicker(
@@ -247,7 +251,21 @@ class _TournamentEditScreenState extends ConsumerState<TournamentEditScreen> {
           lastDate: DateTime(2100),
         );
         if (picked != null) {
-          setState(() => _startDate = picked);
+          final time = await showTimePicker(
+            context: context,
+            initialTime: TimeOfDay.fromDateTime(_startDate),
+          );
+          if (time != null) {
+            setState(() => _startDate = DateTime(
+              picked.year,
+              picked.month,
+              picked.day,
+              time.hour,
+              time.minute,
+            ));
+          } else {
+            setState(() => _startDate = picked);
+          }
         }
       },
       child: InputDecorator(
@@ -257,9 +275,67 @@ class _TournamentEditScreenState extends ConsumerState<TournamentEditScreen> {
           border: const OutlineInputBorder(),
         ),
         child: Text(
-          dateStr,
+          "${_startDate.day.toString().padLeft(2, '0')}/${_startDate.month.toString().padLeft(2, '0')}/${_startDate.year} ${_startDate.hour.toString().padLeft(2, '0')}:${_startDate.minute.toString().padLeft(2, '0')}",
           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
             color: isReadOnly ? Colors.grey : null,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEndDateField(bool isReadOnly, BuildContext context) {
+    final timeStr = _endDate == null 
+        ? "NON DEFINITO" 
+        : "${_endDate!.day.toString().padLeft(2, '0')}/${_endDate!.month.toString().padLeft(2, '0')}/${_endDate!.year} ${_endDate!.hour.toString().padLeft(2, '0')}:${_endDate!.minute.toString().padLeft(2, '0')}";
+
+    return InkWell(
+      onTap: isReadOnly ? null : () async {
+        final picked = await showDatePicker(
+          context: context,
+          initialDate: _endDate ?? _startDate,
+          firstDate: DateTime(2020),
+          lastDate: DateTime(2100),
+        );
+        if (picked != null) {
+          final time = await showTimePicker(
+            context: context,
+            initialTime: TimeOfDay.fromDateTime(_endDate ?? _startDate),
+          );
+          if (time != null) {
+            final newEnd = DateTime(
+              picked.year,
+              picked.month,
+              picked.day,
+              time.hour,
+              time.minute,
+            );
+
+            if (newEnd.isBefore(_startDate)) {
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('L\'orario di fine deve essere successivo all\'inizio'), backgroundColor: Colors.red),
+                );
+              }
+              return;
+            }
+
+            setState(() => _endDate = newEnd);
+          } else {
+            setState(() => _endDate = picked);
+          }
+        }
+      },
+      child: InputDecorator(
+        decoration: InputDecoration(
+          labelText: AppLocalizations.of(context)!.tournamentEndDate,
+          prefixIcon: const Icon(Icons.access_time),
+          border: const OutlineInputBorder(),
+        ),
+        child: Text(
+          timeStr,
+          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+            color: isReadOnly ? Colors.grey : (_endDate == null ? Colors.white24 : null),
           ),
         ),
       ),

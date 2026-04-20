@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:trnmnt/generated/l10n/app_localizations.dart';
 import '../../data/teams_repository.dart';
 
 class TeamsScreen extends ConsumerWidget {
@@ -13,7 +14,7 @@ class TeamsScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Squadre'),
+        title: Text(AppLocalizations.of(context)!.teams),
         actions: [
           IconButton(
             icon: const Icon(Icons.add),

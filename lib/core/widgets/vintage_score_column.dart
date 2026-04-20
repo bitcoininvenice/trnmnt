@@ -52,7 +52,7 @@ class VintageScoreColumn extends StatelessWidget {
             children: [
               IconButton(
                 icon: const Icon(Icons.remove_circle_outline, size: 28, color: Colors.white54),
-                onPressed: () => onScoreChanged!(score - 1),
+                onPressed: score > 0 ? () => onScoreChanged!(score - 1) : null,
               ),
               const SizedBox(width: 4),
               IconButton(

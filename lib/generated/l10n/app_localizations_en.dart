@@ -12,7 +12,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appTitle => 'TRNMNT';
 
   @override
-  String get teams => 'Teams';
+  String get teams => 'My Teams';
 
   @override
   String get singleMatch => 'Single Match';
@@ -386,7 +386,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get durationMinutes => 'Duration (minutes)';
 
   @override
-  String get periodLabel => 'PERIOD';
+  String periodLabel(Object period) {
+    return 'PERIOD $period';
+  }
 
   @override
   String get selectAtLeastTwoTeams => 'Select at least 2 teams';
@@ -537,7 +539,10 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get tournamentDate => 'Tournament Date';
+  String get tournamentDate => 'Start Date & Time';
+
+  @override
+  String get tournamentEndDate => 'End Date & Time';
 
   @override
   String get navHome => 'Home';
@@ -709,7 +714,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get manageYourBrand => 'Manage your Brand';
 
   @override
-  String get liveHighlights => 'LIVE HIGHLIGHTS';
+  String get liveHighlights => 'WEB LIVE HIGHLIGHTS';
+
+  @override
+  String get statsOverview => 'APP OVERVIEW';
 
   @override
   String get noTournamentsAtMoment => 'No tournaments at the moment';
@@ -977,4 +985,54 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get selectTeamsOptional => 'Select Teams (Optional)';
+
+  @override
+  String get publishToCloud_switch => 'Publish to Cloud';
+
+  @override
+  String get publishToCloud_subtitle =>
+      'Make the result visible online in real time and share the link!';
+
+  @override
+  String get matchTitle_label => 'Match Title (optional)';
+
+  @override
+  String get matchTitle_hint => 'e.g.: Regional Final - Court 1';
+
+  @override
+  String get twitch_label => 'Twitch Username (optional)';
+
+  @override
+  String get twitch_hint => 'e.g.: trnmnt_official';
+
+  @override
+  String get explorer => 'Explorer';
+
+  @override
+  String get cloudHub => 'TRNMNT Hub';
+
+  @override
+  String get liveMatches => 'Live Matches';
+
+  @override
+  String get exploreHub =>
+      'Explore tournaments and matches live from the cloud';
+
+  @override
+  String get noLiveMatches => 'No matches live at the moment';
+
+  @override
+  String get errorLoadingData => 'Error loading data';
+
+  @override
+  String get hubSubtitle => 'Hub updates and live results';
+
+  @override
+  String get defaultHomeScreen => 'Default Home Screen';
+
+  @override
+  String get dashboard => 'Dashboard';
+
+  @override
+  String get hub => 'HUB';
 }

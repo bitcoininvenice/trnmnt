@@ -525,9 +525,9 @@ class _TournamentDetailScreenState extends ConsumerState<TournamentDetailScreen>
       crossAxisCount: 2,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      mainAxisSpacing: 12,
-      crossAxisSpacing: 12,
-      childAspectRatio: 1.3,
+      mainAxisSpacing: 10,
+      crossAxisSpacing: 10,
+      childAspectRatio: 1.5,
       children: actions.asMap().entries.map((entry) {
         return entry.value.animate().fadeIn(delay: Duration(milliseconds: 100 * entry.key)).scale(begin: const Offset(0.9, 0.9));
       }).toList(),
@@ -539,7 +539,7 @@ class _TournamentDetailScreenState extends ConsumerState<TournamentDetailScreen>
       clipBehavior: Clip.antiAlias,
       elevation: 0,
       color: const Color(0xFF1E293B),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: InkWell(
         onTap: onTap,
         child: Container(
@@ -550,15 +550,19 @@ class _TournamentDetailScreenState extends ConsumerState<TournamentDetailScreen>
               colors: [color.withOpacity(0.15), color.withOpacity(0.05)],
             ),
           ),
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, color: color, size: 28),
-              const SizedBox(height: 12),
-              Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
-              Text(subtitle, style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 10)),
+              Icon(icon, color: color, size: 24),
+              const SizedBox(height: 8),
+              Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+              Text(subtitle, 
+                style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 9),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             ],
           ),
         ),

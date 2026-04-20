@@ -13,6 +13,7 @@ import '../../features/tournaments/presentation/screens/standings_screen.dart';
 import '../../features/tournaments/presentation/screens/bracket_screen.dart';
 import '../../features/tournaments/presentation/screens/match_screen.dart';
 import '../../features/tournaments/presentation/screens/madness_screen.dart';
+import '../../features/tournaments/presentation/screens/cloud_tournament_detail_screen.dart';
 import '../../features/timer/presentation/screens/timer_screen.dart';
 import '../../features/single_match/presentation/screens/single_match_setup_screen.dart';
 import '../../features/map/presentation/screens/map_screen.dart';
@@ -25,6 +26,7 @@ import '../../features/sharing/presentation/screens/scan_tournament_screen.dart'
 import '../../features/community/presentation/screens/community_dashboard_screen.dart';
 import '../../features/community/presentation/screens/join_community_screen.dart';
 import '../../features/tournaments/presentation/screens/registration_management_screen.dart';
+import '../../features/explorer/presentation/screens/hub_screen.dart';
 import '../shell/main_shell.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -34,6 +36,22 @@ final routerProvider = Provider<GoRouter>((ref) {
       ShellRoute(
         builder: (context, state, child) => MainShell(child: child),
         routes: [
+          GoRoute(
+            path: '/hub',
+            name: 'hub',
+            pageBuilder: (context, state) => const NoTransitionPage(
+              child: HubScreen(),
+            ),
+            routes: [
+              GoRoute(
+                path: 'tournament/:cloudId',
+                name: 'cloud-tournament-detail',
+                builder: (context, state) => CloudTournamentDetailScreen(
+                  cloudId: state.pathParameters['cloudId']!,
+                ),
+              ),
+            ],
+          ),
           GoRoute(
             path: '/',
             name: 'home',
@@ -57,8 +75,12 @@ final routerProvider = Provider<GoRouter>((ref) {
                 path: 'edit/:teamId',
                 name: 'team-edit',
                 builder: (context, state) {
-                  final teamId = int.parse(state.pathParameters['teamId']!);
-                  return TeamFormScreen(teamId: teamId);
+                  final tIdStr = state.pathParameters['teamId']!;
+                  final teamId = int.tryParse(tIdStr);
+                  if (teamId != null) {
+                    return TeamFormScreen(teamId: teamId);
+                  }
+                  return const TeamsScreen(); // Fallback
                 },
               ),
             ],
@@ -79,69 +101,89 @@ final routerProvider = Provider<GoRouter>((ref) {
                 path: ':tournamentId',
                 name: 'tournament-detail',
                 builder: (context, state) {
-                  final id = int.parse(state.pathParameters['tournamentId']!);
-                  return TournamentDetailScreen(tournamentId: id);
+                  final idStr = state.pathParameters['tournamentId']!;
+                  final id = int.tryParse(idStr);
+                  if (id != null) {
+                    return TournamentDetailScreen(tournamentId: id);
+                  } else {
+                    return CloudTournamentDetailScreen(cloudId: idStr);
+                  }
                 },
                 routes: [
-                  GoRoute(
-                    path: 'calendar',
-                    name: 'tournament-calendar',
-                    builder: (context, state) {
-                      final id = int.parse(state.pathParameters['tournamentId']!);
-                      return CalendarScreen(tournamentId: id);
-                    },
-                  ),
-                  GoRoute(
-                    path: 'standings',
-                    name: 'tournament-standings',
-                    builder: (context, state) {
-                      final id = int.parse(state.pathParameters['tournamentId']!);
-                      return StandingsScreen(tournamentId: id);
-                    },
-                  ),
-                  GoRoute(
-                    path: 'bracket',
-                    name: 'tournament-bracket',
-                    builder: (context, state) {
-                      final id = int.parse(state.pathParameters['tournamentId']!);
-                      return BracketScreen(tournamentId: id);
-                    },
-                  ),
-                  GoRoute(
-                    path: 'match/:matchId',
-                    name: 'match-detail',
-                    builder: (context, state) {
-                      final matchId = int.parse(state.pathParameters['matchId']!);
-                      return MatchScreen(matchId: matchId);
-                    },
-                  ),
-                  GoRoute(
-                    path: 'madness',
-                    name: 'tournament-madness',
-                    builder: (context, state) {
-                      final id = int.parse(state.pathParameters['tournamentId']!);
-                      return MadnessScreen(tournamentId: id);
-                    },
-                  ),
-                  GoRoute(
-                    path: 'edit',
-                    name: 'tournament-edit',
-                    builder: (context, state) {
-                      final id = int.parse(state.pathParameters['tournamentId']!);
-                      return TournamentEditScreen(tournamentId: id);
-                    },
-                  ),
-                  GoRoute(
-                    path: 'registrations',
-                    name: 'tournament-registrations',
-                    builder: (context, state) {
-                      final id = int.parse(state.pathParameters['tournamentId']!);
-                      final cloudId = state.uri.queryParameters['cloudId']!;
-                      return RegistrationManagementScreen(tournamentId: id, cloudId: cloudId);
-                    },
-                  ),
-                ],
+              GoRoute(
+                path: 'calendar',
+                name: 'tournament-calendar',
+                builder: (context, state) {
+                  final idStr = state.pathParameters['tournamentId']!;
+                  return CalendarScreen(tournamentId: idStr);
+                },
               ),
+              GoRoute(
+                path: 'standings',
+                name: 'tournament-standings',
+                builder: (context, state) {
+                  final idStr = state.pathParameters['tournamentId']!;
+                  return StandingsScreen(tournamentId: idStr);
+                },
+              ),
+              GoRoute(
+                path: 'bracket',
+                name: 'tournament-bracket',
+                builder: (context, state) {
+                  final idStr = state.pathParameters['tournamentId']!;
+                  return BracketScreen(tournamentId: idStr);
+                },
+              ),
+              GoRoute(
+                path: 'match/:matchId',
+                name: 'match-detail',
+                builder: (context, state) {
+                  final mIdStr = state.pathParameters['matchId']!;
+                  final matchId = int.tryParse(mIdStr) ?? mIdStr;
+                  final tournamentId = state.pathParameters['tournamentId']!;
+                  return MatchScreen(matchId: matchId, tournamentId: tournamentId);
+                },
+              ),
+              GoRoute(
+                path: 'madness',
+                name: 'tournament-madness',
+                builder: (context, state) {
+                  final idStr = state.pathParameters['tournamentId']!;
+                  final id = int.tryParse(idStr);
+                  if (id != null) {
+                    return MadnessScreen(tournamentId: id);
+                  }
+                  // For now, guest madness is just the detail or not supported
+                  return CloudTournamentDetailScreen(cloudId: idStr);
+                },
+              ),
+              GoRoute(
+                path: 'edit',
+                name: 'tournament-edit',
+                builder: (context, state) {
+                  final idStr = state.pathParameters['tournamentId']!;
+                  final id = int.tryParse(idStr);
+                  if (id != null) {
+                    return TournamentEditScreen(tournamentId: id);
+                  }
+                  return CloudTournamentDetailScreen(cloudId: idStr);
+                },
+              ),
+              GoRoute(
+                path: 'registrations',
+                name: 'tournament-registrations',
+                builder: (context, state) {
+                  final idStr = state.pathParameters['tournamentId']!;
+                  final id = int.tryParse(idStr);
+                  final cloudId = state.uri.queryParameters['cloudId']!;
+                  if (id != null) {
+                    return RegistrationManagementScreen(tournamentId: id, cloudId: cloudId);
+                  }
+                  return CloudTournamentDetailScreen(cloudId: idStr);
+                },
+              ),
+            ],
+          ),
             ],
           ),
           GoRoute(
@@ -203,9 +245,13 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/share/:tournamentId',
             name: 'tournament-share',
             builder: (context, state) {
-              final id = int.parse(state.pathParameters['tournamentId']!);
+              final idStr = state.pathParameters['tournamentId']!;
+              final id = int.tryParse(idStr);
               final name = state.uri.queryParameters['name'] ?? 'Tournament';
-              return ShareTournamentScreen(tournamentId: id, tournamentName: name);
+              if (id != null) {
+                return ShareTournamentScreen(tournamentId: id, tournamentName: name);
+              }
+              return CloudTournamentDetailScreen(cloudId: idStr);
             },
           ),
           GoRoute(

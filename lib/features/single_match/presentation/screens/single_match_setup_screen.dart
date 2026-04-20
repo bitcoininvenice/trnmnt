@@ -18,6 +18,9 @@ class _SingleMatchSetupScreenState extends ConsumerState<SingleMatchSetupScreen>
   int? _awayTeamId;
   String _homeTeamName = '';
   String _awayTeamName = '';
+  bool _isPublic = false;
+  String _twitchUsername = '';
+  String _matchTitle = '';
 
   @override
   Widget build(BuildContext context) {
@@ -87,14 +90,68 @@ class _SingleMatchSetupScreenState extends ConsumerState<SingleMatchSetupScreen>
                       return null;
                     },
                   ),
+                  const SizedBox(height: 24),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.withOpacity(0.05),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.orange.withOpacity(0.1)),
+                    ),
+                    child: Column(
+                      children: [
+                        SwitchListTile(
+                          title: Text(AppLocalizations.of(context)!.publishToCloud_switch, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                          subtitle: Text(AppLocalizations.of(context)!.publishToCloud_subtitle, style: const TextStyle(fontSize: 11)),
+                          value: _isPublic,
+                          activeColor: Colors.orange,
+                          contentPadding: EdgeInsets.zero,
+                          onChanged: (val) => setState(() => _isPublic = val),
+                        ),
+                        if (_isPublic) ...[
+                          const Divider(height: 24),
+                          TextFormField(
+                            decoration: InputDecoration(
+                              labelText: AppLocalizations.of(context)!.matchTitle_label,
+                              hintText: AppLocalizations.of(context)!.matchTitle_hint,
+                              prefixIcon: const Icon(Icons.title, size: 20),
+                              labelStyle: const TextStyle(fontSize: 12),
+                            ),
+                            style: const TextStyle(fontSize: 14),
+                            onChanged: (val) => _matchTitle = val,
+                          ),
+                          const SizedBox(height: 12),
+                          TextFormField(
+                            decoration: InputDecoration(
+                              labelText: AppLocalizations.of(context)!.twitch_label,
+                              hintText: AppLocalizations.of(context)!.twitch_hint,
+                              prefixIcon: const Icon(Icons.video_camera_front, size: 20),
+                              labelStyle: const TextStyle(fontSize: 12),
+                            ),
+                            style: const TextStyle(fontSize: 14),
+                            onChanged: (val) => _twitchUsername = val,
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
                   const SizedBox(height: 32),
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
+                      backgroundColor: Colors.orange,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                     onPressed: () {
                       if (_formKey.currentState!.validate()) {
-                        ref.read(activeGameProvider.notifier).setupStandalone(_homeTeamName, _awayTeamName);
+                        ref.read(activeGameProvider.notifier).setupStandalone(
+                          _homeTeamName, 
+                          _awayTeamName,
+                          isPublic: _isPublic,
+                          matchTitle: _matchTitle,
+                          twitchUsername: _twitchUsername,
+                        );
                         context.pushNamed(
                           'single-match-board',
                           extra: {
@@ -104,7 +161,7 @@ class _SingleMatchSetupScreenState extends ConsumerState<SingleMatchSetupScreen>
                         );
                       }
                     },
-                    child: Text(AppLocalizations.of(context)!.startMatch, style: const TextStyle(fontSize: 18)),
+                    child: Text(AppLocalizations.of(context)!.startMatch, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                   ),
                   const SizedBox(height: 32),
                 ],

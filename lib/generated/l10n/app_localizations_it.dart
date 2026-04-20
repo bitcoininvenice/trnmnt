@@ -12,7 +12,7 @@ class AppLocalizationsIt extends AppLocalizations {
   String get appTitle => 'TRNMNT';
 
   @override
-  String get teams => 'Squadre';
+  String get teams => 'Le mie squadre';
 
   @override
   String get singleMatch => 'Partita Singola';
@@ -388,7 +388,9 @@ class AppLocalizationsIt extends AppLocalizations {
   String get durationMinutes => 'Durata (minuti)';
 
   @override
-  String get periodLabel => 'PERIODO';
+  String periodLabel(Object period) {
+    return 'PERIODO $period';
+  }
 
   @override
   String get selectAtLeastTwoTeams => 'Seleziona almeno 2 squadre';
@@ -540,7 +542,10 @@ class AppLocalizationsIt extends AppLocalizations {
   }
 
   @override
-  String get tournamentDate => 'Data Torneo';
+  String get tournamentDate => 'Data e orario inizio torneo';
+
+  @override
+  String get tournamentEndDate => 'Data e orario fine torneo';
 
   @override
   String get navHome => 'Home';
@@ -712,7 +717,10 @@ class AppLocalizationsIt extends AppLocalizations {
   String get manageYourBrand => 'Gestisci il tuo Brand';
 
   @override
-  String get liveHighlights => 'LIVE HIGHLIGHTS';
+  String get liveHighlights => 'WEB LIVE HIGHLIGHTS';
+
+  @override
+  String get statsOverview => 'STATISTICHE APP';
 
   @override
   String get noTournamentsAtMoment => 'Non ci sono tornei al momento';
@@ -981,4 +989,53 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get selectTeamsOptional => 'Seleziona squadre (Opzionale)';
+
+  @override
+  String get publishToCloud_switch => 'Pubblica su Cloud';
+
+  @override
+  String get publishToCloud_subtitle =>
+      'Rendi il risultato visibile online in tempo reale e condividi il link!';
+
+  @override
+  String get matchTitle_label => 'Titolo Match (opzionale)';
+
+  @override
+  String get matchTitle_hint => 'es: Finale Regionale - Court 1';
+
+  @override
+  String get twitch_label => 'Username Twitch (opzionale)';
+
+  @override
+  String get twitch_hint => 'es: trnmnt_official';
+
+  @override
+  String get explorer => 'Esplora';
+
+  @override
+  String get cloudHub => 'TRNMNT Hub';
+
+  @override
+  String get liveMatches => 'Partite Live';
+
+  @override
+  String get exploreHub => 'Esplora i tornei e le partite live dal cloud';
+
+  @override
+  String get noLiveMatches => 'Nessuna partita live in corso';
+
+  @override
+  String get errorLoadingData => 'Errore nel caricamento dei dati';
+
+  @override
+  String get hubSubtitle => 'Hub aggiornamenti e risultati live';
+
+  @override
+  String get defaultHomeScreen => 'Schermata Iniziale';
+
+  @override
+  String get dashboard => 'Dashboard';
+
+  @override
+  String get hub => 'HUB';
 }

@@ -8,11 +8,12 @@ import '../../../stats/data/stats_repository.dart';
 import '../screens/standings_screen.dart'; // Add this for standingsProvider
 import '../../../../core/database/app_database.dart';
 import '../../../sharing/data/share_repository.dart';
+import '../../../game/providers/game_provider.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'bracket_screen.dart';
 
 class CalendarScreen extends ConsumerStatefulWidget {
-  final int tournamentId;
+  final dynamic tournamentId;
 
   const CalendarScreen({super.key, required this.tournamentId});
 
@@ -22,6 +23,33 @@ class CalendarScreen extends ConsumerStatefulWidget {
 
 class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   bool _isProcessing = false;
+  final Set<int> _selectedMatchIds = {};
+  bool _isSelectionMode = false;
+
+  void _toggleSelection(int matchId) {
+    if (_isGuest) return; // Disable selection in guest mode
+    setState(() {
+      if (_selectedMatchIds.contains(matchId)) {
+        _selectedMatchIds.remove(matchId);
+        if (_selectedMatchIds.isEmpty) {
+          _isSelectionMode = false;
+        }
+      } else {
+        _selectedMatchIds.add(matchId);
+        _isSelectionMode = true;
+      }
+    });
+  }
+
+  void _resetSelection() {
+    setState(() {
+      _selectedMatchIds.clear();
+      _isSelectionMode = false;
+    });
+  }
+
+  int? get _localId => int.tryParse(widget.tournamentId.toString());
+  bool get _isGuest => _localId == null;
 
   @override
   Widget build(BuildContext context) {
@@ -35,102 +63,125 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
       );
     }
 
+    // Determine data source
+    if (_isGuest) {
+      return _buildGuestCalendar(context, ref);
+    }
+
+    final localId = _localId!;
     final tournamentsAsync = ref.watch(tournamentsProvider);
-    final matchesAsync = ref.watch(groupMatchesProvider(widget.tournamentId));
+    final matchesAsync = ref.watch(groupMatchesProvider(localId));
     
     // Safety check for tournament data
     final tournament = tournamentsAsync.value?.firstWhere(
-      (t) => t.id == widget.tournamentId,
+      (t) => t.id == localId,
       orElse: () => null as dynamic,
     );
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Calendario'),
+        title: Text(_isSelectionMode ? '${_selectedMatchIds.length} selezionate' : 'Calendario'),
+        leading: _isSelectionMode 
+          ? IconButton(icon: const Icon(Icons.close), onPressed: _resetSelection)
+          : null,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            tooltip: 'Aggiungi partita',
-            onPressed: () async {
-              if (_isProcessing) return;
-              final result = await showDialog<bool>(
-                context: context,
-                builder: (context) => AddMatchDialog(tournamentId: widget.tournamentId),
-              );
-              if (result == true && mounted) {
-                // The stream provider will auto-refresh
-              }
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.shuffle),
-            tooltip: 'Genera casuale',
-            onPressed: () async {
-              if (_isProcessing) return;
-              final confirm = await showDialog<bool>(
-                context: context,
-                builder: (context) => AlertDialog(
-                  title: const Text('Genera calendario'),
-                  content: const Text('Questo cancellerà il calendario esistente e ne creerà uno nuovo casuale. Continuare?'),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context, false),
-                      child: const Text('Annulla'),
-                    ),
-                    ElevatedButton(
-                      onPressed: () => Navigator.pop(context, true),
-                      child: const Text('Genera'),
-                    ),
-                  ],
-                ),
-              );
-              if (confirm == true && mounted) {
-                setState(() => _isProcessing = true);
-                try {
-                  await ref.read(matchesRepositoryProvider).generateGroupCalendar(widget.tournamentId);
-                  if (!mounted) return;
-                  if (tournament?.isPublished == true) {
-                    await ref.read(shareRepositoryProvider).publishToSupabase(widget.tournamentId);
-                  }
-                } catch (e) {
-                  debugPrint('Error generating calendar: $e');
-                } finally {
-                  if (mounted) {
-                    setState(() => _isProcessing = false);
+          if (!_isSelectionMode) ...[
+            IconButton(
+              icon: const Icon(Icons.add),
+              tooltip: 'Aggiungi partita',
+              onPressed: () async {
+                if (_isProcessing) return;
+                final result = await showDialog<bool>(
+                  context: context,
+                  builder: (context) => AddMatchDialog(tournamentId: localId),
+                );
+                if (result == true && mounted) {
+                  // The stream provider will auto-refresh
+                }
+              },
+            ),
+            IconButton(
+              icon: const Icon(Icons.shuffle),
+              tooltip: 'Genera casuale',
+              onPressed: () async {
+                if (_isProcessing) return;
+                final confirm = await showDialog<bool>(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text('Genera calendario'),
+                    content: const Text('Questo cancellerà il calendario esistente e ne creerà uno nuovo casuale. Continuare?'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, false),
+                        child: const Text('Annulla'),
+                      ),
+                      ElevatedButton(
+                        onPressed: () => Navigator.pop(context, true),
+                        child: const Text('Genera'),
+                      ),
+                    ],
+                  ),
+                );
+                if (confirm == true && mounted) {
+                  setState(() => _isProcessing = true);
+                  try {
+                    await ref.read(matchesRepositoryProvider).generateGroupCalendar(localId);
+                    if (!mounted) return;
+                    if (tournament?.isPublished == true) {
+                      await ref.read(shareRepositoryProvider).publishToSupabase(localId);
+                    }
+                  } catch (e) {
+                    debugPrint('Error generating calendar: $e');
+                  } finally {
+                    if (mounted) {
+                      setState(() => _isProcessing = false);
+                    }
                   }
                 }
-              }
-            },
-          ),
+              },
+            ),
+          ],
           IconButton(
-            icon: const Icon(Icons.delete_outline),
-            tooltip: 'Elimina calendario',
+            icon: Icon(_isSelectionMode ? Icons.delete : Icons.delete_outline, color: _isSelectionMode ? Colors.redAccent : null),
+            tooltip: _isSelectionMode ? 'Elimina selezionate' : 'Elimina calendario',
             onPressed: () async {
               if (_isProcessing) return;
+              
+              final isBulk = !_isSelectionMode;
               final confirm = await showDialog<bool>(
                 context: context,
                 builder: (context) => AlertDialog(
-                  title: const Text('Elimina calendario'),
-                  content: const Text('Questo cancellerà il calendario esistente. Continuare?'),
+                  title: Text(isBulk ? 'Elimina calendario' : 'Elimina partite'),
+                  content: Text(isBulk 
+                    ? 'Questo cancellerà TUTTO il calendario esistente. Continuare?'
+                    : 'Vuoi eliminare le ${_selectedMatchIds.length} partite selezionate?'),
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.pop(context, false),
                       child: const Text('Annulla'),
                     ),
                     ElevatedButton(
+                      style: isBulk ? null : ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
                       onPressed: () => Navigator.pop(context, true),
-                      child: const Text('Elimina'),
+                      child: Text(isBulk ? 'Elimina tutto' : 'Elimina'),
                     ),
                   ],
                 ),
               );
+
               if (confirm == true && mounted) {
                 setState(() => _isProcessing = true);
                 try {
-                  await ref.read(matchesRepositoryProvider).deleteMatchesByPhase(widget.tournamentId, 'group');
+                  if (isBulk) {
+                    await ref.read(matchesRepositoryProvider).deleteMatchesByPhase(localId, 'group');
+                  } else {
+                    await ref.read(matchesRepositoryProvider).deleteMatches(_selectedMatchIds.toList());
+                    _resetSelection();
+                  }
+                  
                   if (!mounted) return;
                   if (tournament?.isPublished == true) {
-                    await ref.read(shareRepositoryProvider).publishToSupabase(widget.tournamentId);
+                    await ref.read(shareRepositoryProvider).publishToSupabase(localId);
                   }
                 } catch (e) {
                   debugPrint('Error deleting matches: $e');
@@ -143,7 +194,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
             },
           ),
           
-          if (tournament != null && tournament.isActive && (tournament.mode == 'group_only' || tournament.mode == 'madness'))
+          if (!_isSelectionMode && tournament != null && tournament.isActive && (tournament.mode == 'group_only' || tournament.mode == 'madness'))
             IconButton(
               icon: const Icon(FontAwesomeIcons.trophy, color: Colors.orange, size: 20),
               tooltip: 'Finalizza torneo',
@@ -196,6 +247,108 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
         },
       ),
     );
+  }
+
+  Widget _buildGuestCalendar(BuildContext context, WidgetRef ref) {
+    final cloudId = widget.tournamentId.toString();
+    final cloudDetail = ref.watch(cloudTournamentDetailProvider(cloudId));
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Calendario (Ospite)'),
+        backgroundColor: Colors.blueGrey.withValues(alpha: 0.1),
+      ),
+      body: cloudDetail.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (err, _) => Center(child: Text('Errore: $err')),
+        data: (data) {
+          if (data == null) return const Center(child: Text('Torneo non trovato'));
+          final tournamentData = data['data'] as Map<String, dynamic>?;
+          if (tournamentData == null) return const Center(child: Text('Dati non disponibili'));
+
+          final matches = (tournamentData['matches'] as List? ?? []).map((m) {
+            final match = TournamentMatch.fromJson(m);
+            // In guest mode we can't easily join teams without a full local DB, 
+            // but we have names in the JSON export (I added them recently in share_repo)
+            return (
+              match: match, 
+              homeName: m['homeTeamName'] as String? ?? 'Home',
+              awayName: m['awayTeamName'] as String? ?? 'Away',
+            );
+          }).toList();
+
+          if (matches.isEmpty) return _buildEmptyState(context, ref, null);
+
+          // Group by round
+          final matchesByRound = <int, List<dynamic>>{};
+          for (final m in matches) {
+            final round = m.match.round;
+            matchesByRound.putIfAbsent(round, () => []).add(m);
+          }
+
+          return ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: matchesByRound.length,
+            itemBuilder: (context, index) {
+              final round = matchesByRound.keys.elementAt(index);
+              final roundMatches = matchesByRound[round]!;
+              
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Text(
+                      'Giornata $round',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  ...roundMatches.map((m) => _buildGuestMatchCard(context, m)),
+                  const SizedBox(height: 16),
+                ],
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildGuestMatchCard(BuildContext context, dynamic m) {
+     final match = m.match as TournamentMatch;
+     final homeName = m.homeName as String;
+     final awayName = m.awayName as String;
+
+     return Card(
+       margin: const EdgeInsets.only(bottom: 8),
+       child: ListTile(
+         onTap: () => context.pushNamed('match-detail', pathParameters: {
+            'tournamentId': widget.tournamentId.toString(),
+            'matchId': match.id.toString(),
+         }),
+         title: Row(
+           children: [
+             Expanded(child: Text(homeName, textAlign: TextAlign.right, style: const TextStyle(fontSize: 14))),
+             Container(
+               margin: const EdgeInsets.symmetric(horizontal: 16),
+               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+               decoration: BoxDecoration(
+                 color: match.isCompleted ? Colors.blue.withValues(alpha: 0.2) : Colors.grey.withValues(alpha: 0.1),
+                 borderRadius: BorderRadius.circular(4),
+               ),
+               child: Text(
+                 match.isCompleted ? '${match.homeScore} - ${match.awayScore}' : 'vs',
+                 style: const TextStyle(fontWeight: FontWeight.bold),
+               ),
+             ),
+             Expanded(child: Text(awayName, textAlign: TextAlign.left, style: const TextStyle(fontSize: 14))),
+           ],
+         ),
+         trailing: const Icon(Icons.chevron_right, size: 16),
+       ),
+     );
   }
 
   Widget _buildEmptyState(BuildContext context, WidgetRef ref, dynamic tournament) {
@@ -266,21 +419,46 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     final match = matchWithTeams.match;
     final homeTeam = matchWithTeams.homeTeam;
     final awayTeam = matchWithTeams.awayTeam;
+    final activeGame = ref.watch(activeGameProvider);
+    final isLive = activeGame.matchId == match.id;
 
     final isBye = match.isBye;
     final isCompleted = match.isCompleted;
+    final isSelected = _selectedMatchIds.contains(match.id);
 
-    return Card(
+    final card = Card(
       margin: const EdgeInsets.only(bottom: 8),
+      color: isSelected 
+          ? Colors.orange.withValues(alpha: 0.1) 
+          : (isLive ? Colors.orange.withValues(alpha: 0.05) : null),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(
+          color: isSelected ? Colors.orange : (isLive ? Colors.orange : Colors.transparent),
+          width: 2,
+        ),
+      ),
       child: InkWell(
-        onTap: isBye ? null : () => context.pushNamed('match-detail', pathParameters: {
-          'tournamentId': widget.tournamentId.toString(),
-          'matchId': match.id.toString(),
-        }),
+        onTap: _isSelectionMode 
+          ? () => _toggleSelection(match.id)
+          : (isBye ? null : () => context.pushNamed('match-detail', pathParameters: {
+              'tournamentId': widget.tournamentId.toString(),
+              'matchId': match.id.toString(),
+            })),
+        onLongPress: () => _toggleSelection(match.id),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Row(
             children: [
+              if (_isSelectionMode)
+                Padding(
+                  padding: const EdgeInsets.only(right: 12),
+                  child: Icon(
+                    isSelected ? Icons.check_circle : Icons.radio_button_unchecked,
+                    color: isSelected ? Colors.orange : Colors.grey,
+                  ),
+                ),
+                
               // Home team
               Expanded(
                 child: Column(
@@ -303,23 +481,70 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                 margin: const EdgeInsets.symmetric(horizontal: 16),
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
-                  color: isCompleted 
-                      ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.2)
-                      : Colors.grey.withValues(alpha: 0.2),
+                  color: isLive 
+                      ? Colors.orange.withValues(alpha: 0.2)
+                      : (isCompleted 
+                          ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.2)
+                          : Colors.grey.withValues(alpha: 0.2)),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Text(
-                  isBye 
-                      ? 'BYE'
-                      : isCompleted 
-                          ? '${match.homeScore} - ${match.awayScore}'
-                          : 'vs',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                    color: isBye ? Colors.grey : null,
-                  ),
-                ),
+                child: isBye 
+                    ? const Text(
+                        'BYE',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.grey),
+                      )
+                    : isCompleted
+                        ? Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                '${match.homeScore}',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 18,
+                                  color: (match.homeScore ?? 0) > (match.awayScore ?? 0)
+                                      ? Colors.greenAccent
+                                      : (match.homeScore ?? 0) < (match.awayScore ?? 0)
+                                          ? Colors.redAccent
+                                          : Colors.blueAccent,
+                                ),
+                              ),
+                              Text(
+                                ' - ',
+                                style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.5),
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              Text(
+                                '${match.awayScore}',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 18,
+                                  color: (match.awayScore ?? 0) > (match.homeScore ?? 0)
+                                      ? Colors.greenAccent
+                                      : (match.awayScore ?? 0) < (match.homeScore ?? 0)
+                                          ? Colors.redAccent
+                                          : Colors.blueAccent,
+                                ),
+                              ),
+                            ],
+                          )
+                        : isLive
+                            ? Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Text('LIVE', style: TextStyle(color: Colors.orange, fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 1.2)),
+                                  Text(
+                                    activeGame.formattedTime,
+                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, fontFamily: 'monospace'),
+                                  ),
+                                ],
+                              ).animate(onPlay: (c) => c.repeat()).shimmer(duration: 2.seconds)
+                            : const Text(
+                                'vs',
+                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                              ),
               ),
               
               // Away team
@@ -338,7 +563,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                 ),
               ),
               
-              if (!isBye)
+              if (!isBye && !_isSelectionMode)
                 Icon(
                   Icons.chevron_right,
                   color: Colors.white.withValues(alpha: 0.5),
@@ -347,6 +572,58 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
           ),
         ),
       ),
+    );
+
+    if (_isSelectionMode) return card.animate().fadeIn(delay: Duration(milliseconds: 50 * index)).slideX(begin: 0.1);
+
+    return Dismissible(
+      key: ValueKey('match_${match.id}'),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
+        decoration: BoxDecoration(
+          color: Colors.redAccent,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: const Icon(Icons.delete, color: Colors.white),
+      ),
+      confirmDismiss: (direction) async {
+        return await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Elimina partita'),
+            content: const Text('Vuoi eliminare questa partita dal calendario?'),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Annulla')),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('Elimina'),
+              ),
+            ],
+          ),
+        ) ?? false;
+      },
+      onDismissed: (direction) async {
+        setState(() => _isProcessing = true);
+        try {
+          await ref.read(matchesRepositoryProvider).deleteMatches([match.id]);
+          final tournament = await ref.read(tournamentByIdProvider(widget.tournamentId).future);
+          if (tournament?.isPublished == true) {
+            await ref.read(shareRepositoryProvider).publishToSupabase(widget.tournamentId);
+          }
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Errore: $e')));
+          }
+        } finally {
+          if (mounted) {
+            setState(() => _isProcessing = false);
+          }
+        }
+      },
+      child: card,
     ).animate().fadeIn(delay: Duration(milliseconds: 50 * index)).slideX(begin: 0.1);
   }
 

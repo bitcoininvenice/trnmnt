@@ -1408,6 +1408,41 @@ class $TournamentsTable extends Tournaments
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _courtCountMeta = const VerificationMeta(
+    'courtCount',
+  );
+  @override
+  late final GeneratedColumn<int> courtCount = GeneratedColumn<int>(
+    'court_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1),
+  );
+  static const VerificationMeta _lunchDurationMeta = const VerificationMeta(
+    'lunchDuration',
+  );
+  @override
+  late final GeneratedColumn<int> lunchDuration = GeneratedColumn<int>(
+    'lunch_duration',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _endDateMeta = const VerificationMeta(
+    'endDate',
+  );
+  @override
+  late final GeneratedColumn<DateTime> endDate = GeneratedColumn<DateTime>(
+    'end_date',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -1450,6 +1485,9 @@ class $TournamentsTable extends Tournaments
     winnerTeamId,
     communityId,
     communityName,
+    courtCount,
+    lunchDuration,
+    endDate,
     createdAt,
   ];
   @override
@@ -1675,6 +1713,27 @@ class $TournamentsTable extends Tournaments
         ),
       );
     }
+    if (data.containsKey('court_count')) {
+      context.handle(
+        _courtCountMeta,
+        courtCount.isAcceptableOrUnknown(data['court_count']!, _courtCountMeta),
+      );
+    }
+    if (data.containsKey('lunch_duration')) {
+      context.handle(
+        _lunchDurationMeta,
+        lunchDuration.isAcceptableOrUnknown(
+          data['lunch_duration']!,
+          _lunchDurationMeta,
+        ),
+      );
+    }
+    if (data.containsKey('end_date')) {
+      context.handle(
+        _endDateMeta,
+        endDate.isAcceptableOrUnknown(data['end_date']!, _endDateMeta),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -1802,6 +1861,18 @@ class $TournamentsTable extends Tournaments
         DriftSqlType.string,
         data['${effectivePrefix}community_name'],
       ),
+      courtCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}court_count'],
+      )!,
+      lunchDuration: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}lunch_duration'],
+      )!,
+      endDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}end_date'],
+      ),
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -1846,6 +1917,9 @@ class Tournament extends DataClass implements Insertable<Tournament> {
   final int? winnerTeamId;
   final String? communityId;
   final String? communityName;
+  final int courtCount;
+  final int lunchDuration;
+  final DateTime? endDate;
   final DateTime createdAt;
   const Tournament({
     required this.id,
@@ -1876,6 +1950,9 @@ class Tournament extends DataClass implements Insertable<Tournament> {
     this.winnerTeamId,
     this.communityId,
     this.communityName,
+    required this.courtCount,
+    required this.lunchDuration,
+    this.endDate,
     required this.createdAt,
   });
   @override
@@ -1935,6 +2012,11 @@ class Tournament extends DataClass implements Insertable<Tournament> {
     if (!nullToAbsent || communityName != null) {
       map['community_name'] = Variable<String>(communityName);
     }
+    map['court_count'] = Variable<int>(courtCount);
+    map['lunch_duration'] = Variable<int>(lunchDuration);
+    if (!nullToAbsent || endDate != null) {
+      map['end_date'] = Variable<DateTime>(endDate);
+    }
     map['created_at'] = Variable<DateTime>(createdAt);
     return map;
   }
@@ -1991,6 +2073,11 @@ class Tournament extends DataClass implements Insertable<Tournament> {
       communityName: communityName == null && nullToAbsent
           ? const Value.absent()
           : Value(communityName),
+      courtCount: Value(courtCount),
+      lunchDuration: Value(lunchDuration),
+      endDate: endDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(endDate),
       createdAt: Value(createdAt),
     );
   }
@@ -2033,6 +2120,9 @@ class Tournament extends DataClass implements Insertable<Tournament> {
       winnerTeamId: serializer.fromJson<int?>(json['winnerTeamId']),
       communityId: serializer.fromJson<String?>(json['communityId']),
       communityName: serializer.fromJson<String?>(json['communityName']),
+      courtCount: serializer.fromJson<int>(json['courtCount']),
+      lunchDuration: serializer.fromJson<int>(json['lunchDuration']),
+      endDate: serializer.fromJson<DateTime?>(json['endDate']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
     );
   }
@@ -2072,6 +2162,9 @@ class Tournament extends DataClass implements Insertable<Tournament> {
       'winnerTeamId': serializer.toJson<int?>(winnerTeamId),
       'communityId': serializer.toJson<String?>(communityId),
       'communityName': serializer.toJson<String?>(communityName),
+      'courtCount': serializer.toJson<int>(courtCount),
+      'lunchDuration': serializer.toJson<int>(lunchDuration),
+      'endDate': serializer.toJson<DateTime?>(endDate),
       'createdAt': serializer.toJson<DateTime>(createdAt),
     };
   }
@@ -2105,6 +2198,9 @@ class Tournament extends DataClass implements Insertable<Tournament> {
     Value<int?> winnerTeamId = const Value.absent(),
     Value<String?> communityId = const Value.absent(),
     Value<String?> communityName = const Value.absent(),
+    int? courtCount,
+    int? lunchDuration,
+    Value<DateTime?> endDate = const Value.absent(),
     DateTime? createdAt,
   }) => Tournament(
     id: id ?? this.id,
@@ -2143,6 +2239,9 @@ class Tournament extends DataClass implements Insertable<Tournament> {
     communityName: communityName.present
         ? communityName.value
         : this.communityName,
+    courtCount: courtCount ?? this.courtCount,
+    lunchDuration: lunchDuration ?? this.lunchDuration,
+    endDate: endDate.present ? endDate.value : this.endDate,
     createdAt: createdAt ?? this.createdAt,
   );
   Tournament copyWithCompanion(TournamentsCompanion data) {
@@ -2211,6 +2310,13 @@ class Tournament extends DataClass implements Insertable<Tournament> {
       communityName: data.communityName.present
           ? data.communityName.value
           : this.communityName,
+      courtCount: data.courtCount.present
+          ? data.courtCount.value
+          : this.courtCount,
+      lunchDuration: data.lunchDuration.present
+          ? data.lunchDuration.value
+          : this.lunchDuration,
+      endDate: data.endDate.present ? data.endDate.value : this.endDate,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
     );
   }
@@ -2246,6 +2352,9 @@ class Tournament extends DataClass implements Insertable<Tournament> {
           ..write('winnerTeamId: $winnerTeamId, ')
           ..write('communityId: $communityId, ')
           ..write('communityName: $communityName, ')
+          ..write('courtCount: $courtCount, ')
+          ..write('lunchDuration: $lunchDuration, ')
+          ..write('endDate: $endDate, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
@@ -2281,6 +2390,9 @@ class Tournament extends DataClass implements Insertable<Tournament> {
     winnerTeamId,
     communityId,
     communityName,
+    courtCount,
+    lunchDuration,
+    endDate,
     createdAt,
   ]);
   @override
@@ -2315,6 +2427,9 @@ class Tournament extends DataClass implements Insertable<Tournament> {
           other.winnerTeamId == this.winnerTeamId &&
           other.communityId == this.communityId &&
           other.communityName == this.communityName &&
+          other.courtCount == this.courtCount &&
+          other.lunchDuration == this.lunchDuration &&
+          other.endDate == this.endDate &&
           other.createdAt == this.createdAt);
 }
 
@@ -2347,6 +2462,9 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
   final Value<int?> winnerTeamId;
   final Value<String?> communityId;
   final Value<String?> communityName;
+  final Value<int> courtCount;
+  final Value<int> lunchDuration;
+  final Value<DateTime?> endDate;
   final Value<DateTime> createdAt;
   const TournamentsCompanion({
     this.id = const Value.absent(),
@@ -2377,6 +2495,9 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
     this.winnerTeamId = const Value.absent(),
     this.communityId = const Value.absent(),
     this.communityName = const Value.absent(),
+    this.courtCount = const Value.absent(),
+    this.lunchDuration = const Value.absent(),
+    this.endDate = const Value.absent(),
     this.createdAt = const Value.absent(),
   });
   TournamentsCompanion.insert({
@@ -2408,6 +2529,9 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
     this.winnerTeamId = const Value.absent(),
     this.communityId = const Value.absent(),
     this.communityName = const Value.absent(),
+    this.courtCount = const Value.absent(),
+    this.lunchDuration = const Value.absent(),
+    this.endDate = const Value.absent(),
     this.createdAt = const Value.absent(),
   }) : name = Value(name),
        location = Value(location);
@@ -2440,6 +2564,9 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
     Expression<int>? winnerTeamId,
     Expression<String>? communityId,
     Expression<String>? communityName,
+    Expression<int>? courtCount,
+    Expression<int>? lunchDuration,
+    Expression<DateTime>? endDate,
     Expression<DateTime>? createdAt,
   }) {
     return RawValuesInsertable({
@@ -2474,6 +2601,9 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
       if (winnerTeamId != null) 'winner_team_id': winnerTeamId,
       if (communityId != null) 'community_id': communityId,
       if (communityName != null) 'community_name': communityName,
+      if (courtCount != null) 'court_count': courtCount,
+      if (lunchDuration != null) 'lunch_duration': lunchDuration,
+      if (endDate != null) 'end_date': endDate,
       if (createdAt != null) 'created_at': createdAt,
     });
   }
@@ -2507,6 +2637,9 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
     Value<int?>? winnerTeamId,
     Value<String?>? communityId,
     Value<String?>? communityName,
+    Value<int>? courtCount,
+    Value<int>? lunchDuration,
+    Value<DateTime?>? endDate,
     Value<DateTime>? createdAt,
   }) {
     return TournamentsCompanion(
@@ -2540,6 +2673,9 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
       winnerTeamId: winnerTeamId ?? this.winnerTeamId,
       communityId: communityId ?? this.communityId,
       communityName: communityName ?? this.communityName,
+      courtCount: courtCount ?? this.courtCount,
+      lunchDuration: lunchDuration ?? this.lunchDuration,
+      endDate: endDate ?? this.endDate,
       createdAt: createdAt ?? this.createdAt,
     );
   }
@@ -2635,6 +2771,15 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
     if (communityName.present) {
       map['community_name'] = Variable<String>(communityName.value);
     }
+    if (courtCount.present) {
+      map['court_count'] = Variable<int>(courtCount.value);
+    }
+    if (lunchDuration.present) {
+      map['lunch_duration'] = Variable<int>(lunchDuration.value);
+    }
+    if (endDate.present) {
+      map['end_date'] = Variable<DateTime>(endDate.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -2672,6 +2817,9 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
           ..write('winnerTeamId: $winnerTeamId, ')
           ..write('communityId: $communityId, ')
           ..write('communityName: $communityName, ')
+          ..write('courtCount: $courtCount, ')
+          ..write('lunchDuration: $lunchDuration, ')
+          ..write('endDate: $endDate, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
@@ -5631,6 +5779,9 @@ typedef $$TournamentsTableCreateCompanionBuilder =
       Value<int?> winnerTeamId,
       Value<String?> communityId,
       Value<String?> communityName,
+      Value<int> courtCount,
+      Value<int> lunchDuration,
+      Value<DateTime?> endDate,
       Value<DateTime> createdAt,
     });
 typedef $$TournamentsTableUpdateCompanionBuilder =
@@ -5663,6 +5814,9 @@ typedef $$TournamentsTableUpdateCompanionBuilder =
       Value<int?> winnerTeamId,
       Value<String?> communityId,
       Value<String?> communityName,
+      Value<int> courtCount,
+      Value<int> lunchDuration,
+      Value<DateTime?> endDate,
       Value<DateTime> createdAt,
     });
 
@@ -5905,6 +6059,21 @@ class $$TournamentsTableFilterComposer
 
   ColumnFilters<String> get communityName => $composableBuilder(
     column: $table.communityName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get courtCount => $composableBuilder(
+    column: $table.courtCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get lunchDuration => $composableBuilder(
+    column: $table.lunchDuration,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get endDate => $composableBuilder(
+    column: $table.endDate,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -6174,6 +6343,21 @@ class $$TournamentsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get courtCount => $composableBuilder(
+    column: $table.courtCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get lunchDuration => $composableBuilder(
+    column: $table.lunchDuration,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get endDate => $composableBuilder(
+    column: $table.endDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -6344,6 +6528,19 @@ class $$TournamentsTableAnnotationComposer
     column: $table.communityName,
     builder: (column) => column,
   );
+
+  GeneratedColumn<int> get courtCount => $composableBuilder(
+    column: $table.courtCount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get lunchDuration => $composableBuilder(
+    column: $table.lunchDuration,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get endDate =>
+      $composableBuilder(column: $table.endDate, builder: (column) => column);
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -6532,6 +6729,9 @@ class $$TournamentsTableTableManager
                 Value<int?> winnerTeamId = const Value.absent(),
                 Value<String?> communityId = const Value.absent(),
                 Value<String?> communityName = const Value.absent(),
+                Value<int> courtCount = const Value.absent(),
+                Value<int> lunchDuration = const Value.absent(),
+                Value<DateTime?> endDate = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => TournamentsCompanion(
                 id: id,
@@ -6562,6 +6762,9 @@ class $$TournamentsTableTableManager
                 winnerTeamId: winnerTeamId,
                 communityId: communityId,
                 communityName: communityName,
+                courtCount: courtCount,
+                lunchDuration: lunchDuration,
+                endDate: endDate,
                 createdAt: createdAt,
               ),
           createCompanionCallback:
@@ -6594,6 +6797,9 @@ class $$TournamentsTableTableManager
                 Value<int?> winnerTeamId = const Value.absent(),
                 Value<String?> communityId = const Value.absent(),
                 Value<String?> communityName = const Value.absent(),
+                Value<int> courtCount = const Value.absent(),
+                Value<int> lunchDuration = const Value.absent(),
+                Value<DateTime?> endDate = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => TournamentsCompanion.insert(
                 id: id,
@@ -6624,6 +6830,9 @@ class $$TournamentsTableTableManager
                 winnerTeamId: winnerTeamId,
                 communityId: communityId,
                 communityName: communityName,
+                courtCount: courtCount,
+                lunchDuration: lunchDuration,
+                endDate: endDate,
                 createdAt: createdAt,
               ),
           withReferenceMapper: (p0) => p0

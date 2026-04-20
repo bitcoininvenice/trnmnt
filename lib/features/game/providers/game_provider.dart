@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:trnmnt/core/database/app_database.dart';
 import '../../tournaments/data/matches_repository.dart';
@@ -20,6 +21,11 @@ class GameState {
   final bool isFinished;
   final String homeTeamName;
   final String awayTeamName;
+  final bool isPublic;
+  final String? twitchUsername;
+  final String? matchTitle;
+  final String? standaloneUuid;
+  final bool isHistorySaved;
 
   GameState({
     this.matchId,
@@ -33,6 +39,11 @@ class GameState {
     this.isFinished = false,
     this.homeTeamName = 'Home',
     this.awayTeamName = 'Away',
+    this.isPublic = false,
+    this.twitchUsername,
+    this.matchTitle,
+    this.standaloneUuid,
+    this.isHistorySaved = false,
   });
 
   String get formattedTime {
@@ -53,6 +64,11 @@ class GameState {
     bool? isFinished,
     String? homeTeamName,
     String? awayTeamName,
+    bool? isPublic,
+    String? twitchUsername,
+    String? matchTitle,
+    String? standaloneUuid,
+    bool? isHistorySaved,
   }) {
     return GameState(
       matchId: matchId ?? this.matchId,
@@ -66,6 +82,11 @@ class GameState {
       isFinished: isFinished ?? this.isFinished,
       homeTeamName: homeTeamName ?? this.homeTeamName,
       awayTeamName: awayTeamName ?? this.awayTeamName,
+      isPublic: isPublic ?? this.isPublic,
+      twitchUsername: twitchUsername ?? this.twitchUsername,
+      matchTitle: matchTitle ?? this.matchTitle,
+      standaloneUuid: standaloneUuid ?? this.standaloneUuid,
+      isHistorySaved: isHistorySaved ?? this.isHistorySaved,
     );
   }
 }
@@ -88,7 +109,7 @@ class GameNotifier extends StateNotifier<GameState> {
     super.dispose();
   }
 
-  void setupStandalone(String home, String away, {int minutes = 10}) {
+  void setupStandalone(String home, String away, {int minutes = 10, bool isPublic = false, String? twitchUsername, String? matchTitle}) {
     _timer?.cancel();
     _syncTimer?.cancel();
     state = GameState(
@@ -96,7 +117,15 @@ class GameNotifier extends StateNotifier<GameState> {
       awayTeamName: away,
       totalSeconds: minutes * 60,
       remainingSeconds: minutes * 60,
+      isPublic: isPublic,
+      matchTitle: matchTitle,
+      twitchUsername: twitchUsername,
+      standaloneUuid: isPublic ? _generateUuid() : null,
     );
+
+    if (isPublic) {
+      _syncToLive(force: true);
+    }
   }
 
   void startGame(MatchWithTeams matchData, int minutes) {
@@ -123,15 +152,30 @@ class GameNotifier extends StateNotifier<GameState> {
   void quitGame() {
     _timer?.cancel();
     
-    // Clear live status on server
-    final tournamentId = state.matchData?.match.tournamentId;
-    final matchId = state.matchId;
-    if (tournamentId != null && matchId != null) {
-      _ref.read(tournamentByIdProvider(tournamentId).future).then((t) {
-        if (t?.cloudId != null) {
-           _ref.read(shareRepositoryProvider).clearLiveMatch(t!.cloudId!, matchId);
-        }
-      });
+    if (state.matchId != null) {
+      final tournamentId = state.matchData?.match.tournamentId;
+      final matchId = state.matchId;
+      if (tournamentId != null && matchId != null) {
+        _ref.read(tournamentByIdProvider(tournamentId).future).then((t) {
+          if (t?.cloudId != null) {
+             _ref.read(shareRepositoryProvider).clearLiveMatch(t!.cloudId!, matchId);
+          }
+        });
+      }
+    } else if (state.isPublic && state.standaloneUuid != null && !state.isHistorySaved) {
+       // Standalone: Save ONLY IF not already saved by finishGame
+       _ref.read(shareRepositoryProvider).saveToStandaloneHistory(
+         homeName: state.homeTeamName,
+         awayName: state.awayTeamName,
+         homeScore: state.homeScore,
+         awayScore: state.awayScore,
+         matchTitle: state.matchTitle,
+         twitchUsername: state.twitchUsername,
+         period: state.period,
+         timer: state.formattedTime,
+       ).catchError((_) => null);
+       
+       _ref.read(shareRepositoryProvider).clearLiveMatch('standalone', 0, customId: state.standaloneUuid).catchError((_) => null);
     }
     
     state = GameState();
@@ -273,17 +317,39 @@ class GameNotifier extends StateNotifier<GameState> {
 
   /// Pushes tiny status updates specifically to the live_matches table
   Future<void> _syncToLive({bool force = false}) async {
-    if (state.matchId == null) return;
+    final bool isStandalone = state.matchId == null && state.isPublic;
+    
+    if (state.matchId == null && !isStandalone) return;
     
     try {
+      final repo = _ref.read(shareRepositoryProvider);
+
+      if (isStandalone) {
+        // standalone sync
+        await repo.updateLiveMatch(
+          cloudId: 'standalone',
+          matchId: 0, // Not used when we have compositeId logic
+          standaloneCustomId: state.standaloneUuid, // New param
+          homeScore: state.homeScore,
+          awayScore: state.awayScore,
+          timer: state.formattedTime,
+          homeName: state.homeTeamName,
+          awayName: state.awayTeamName,
+          isRunning: state.isRunning,
+          period: state.period,
+          twitchUsername: state.twitchUsername,
+          matchTitle: state.matchTitle,
+        );
+        return;
+      }
+
       final tournamentId = state.matchData?.match.tournamentId;
       if (tournamentId == null) return;
 
       final tournament = await _ref.read(tournamentByIdProvider(tournamentId).future);
       if (tournament == null || tournament.cloudId == null || !tournament.isPublished) return;
 
-      final repo = _ref.read(shareRepositoryProvider);
-      
+
       // Update live match on Supabase
       await repo.updateLiveMatch(
         cloudId: tournament.cloudId!,
@@ -294,6 +360,8 @@ class GameNotifier extends StateNotifier<GameState> {
         homeName: state.homeTeamName,
         awayName: state.awayTeamName,
         isRunning: state.isRunning,
+        period: state.period,
+        matchTitle: state.matchTitle,
       );
 
       _lastSyncHomeScore = state.homeScore;
@@ -306,23 +374,57 @@ class GameNotifier extends StateNotifier<GameState> {
   Future<void> finishGame() async {
     _timer?.cancel();
     
-    // 1. Sync final score to main DB (tournament update)
-    final repo = _ref.read(matchesRepositoryProvider);
-    await repo.updateMatchScore(state.matchId!, state.homeScore, state.awayScore);
-    
-    final tournamentId = state.matchData?.match.tournamentId;
-    if (tournamentId != null && state.matchId != null) {
-      final tournament = await _ref.read(tournamentByIdProvider(tournamentId).future);
-      if (tournament?.cloudId != null) {
-        // 2. Clear live board
-        _ref.read(shareRepositoryProvider).clearLiveMatch(tournament!.cloudId!, state.matchId!).catchError((_) => null);
-        
-        // 3. One last full re-publish to update the tournament brackets/standings
-        _ref.read(shareRepositoryProvider).publishToSupabase(tournamentId).catchError((_) => null);
+    if (state.matchId != null) {
+      // TOURNAMENT MATCH
+      final repo = _ref.read(matchesRepositoryProvider);
+      await repo.updateMatchScore(state.matchId!, state.homeScore, state.awayScore);
+      
+      final tournamentId = state.matchData?.match.tournamentId;
+      if (tournamentId != null) {
+        final tournament = await _ref.read(tournamentByIdProvider(tournamentId).future);
+        if (tournament?.cloudId != null) {
+          _ref.read(shareRepositoryProvider).clearLiveMatch(tournament!.cloudId!, state.matchId!).catchError((_) => null);
+          _ref.read(shareRepositoryProvider).publishToSupabase(tournamentId).catchError((_) => null);
+        }
       }
+    } else if (state.isPublic && state.standaloneUuid != null && !state.isHistorySaved) {
+      // STANDALONE PUBLIC MATCH: Save to permanent history
+      _ref.read(shareRepositoryProvider).saveToStandaloneHistory(
+        homeName: state.homeTeamName,
+        awayName: state.awayTeamName,
+        homeScore: state.homeScore,
+        awayScore: state.awayScore,
+        matchTitle: state.matchTitle,
+        twitchUsername: state.twitchUsername,
+        period: state.period,
+        timer: state.formattedTime,
+      ).catchError((_) => null);
+      
+      // Clear from live scoreboard
+      _ref.read(shareRepositoryProvider).clearLiveMatch('standalone', 0, customId: state.standaloneUuid).catchError((_) => null);
+      
+      state = state.copyWith(isHistorySaved: true);
     }
 
     state = state.copyWith(isRunning: false, isFinished: true);
+  }
+
+  String _generateUuid() {
+    final random = math.Random();
+    const hex = '0123456789abcdef';
+    String res = '';
+    for (int i = 0; i < 36; i++) {
+      if (i == 8 || i == 13 || i == 18 || i == 23) {
+        res += '-';
+      } else if (i == 14) {
+        res += '4';
+      } else if (i == 19) {
+        res += hex[random.nextInt(4) + 8];
+      } else {
+        res += hex[random.nextInt(16)];
+      }
+    }
+    return res;
   }
 }
 

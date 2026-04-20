@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -10,6 +11,7 @@ import 'package:trnmnt/features/map/data/courts_repository.dart';
 import 'package:trnmnt/core/services/geocoding_service.dart';
 import 'dart:async';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:trnmnt/features/map/data/pickroll_repository.dart';
 import 'dart:convert';
 
 class TournamentSetupScreen extends ConsumerStatefulWidget {
@@ -33,6 +35,9 @@ class _TournamentSetupScreenState extends ConsumerState<TournamentSetupScreen> {
   int _lossPoints = 1;
   bool _includeConsolationFinals = false;
   int _timerMinutes = 10;
+  int _courtCount = 1;
+  int _lunchDuration = 0;
+  DateTime? _endDate;
   
   List<int> _selectedTeamIds = [];
   int _currentStep = 0;
@@ -56,6 +61,8 @@ class _TournamentSetupScreenState extends ConsumerState<TournamentSetupScreen> {
   List<LocationSuggestion> _suggestions = [];
   Timer? _debounce;
   bool _isSearchingLocation = false;
+  List<PickrollCourt> _nearbyPickrollCourts = [];
+  bool _isSearchingPickroll = false;
 
   @override
   void dispose() {
@@ -95,6 +102,9 @@ class _TournamentSetupScreenState extends ConsumerState<TournamentSetupScreen> {
         groupNames: _isMultiGroup ? jsonEncode(_groupNames) : null,
         communityId: ref.read(selectedCommunityIdProvider),
         isWebRegistrationEnabled: _enableOpenRegistrations,
+        courtCount: _courtCount,
+        lunchDuration: _lunchDuration,
+        endDate: _endDate,
       );
 
       await repo.setTournamentTeams(tournamentId, _selectedTeamIds, teamToGroup: _isMultiGroup ? _teamToGroup : null);
@@ -119,6 +129,54 @@ class _TournamentSetupScreenState extends ConsumerState<TournamentSetupScreen> {
         setState(() => _isLoading = false);
       }
     }
+  }
+
+  DateTime _calculateSuggestedEnd() {
+    const int matchInterval = 2;
+    final int slotDuration = _timerMinutes + matchInterval;
+    
+    int groupMatchesCount = 0;
+    final int effectiveGroupCount = _isMultiGroup ? _groupCount : 1;
+    final int teamsPerGroup = (_selectedTeamIds.length / effectiveGroupCount).ceil();
+    if (teamsPerGroup > 1) {
+      groupMatchesCount = ((teamsPerGroup * (teamsPerGroup - 1)) ~/ 2) * effectiveGroupCount;
+    }
+
+    int playoffTime = 0;
+    if (_mode == 'group_and_elimination' || _mode == 'elimination_only') {
+      final int qualifiers = _mode == 'elimination_only' 
+          ? _selectedTeamIds.length 
+          : (effectiveGroupCount * _qualifiersPerGroup);
+      
+      if (qualifiers > 1) {
+        final int roundsCount = (math.log(qualifiers.toDouble()) / math.log(2)).ceil();
+        playoffTime = (roundsCount * (qualifiers ~/ 2) * slotDuration);
+      }
+    } else if (_mode == 'madness') {
+      const int madnessBaseMinutes = 120;
+      const int qualifiers = 4;
+      int totalPlayoffSlots = 0;
+      int currentTeams = qualifiers;
+      while (currentTeams > 1) {
+        final int matchesInRound = currentTeams ~/ 2;
+        totalPlayoffSlots += (matchesInRound / _courtCount).ceil();
+        currentTeams = matchesInRound;
+      }
+      playoffTime = (totalPlayoffSlots * slotDuration) + madnessBaseMinutes;
+      groupMatchesCount = 0;
+    }
+
+    final int groupSlots = (groupMatchesCount / _courtCount).ceil();
+    final int groupTime = groupSlots * slotDuration;
+    final int totalMinutes = groupTime + _lunchDuration + playoffTime;
+
+    final DateTime estimatedEnd = _startDate.add(Duration(minutes: totalMinutes));
+    
+    // Round UP to next 15/30/45/00
+    int minutes = estimatedEnd.minute;
+    int remainder = minutes % 15;
+    if (remainder == 0) return estimatedEnd.subtract(Duration(seconds: estimatedEnd.second));
+    return estimatedEnd.add(Duration(minutes: 15 - remainder)).subtract(Duration(seconds: estimatedEnd.second, milliseconds: estimatedEnd.millisecond));
   }
 
   @override
@@ -342,6 +400,8 @@ class _TournamentSetupScreenState extends ConsumerState<TournamentSetupScreen> {
           _buildEnhancedLocationField(),
           const SizedBox(height: 24),
           _buildDateField(),
+          const SizedBox(height: 16),
+          _buildEndDatePicker(),
         ],
       ),
     );
@@ -388,6 +448,7 @@ class _TournamentSetupScreenState extends ConsumerState<TournamentSetupScreen> {
             child: ListView.separated(
               shrinkWrap: true,
               itemCount: _suggestions.length,
+              padding: EdgeInsets.zero,
               separatorBuilder: (_, __) => const Divider(height: 1),
               itemBuilder: (context, index) {
                 final suggestion = _suggestions[index];
@@ -395,14 +456,93 @@ class _TournamentSetupScreenState extends ConsumerState<TournamentSetupScreen> {
                   dense: true,
                   leading: const Icon(Icons.place, size: 18, color: Colors.blue),
                   title: Text(suggestion.displayName, style: const TextStyle(fontSize: 13)),
-                  onTap: () {
+                  onTap: () async {
                     setState(() {
                       _locationController.text = suggestion.displayName;
                       _suggestions = [];
+                      _isSearchingPickroll = true;
+                      _nearbyPickrollCourts = [];
                     });
+                    
+                    try {
+                      final prRepo = ref.read(pickrollRepositoryProvider);
+                      final courts = await prRepo.fetchNearbyCourts(suggestion.lat, suggestion.lon);
+                      if (mounted) setState(() => _nearbyPickrollCourts = courts);
+                    } catch (_) {
+                    } finally {
+                      if (mounted) setState(() => _isSearchingPickroll = false);
+                    }
                   },
                 );
               },
+            ),
+          ),
+        if (_isSearchingPickroll)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 8),
+            child: Column(
+              children: [
+                LinearProgressIndicator(minHeight: 2, color: Colors.orange),
+                SizedBox(height: 4),
+                Text('CERCO CAMPETTI P&R VICINI...', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.orange)),
+              ],
+            ),
+          ),
+        if (_nearbyPickrollCourts.isNotEmpty && _suggestions.isEmpty)
+          Container(
+            margin: const EdgeInsets.only(top: 8),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.orange.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.orange.withValues(alpha: 0.2)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.stars, color: Colors.orange, size: 16),
+                    const SizedBox(width: 8),
+                    Text('CAMPETTI TROVATI SU PICK&ROLL', style: Theme.of(context).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.bold, color: Colors.orange)),
+                    const Spacer(),
+                    IconButton(
+                      icon: const Icon(Icons.close, size: 14),
+                      onPressed: () => setState(() => _nearbyPickrollCourts = []),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  constraints: const BoxConstraints(maxHeight: 200),
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: _nearbyPickrollCourts.length,
+                    itemBuilder: (context, index) {
+                      final court = _nearbyPickrollCourts[index];
+                      return ListTile(
+                        dense: true,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+                        leading: const CircleAvatar(
+                          radius: 12,
+                          backgroundColor: Colors.orange,
+                          child: Icon(Icons.sports_basketball, size: 12, color: Colors.white),
+                        ),
+                        title: Text(court.name, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                        subtitle: Text(court.address ?? '', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 10, color: Colors.white54)),
+                        onTap: () {
+                          setState(() {
+                            _locationController.text = court.name;
+                            _nearbyPickrollCourts = [];
+                          });
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
             ),
           ),
       ],
@@ -413,7 +553,10 @@ class _TournamentSetupScreenState extends ConsumerState<TournamentSetupScreen> {
     if (_debounce?.isActive ?? false) _debounce!.cancel();
     _debounce = Timer(const Duration(milliseconds: 500), () async {
       if (query.length < 3) {
-        setState(() => _suggestions = []);
+        setState(() {
+          _suggestions = [];
+          _nearbyPickrollCourts = [];
+        });
         return;
       }
       
@@ -500,7 +643,21 @@ class _TournamentSetupScreenState extends ConsumerState<TournamentSetupScreen> {
           lastDate: DateTime(2100),
         );
         if (picked != null) {
-          setState(() => _startDate = picked);
+          final time = await showTimePicker(
+            context: context,
+            initialTime: TimeOfDay.fromDateTime(_startDate),
+          );
+          if (time != null) {
+            setState(() => _startDate = DateTime(
+              picked.year,
+              picked.month,
+              picked.day,
+              time.hour,
+              time.minute,
+            ));
+          } else {
+            setState(() => _startDate = picked);
+          }
         }
       },
       child: InputDecorator(
@@ -510,7 +667,7 @@ class _TournamentSetupScreenState extends ConsumerState<TournamentSetupScreen> {
           border: const OutlineInputBorder(),
         ),
         child: Text(
-          dateStr,
+          "${_startDate.day.toString().padLeft(2, '0')}/${_startDate.month.toString().padLeft(2, '0')}/${_startDate.year} ${_startDate.hour.toString().padLeft(2, '0')}:${_startDate.minute.toString().padLeft(2, '0')}",
           style: Theme.of(context).textTheme.bodyLarge,
         ),
       ),
@@ -556,6 +713,25 @@ class _TournamentSetupScreenState extends ConsumerState<TournamentSetupScreen> {
           divisions: 19,
           label: '${_timerMinutes} min',
           onChanged: (value) => setState(() => _timerMinutes = value.round()),
+        ),
+        
+        const SizedBox(height: 16),
+        // _buildEndDatePicker(), // MOVED TO INFO STEP
+        
+        const SizedBox(height: 16),
+        const SizedBox(height: 16),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('NUMERO CANESTRI', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.orange)),
+            const SizedBox(height: 8),
+            DropdownButtonFormField<int>(
+              value: _courtCount,
+              decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()),
+              items: [1, 2, 3, 4, 6, 8].map((n) => DropdownMenuItem(value: n, child: Text('$n'))).toList(),
+              onChanged: (val) => setState(() => _courtCount = val!),
+            ),
+          ],
         ),
 
         const SizedBox(height: 24),
@@ -737,6 +913,96 @@ class _TournamentSetupScreenState extends ConsumerState<TournamentSetupScreen> {
           value: 'custom',
           groupValue: _scoringSystem,
           onChanged: (value) => setState(() => _scoringSystem = value!),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEndDatePicker() {
+    final suggested = _calculateSuggestedEnd();
+    final timeStr = _endDate == null 
+      ? "NON DEFINITO" 
+      : "${_endDate!.day.toString().padLeft(2, '0')}/${_endDate!.month.toString().padLeft(2, '0')}/${_endDate!.year} ${_endDate!.hour.toString().padLeft(2, '0')}:${_endDate!.minute.toString().padLeft(2, '0')}";
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(AppLocalizations.of(context)!.tournamentEndDate, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.orange)),
+        const SizedBox(height: 8),
+        InkWell(
+          onTap: () async {
+            final picked = await showDatePicker(
+              context: context,
+              initialDate: _endDate ?? suggested,
+              firstDate: DateTime(2020),
+              lastDate: DateTime(2100),
+            );
+            if (picked == null) return;
+
+            final time = await showTimePicker(
+              context: context,
+              initialTime: TimeOfDay.fromDateTime(_endDate ?? suggested),
+            );
+            if (time != null) {
+              final newEnd = DateTime(
+                picked.year,
+                picked.month,
+                picked.day,
+                time.hour,
+                time.minute,
+              );
+
+              if (newEnd.isBefore(_startDate)) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('L\'orario di fine deve essere successivo all\'inizio'), backgroundColor: Colors.red),
+                  );
+                }
+                return;
+              }
+
+              setState(() {
+                _endDate = newEnd;
+              });
+            }
+          },
+          child: InputDecorator(
+            decoration: const InputDecoration(
+              prefixIcon: Icon(Icons.access_time),
+              border: OutlineInputBorder(),
+              isDense: true,
+            ),
+            child: Text(timeStr, style: const TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ),
+        const SizedBox(height: 6),
+        Row(
+          children: [
+            const Icon(Icons.auto_awesome, size: 14, color: Colors.orange),
+            const SizedBox(width: 4),
+            Text(
+              'SUGGERITO: ${suggested.hour.toString().padLeft(2, '0')}:${suggested.minute.toString().padLeft(2, '0')}',
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w900,
+                color: Colors.orange.withOpacity(0.8),
+                letterSpacing: 1.0,
+              ),
+            ),
+            const SizedBox(width: 8),
+            InkWell(
+              onTap: () => setState(() => _endDate = suggested),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                ),
+                child: const Text('USA QUESTO', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.orange)),
+              ),
+            ),
+          ],
         ),
       ],
     );

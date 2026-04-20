@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -71,6 +72,20 @@ class ShareRepository {
     }).toList();
 
     final matches = await (_db.select(_db.matches)..where((m) => m.tournamentId.equals(tournamentId))).get();
+    
+    // Map team IDs to names for stable matching across devices
+    final teams = await (_db.select(_db.teams)).get();
+    final Map<int, String> teamNameMap = { for (var t in teams) t.id : t.name };
+
+    final exportMatches = [];
+    for (var i = 0; i < matches.length; i++) {
+      final m = matches[i];
+      final matchMap = m.toJson();
+      matchMap['homeTeamName'] = teamNameMap[m.homeTeamId];
+      matchMap['awayTeamName'] = teamNameMap[m.awayTeamId];
+      matchMap['remoteIndex'] = i; // STABLE IDENTIFIER
+      exportMatches.add(matchMap);
+    }
 
     final activeCommunity = await _communityRepo.getActiveCommunity(null);
     final tournamentMap = tournament.toJson();
@@ -81,7 +96,7 @@ class ShareRepository {
     return {
       'tournament': tournamentMap,
       'teams': exportTeams,
-      'matches': matches.map((m) => m.toJson()).toList(),
+      'matches': exportMatches,
       'exportedAt': DateTime.now().toIso8601String(),
     };
   }
@@ -115,7 +130,41 @@ class ShareRepository {
           ? '$baseUrl/it/tournaments/$currentCloudId' 
           : '';
 
-      if (currentCloudId != null && currentCloudId.isNotEmpty) {
+      if (cloudId != null && cloudId.isNotEmpty) {
+        // CONFLICT PREVENTION: Before pushing, let's peek at the current cloud state
+        // and merge any match results we might be missing locally.
+        try {
+          final remoteResponse = await supabase.from('published_tournaments').select('data').eq('id', cloudId).single();
+          final remoteData = remoteResponse['data'] as Map<String, dynamic>?;
+          if (remoteData != null && remoteData['matches'] != null) {
+            final List<dynamic> remoteMatches = remoteData['matches'];
+            final List<dynamic> localMatches = export['matches'];
+
+            for (var i = 0; i < localMatches.length; i++) {
+              final localMatch = localMatches[i];
+              // STABLE MATCHING (By Phase, Round, and Team Names)
+              final remoteMatch = remoteMatches.firstWhere((rm) => 
+                rm['phase'] == localMatch['phase'] && 
+                rm['round'] == localMatch['round'] &&
+                rm['homeTeamName'] == localMatch['homeTeamName'] &&
+                rm['awayTeamName'] == localMatch['awayTeamName'],
+                orElse: () => null,
+              );
+
+              if (remoteMatch != null) {
+                // If remote match is completed but local isn't, use remote (preserving someone else's work)
+                if (remoteMatch['isCompleted'] == true && localMatch['isCompleted'] != true) {
+                  localMatches[i]['homeScore'] = remoteMatch['homeScore'];
+                  localMatches[i]['awayScore'] = remoteMatch['awayScore'];
+                  localMatches[i]['isCompleted'] = true;
+                }
+              }
+            }
+          }
+        } catch (_) {
+          // If fetch fails (e.g. first pub), it's fine to just push ours
+        }
+
         if (export['tournament'] != null) {
           (export['tournament'] as Map<String, dynamic>)['webUrl'] = initialUrl;
           (export['tournament'] as Map<String, dynamic>)['communitySlug'] = slug;
@@ -142,13 +191,12 @@ class ShareRepository {
         await supabase.from('published_tournaments').update({ 'data': export }).eq('id', cloudId);
       } else {
         // CASE: Update existing row
-        await supabase.from('published_tournaments').upsert({
-          'id': cloudId,
+        await supabase.from('published_tournaments').update({
           'data': export,
           'community_id': communityId,
           'community_slug': slug,
           'last_updated': DateTime.now().toIso8601String(),
-        });
+        }).eq('id', cloudId);
       }
 
       final String finalUrl = '$baseUrl/it/tournaments/$cloudId';
@@ -162,6 +210,17 @@ class ShareRepository {
           cloudId: Value(cloudId),
         ),
       );
+      
+      // Cleanup live_matches table for matches that are now completed
+      if (cloudId != null) {
+        final List<dynamic> localMatches = export['matches'] ?? [];
+        for (final m in localMatches) {
+          if (m['isCompleted'] == true) {
+            // Match is done, remove from live scoreboard
+            await clearLiveMatch(cloudId, m['id'] as int).catchError((_) => null);
+          }
+        }
+      }
       
       return (url: finalUrl, cloudId: cloudId!);
     } catch (e) {
@@ -179,11 +238,22 @@ class ShareRepository {
     required String homeName,
     required String awayName,
     required bool isRunning,
+    int? period,
+    String? twitchUsername,
+    String? matchTitle,
+    String? standaloneCustomId,
   }) async {
     try {
       final supabase = Supabase.instance.client;
-      // Use a composite ID to allow multiple live matches per tournament
-      final compositeId = '${cloudId}_$matchId';
+      // For standalone matches, prioritized custom ID (UUID string)
+      final String compositeId;
+      if (standaloneCustomId != null) {
+        compositeId = standaloneCustomId;
+      } else if (cloudId == 'standalone') {
+         compositeId = 'standalone_$matchId';
+      } else {
+         compositeId = '${cloudId}_$matchId';
+      }
       
       await supabase.from('live_matches').upsert({
         'id': compositeId,
@@ -193,18 +263,49 @@ class ShareRepository {
         'home_team_name': homeName,
         'away_team_name': awayName,
         'is_running': isRunning,
-        'last_update': DateTime.now().toIso8601String(),
-        'tournament_id': cloudId, // Added to facilitate filtering
+        'period': period,
+        'match_title': matchTitle,
+        'twitch_username': twitchUsername,
+        'last_update': DateTime.now().toUtc().toIso8601String(),
+        'tournament_id': cloudId == 'standalone' ? null : cloudId,
       });
     } catch (_) {
       // Silent error for production
     }
   }
 
-  Future<void> clearLiveMatch(String cloudId, int matchId) async {
+  Future<void> saveToStandaloneHistory({
+    required String homeName,
+    required String awayName,
+    required int homeScore,
+    required int awayScore,
+    String? matchTitle,
+    String? twitchUsername,
+    int? period,
+    String? timer,
+  }) async {
     try {
       final supabase = Supabase.instance.client;
-      final compositeId = '${cloudId}_$matchId';
+      await supabase.from('standalone_history').insert({
+        'home_team_name': homeName,
+        'away_team_name': awayName,
+        'home_score': homeScore,
+        'away_score': awayScore,
+        'match_title': matchTitle,
+        'twitch_username': twitchUsername,
+        'period': period,
+        'timer': timer,
+        'last_update': DateTime.now().toUtc().toIso8601String(),
+      });
+    } catch (e) {
+      // Silent error
+    }
+  }
+
+  Future<void> clearLiveMatch(String cloudId, int matchId, {String? customId}) async {
+    try {
+      final supabase = Supabase.instance.client;
+      final compositeId = customId ?? '${cloudId}_$matchId';
       await supabase.from('live_matches').delete().eq('id', compositeId);
     } catch (e) {
       // Silent error
@@ -332,6 +433,51 @@ class ShareRepository {
     } catch (e) {
       rethrow;
     }
+  }
+
+  /// Records a view for a cloud tournament or a standalone match
+  Future<void> recordTournamentHit(String? cloudId, {String origin = 'app', int? liveCount, String? sessionId, String? matchId}) async {
+    final supabase = Supabase.instance.client;
+    try {
+      // 1. Atomic increment via RPC (Only if it's a tournament hit)
+      if (cloudId != null && cloudId != 'standalone') {
+        try {
+          await supabase.rpc('increment_tournament_views_v2', params: {
+            't_id': cloudId,
+            'origin': origin,
+          });
+        } catch (_) {
+          // Fallback: try old RPC name
+          try {
+            await supabase.rpc('increment_tournament_view', params: {'t_id': cloudId});
+          } catch (_) {}
+        }
+      }
+
+      // 2. Granular log entry
+      final language = PlatformDispatcher.instance.locale.languageCode;
+      await supabase.from('tournament_analytics').insert({
+        if (cloudId != null && cloudId != 'standalone') 'tournament_id': cloudId,
+        if (matchId != null) 'match_id': matchId,
+        'platform': origin,
+        'language': language,
+        'live_count': liveCount ?? 1,
+        'session_id': sessionId,
+      });
+    } catch (e) {
+      debugPrint('Analytics error: $e');
+    }
+  }
+
+  /// Records the end of a visit
+  Future<void> endTournamentHit(String sessionId) async {
+    final supabase = Supabase.instance.client;
+    try {
+      await supabase
+          .from('tournament_analytics')
+          .update({'ended_at': DateTime.now().toIso8601String()})
+          .eq('session_id', sessionId);
+    } catch (_) {}
   }
 }
 

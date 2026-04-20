@@ -7,6 +7,7 @@ import 'package:trnmnt/core/providers/database_provider.dart';
 import 'package:trnmnt/core/database/app_database.dart';
 import '../../data/tournaments_repository.dart';
 import '../../data/matches_repository.dart';
+import '../../../sharing/data/share_repository.dart';
 import 'package:drift/drift.dart' as drift;
 
 class MadnessScreen extends ConsumerStatefulWidget {
@@ -395,6 +396,10 @@ class _MadnessScreenState extends ConsumerState<MadnessScreen> {
     }
 
     if (mounted) {
+      final tournament = await ref.read(tournamentByIdProvider(widget.tournamentId).future);
+      if (tournament?.isPublished == true) {
+        ref.read(shareRepositoryProvider).publishToSupabase(widget.tournamentId).catchError((_) => null);
+      }
       context.push('/tournaments/${widget.tournamentId}/match/$matchId');
     }
   }
@@ -526,6 +531,10 @@ class _MadnessScreenState extends ConsumerState<MadnessScreen> {
     }
 
     if (mounted) {
+       final tournament = await ref.read(tournamentByIdProvider(widget.tournamentId).future);
+       if (tournament?.isPublished == true) {
+         ref.read(shareRepositoryProvider).publishToSupabase(widget.tournamentId).catchError((_) => null);
+       }
        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Matches generated!')));
        context.pop();
     }

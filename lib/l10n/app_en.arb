@@ -1,7 +1,7 @@
 {
   "@@locale": "en",
   "appTitle": "TRNMNT",
-  "teams": "Teams",
+  "teams": "My Teams",
   "singleMatch": "Single Match",
   "tournaments": "Tournaments",
   "newTournament": "New Tournament",
@@ -234,7 +234,8 @@
       "count": {"type": "int"}
     }
   },
-  "tournamentDate": "Tournament Date",
+  "tournamentDate": "Start Date & Time",
+  "tournamentEndDate": "End Date & Time",
   "edit": "Edit",
   "newTournament": "New Tournament",
   "createTournament": "Create Tournament",
@@ -298,7 +299,8 @@
   "publishNow": "Publish Now",
   "myCommunity": "My Community",
   "manageYourBrand": "Manage your Brand",
-  "liveHighlights": "LIVE HIGHLIGHTS",
+  "liveHighlights": "WEB LIVE HIGHLIGHTS",
+  "statsOverview": "APP OVERVIEW",
   "noTournamentsAtMoment": "No tournaments at the moment",
   "activeTournamentMatch": "LIVE TOURNAMENT MATCH",
   "future": "Future",
@@ -402,5 +404,22 @@
   "inactive": "INACTIVE",
   "openWebRegistrations": "OPEN ONLINE REGISTRATIONS",
   "openWebRegistrationsDesc": "Teams will be able to register via web. Immediate Cloud publishing.",
-  "selectTeamsOptional": "Select Teams (Optional)"
+  "selectTeamsOptional": "Select Teams (Optional)",
+  "publishToCloud_switch": "Publish to Cloud",
+  "publishToCloud_subtitle": "Make the result visible online in real time and share the link!",
+  "matchTitle_label": "Match Title (optional)",
+  "matchTitle_hint": "e.g.: Regional Final - Court 1",
+  "twitch_label": "Twitch Username (optional)",
+  "twitch_hint": "e.g.: trnmnt_official",
+  "explorer": "Explorer",
+  "cloudHub": "TRNMNT Hub",
+  "liveMatches": "Live Matches",
+  "exploreHub": "Explore tournaments and matches live from the cloud",
+  "noLiveMatches": "No matches live at the moment",
+  "periodLabel": "PERIOD {period}",
+  "errorLoadingData": "Error loading data",
+  "hubSubtitle": "Hub updates and live results",
+  "defaultHomeScreen": "Default Home Screen",
+  "dashboard": "Dashboard",
+  "hub": "HUB"
 }

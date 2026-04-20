@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../../core/database/app_database.dart';
+import 'package:collection/collection.dart';
 import '../../../../core/providers/database_provider.dart';
 import '../../data/matches_repository.dart';
 import '../../../../core/widgets/vintage_score_column.dart';
 import '../../data/tournaments_repository.dart';
 import '../../../sharing/data/share_repository.dart';
 import '../../../game/providers/game_provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:supabase/supabase.dart';
 import 'package:trnmnt/generated/l10n/app_localizations.dart';
 
 /// Provider for a single match by ID (only for tournament matches)
@@ -31,9 +35,10 @@ final matchByIdProvider = FutureProvider.family<MatchWithTeams?, int>((ref, matc
 });
 
 class MatchScreen extends ConsumerStatefulWidget {
-  final int? matchId;
+  final dynamic matchId;
+  final dynamic tournamentId;
 
-  const MatchScreen({super.key, this.matchId});
+  const MatchScreen({super.key, this.matchId, this.tournamentId});
 
   @override
   ConsumerState<MatchScreen> createState() => _MatchScreenState();
@@ -46,8 +51,87 @@ class _MatchScreenState extends ConsumerState<MatchScreen> {
   bool _initialized = false;
   bool _isFinishing = false;
 
+  String? _sessionId;
+
+  @override
+  void initState() {
+    super.initState();
+    _sessionId = 'match-app-${DateTime.now().millisecondsSinceEpoch}-${widget.matchId}';
+    _recordVisit();
+  }
+
+  @override
+  void dispose() {
+    if (_sessionId != null) {
+      ref.read(shareRepositoryProvider).endTournamentHit(_sessionId!);
+    }
+    super.dispose();
+  }
+
+  Future<void> _recordVisit() async {
+    final shareRepo = ref.read(shareRepositoryProvider);
+    final supabase = Supabase.instance.client;
+    
+    // Determine the unique match ID for tracking
+    String? trackingMatchId;
+    String? trackingCloudId;
+
+    if (_isGuest) {
+       trackingMatchId = widget.matchId.toString(); // For guests, matchId is usually the cloud string
+       trackingCloudId = widget.tournamentId.toString();
+    } else if (widget.matchId != null) {
+      final matchData = await ref.read(matchByIdProvider(widget.matchId!).future);
+      final tId = matchData?.match.tournamentId;
+      if (tId != null) {
+        final t = await ref.read(tournamentByIdProvider(tId!).future);
+        if (t?.cloudId != null) {
+          trackingCloudId = t!.cloudId;
+          trackingMatchId = '${trackingCloudId}_${widget.matchId}';
+        }
+      }
+    } else {
+      // Standalone case
+      final activeGame = ref.read(activeGameProvider);
+      if (activeGame.isPublic && activeGame.standaloneUuid != null) {
+         trackingMatchId = activeGame.standaloneUuid;
+         trackingCloudId = 'standalone';
+      }
+    }
+
+    if (trackingMatchId == null) return;
+
+    // Use presence to get live count
+    final channel = supabase.channel('live-tournament-global');
+    channel.subscribe((status, _) {
+      if (status == RealtimeSubscribeStatus.subscribed) {
+        final state = channel.presenceState();
+        int live = 1;
+        
+        // Correct iteration for RealtimePresenceState
+        for (final item in state) {
+          for (final p in item.presences) {
+            if (p.payload['match_id'] == trackingMatchId) {
+              live++;
+            }
+          }
+        }
+        
+        shareRepo.recordTournamentHit(
+          trackingCloudId,
+          matchId: trackingMatchId,
+          sessionId: _sessionId,
+          liveCount: live,
+          origin: 'app',
+        );
+      }
+    });
+  }
+
+  int? get _localTid => int.tryParse(widget.tournamentId.toString());
+  bool get _isGuest => _localTid == null && widget.tournamentId != null;
+
   Future<void> _saveScore() async {
-    if (widget.matchId == null) return;
+    if (widget.matchId == null || _isGuest) return;
     if (_homeScore == null || _awayScore == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Inserisci punteggi validi'), backgroundColor: Colors.orange),
@@ -107,6 +191,10 @@ class _MatchScreenState extends ConsumerState<MatchScreen> {
         backgroundColor: Colors.black,
         body: Center(child: CircularProgressIndicator(color: Colors.orange)),
       );
+    }
+
+    if (_isGuest) {
+      return _buildGuestMatchDetail(context, ref);
     }
 
     final activeGame = ref.watch(activeGameProvider);
@@ -268,6 +356,11 @@ class _MatchScreenState extends ConsumerState<MatchScreen> {
     final timerColor = activeGame.isFinished ? Colors.red : (activeGame.isRunning ? Colors.green : Colors.blue);
     final l10n = AppLocalizations.of(context)!;
 
+    final tournamentId = activeGame.matchData?.match.tournamentId;
+    final bool isPublished = (tournamentId != null) 
+        ? (ref.watch(tournamentByIdProvider(tournamentId)).valueOrNull?.isPublished ?? false)
+        : false;
+
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
@@ -275,6 +368,42 @@ class _MatchScreenState extends ConsumerState<MatchScreen> {
         title: Text(l10n.matchInProgress, style: const TextStyle(fontFamily: 'monospace')),
         leading: IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
         actions: [
+          if (isPublished || activeGame.isPublic)
+            IconButton(
+              icon: const Icon(Icons.share, color: Colors.orange),
+              onPressed: () async {
+                String? finalId;
+                if (activeGame.matchId == null && activeGame.isPublic) {
+                  finalId = activeGame.standaloneUuid;
+                } else if (tournamentId != null) {
+                  final t = await ref.read(tournamentByIdProvider(tournamentId).future);
+                  if (t?.cloudId != null) {
+                    finalId = '${t!.cloudId}_${activeGame.matchId}';
+                  }
+                }
+
+                if (finalId != null) {
+                  final locale = Localizations.localeOf(context).languageCode;
+                  final url = 'https://trnmnt.vercel.app/$locale/match/$finalId';
+                  await Clipboard.setData(ClipboardData(text: url));
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Row(
+                          children: [
+                            Icon(Icons.check_circle, color: Colors.white, size: 20),
+                            SizedBox(width: 12),
+                            Text('Link copiato! Condividilo sui social 🚀', style: TextStyle(fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                        backgroundColor: Colors.green,
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  }
+                }
+              },
+            ),
            TextButton(
             onPressed: () {
                notifier.quitGame();
@@ -297,15 +426,18 @@ class _MatchScreenState extends ConsumerState<MatchScreen> {
                     child: Column(
                       children: [
                         VintageScoreColumn(teamName: activeGame.homeTeamName, score: activeGame.homeScore, onScoreChanged: (val) => notifier.updateHomeScore(val)),
-                        const SizedBox(height: 12),
-                        _buildSpecialShotsRow(
-                          'A', 
-                          notifier,
-                          matchId: activeGame.matchId,
-                          tournamentId: activeGame.matchData?.match.tournamentId,
-                          homeName: activeGame.homeTeamName,
-                          awayName: activeGame.awayTeamName,
-                        ),
+                        if (isPublished)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 12),
+                            child: _buildSpecialShotsRow(
+                              'A', 
+                              notifier,
+                              matchId: activeGame.matchId,
+                              tournamentId: activeGame.matchData?.match.tournamentId,
+                              homeName: activeGame.homeTeamName,
+                              awayName: activeGame.awayTeamName,
+                            ),
+                          ),
                       ],
                     ),
                   ),
@@ -314,15 +446,18 @@ class _MatchScreenState extends ConsumerState<MatchScreen> {
                     child: Column(
                       children: [
                         VintageScoreColumn(teamName: activeGame.awayTeamName, score: activeGame.awayScore, onScoreChanged: (val) => notifier.updateAwayScore(val)),
-                        const SizedBox(height: 12),
-                        _buildSpecialShotsRow(
-                          'B', 
-                          notifier,
-                          matchId: activeGame.matchId,
-                          tournamentId: activeGame.matchData?.match.tournamentId,
-                          homeName: activeGame.homeTeamName,
-                          awayName: activeGame.awayTeamName,
-                        ),
+                        if (isPublished)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 12),
+                            child: _buildSpecialShotsRow(
+                              'B', 
+                              notifier,
+                              matchId: activeGame.matchId,
+                              tournamentId: activeGame.matchData?.match.tournamentId,
+                              homeName: activeGame.homeTeamName,
+                              awayName: activeGame.awayTeamName,
+                            ),
+                          ),
                       ],
                     ),
                   ),
@@ -538,6 +673,105 @@ class _MatchScreenState extends ConsumerState<MatchScreen> {
           borderRadius: BorderRadius.circular(12),
         ),
         child: Icon(icon, size: 20, color: color),
+      ),
+    );
+  }
+
+  Widget _buildGuestMatchDetail(BuildContext context, WidgetRef ref) {
+    final tid = widget.tournamentId.toString();
+    final cloudDetail = ref.watch(cloudTournamentDetailProvider(tid));
+
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        title: const Text('Dettaglio Partita (Ospite)', style: TextStyle(fontFamily: 'monospace')),
+        backgroundColor: Colors.black,
+      ),
+      body: cloudDetail.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (err, _) => Center(child: Text('Errore: $err')),
+        data: (data) {
+          if (data == null) return const Center(child: Text('Torneo non trovato'));
+          final tournamentData = data['data'] as Map<String, dynamic>?;
+          if (tournamentData == null) return const Center(child: Text('Dati non disponibili'));
+
+          final List<dynamic> matches = tournamentData['matches'] as List? ?? [];
+          final matchData = matches.firstWhereOrNull(
+            (m) => m['id'] == widget.matchId,
+          );
+
+          if (matchData == null) return const Center(child: Text('Partita non trovata nel cloud'));
+
+          final match = TournamentMatch.fromJson(matchData);
+          final homeName = matchData['homeTeamName'] as String? ?? 'Home';
+          final awayName = matchData['awayTeamName'] as String? ?? 'Away';
+
+          // For guest matches, we also check if they are currently LIVE in the cloud
+          final liveMatches = ref.watch(cloudLiveMatchesProvider).valueOrNull ?? [];
+          final liveMatch = liveMatches.firstWhereOrNull(
+            (lm) => lm['id'] == '${tid}_${widget.matchId}' || lm['id'] == widget.matchId.toString(),
+          );
+
+          final int homeScore = liveMatch != null ? (liveMatch['home_score'] as int) : (match.homeScore ?? 0);
+          final int awayScore = liveMatch != null ? (liveMatch['away_score'] as int) : (match.awayScore ?? 0);
+          final bool isLive = liveMatch != null && liveMatch['is_running'] == true;
+
+          return SafeArea(
+            child: Column(
+              children: [
+                const SizedBox(height: 48),
+                if (isLive)
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 24),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(color: Colors.orange.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.orange.withValues(alpha: 0.5))),
+                    child: const Text('🔴 LIVE ORA', style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, letterSpacing: 2)),
+                  ).animate(onPlay: (c) => c.repeat()).shimmer(duration: 2.seconds),
+                
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: VintageScoreColumn(
+                          teamName: homeName,
+                          score: homeScore,
+                          onScoreChanged: null, // Read-only for guests
+                        ),
+                      ),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 20),
+                        child: Text('VS', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white54, fontFamily: 'monospace')),
+                      ),
+                      Expanded(
+                         child: VintageScoreColumn(
+                          teamName: awayName,
+                          score: awayScore,
+                          onScoreChanged: null, // Read-only for guests
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Spacer(),
+                if (liveMatch != null)
+                   Container(
+                     padding: const EdgeInsets.all(24),
+                     margin: const EdgeInsets.all(24),
+                     decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(16)),
+                     child: Column(
+                       children: [
+                         Text(liveMatch['timer'] ?? '00:00', style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold, fontFamily: 'monospace', color: Colors.green)),
+                         const SizedBox(height: 8),
+                         Text('PERIODO ${liveMatch['period'] ?? 1}', style: const TextStyle(color: Colors.white54, letterSpacing: 2)),
+                       ],
+                     ),
+                   ),
+                const SizedBox(height: 48),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
