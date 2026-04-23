@@ -1053,6 +1053,898 @@ class TeamsCompanion extends UpdateCompanion<Team> {
   }
 }
 
+class $CourtsTable extends Courts with TableInfo<$CourtsTable, Court> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CourtsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _tournamentIdMeta = const VerificationMeta(
+    'tournamentId',
+  );
+  @override
+  late final GeneratedColumn<int> tournamentId = GeneratedColumn<int>(
+    'tournament_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(
+      minTextLength: 1,
+      maxTextLength: 100,
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _descriptionMeta = const VerificationMeta(
+    'description',
+  );
+  @override
+  late final GeneratedColumn<String> description = GeneratedColumn<String>(
+    'description',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _latitudeMeta = const VerificationMeta(
+    'latitude',
+  );
+  @override
+  late final GeneratedColumn<double> latitude = GeneratedColumn<double>(
+    'latitude',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _longitudeMeta = const VerificationMeta(
+    'longitude',
+  );
+  @override
+  late final GeneratedColumn<double> longitude = GeneratedColumn<double>(
+    'longitude',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _hoopsMeta = const VerificationMeta('hoops');
+  @override
+  late final GeneratedColumn<int> hoops = GeneratedColumn<int>(
+    'hoops',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(2),
+  );
+  static const VerificationMeta _netsStatusMeta = const VerificationMeta(
+    'netsStatus',
+  );
+  @override
+  late final GeneratedColumn<String> netsStatus = GeneratedColumn<String>(
+    'nets_status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('stoffa'),
+  );
+  static const VerificationMeta _courtStatusMeta = const VerificationMeta(
+    'courtStatus',
+  );
+  @override
+  late final GeneratedColumn<String> courtStatus = GeneratedColumn<String>(
+    'court_status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('giocabile'),
+  );
+  static const VerificationMeta _linesStatusMeta = const VerificationMeta(
+    'linesStatus',
+  );
+  @override
+  late final GeneratedColumn<String> linesStatus = GeneratedColumn<String>(
+    'lines_status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('visibili'),
+  );
+  static const VerificationMeta _hasLightsMeta = const VerificationMeta(
+    'hasLights',
+  );
+  @override
+  late final GeneratedColumn<bool> hasLights = GeneratedColumn<bool>(
+    'has_lights',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("has_lights" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _starsMeta = const VerificationMeta('stars');
+  @override
+  late final GeneratedColumn<int> stars = GeneratedColumn<int>(
+    'stars',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(3),
+  );
+  static const VerificationMeta _cloudIdMeta = const VerificationMeta(
+    'cloudId',
+  );
+  @override
+  late final GeneratedColumn<String> cloudId = GeneratedColumn<String>(
+    'cloud_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _sourceMeta = const VerificationMeta('source');
+  @override
+  late final GeneratedColumn<String> source = GeneratedColumn<String>(
+    'source',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('trnmnt'),
+  );
+  static const VerificationMeta _osmIdMeta = const VerificationMeta('osmId');
+  @override
+  late final GeneratedColumn<String> osmId = GeneratedColumn<String>(
+    'osm_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    tournamentId,
+    name,
+    description,
+    latitude,
+    longitude,
+    hoops,
+    netsStatus,
+    courtStatus,
+    linesStatus,
+    hasLights,
+    stars,
+    cloudId,
+    source,
+    osmId,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'courts';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<Court> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('tournament_id')) {
+      context.handle(
+        _tournamentIdMeta,
+        tournamentId.isAcceptableOrUnknown(
+          data['tournament_id']!,
+          _tournamentIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('description')) {
+      context.handle(
+        _descriptionMeta,
+        description.isAcceptableOrUnknown(
+          data['description']!,
+          _descriptionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('latitude')) {
+      context.handle(
+        _latitudeMeta,
+        latitude.isAcceptableOrUnknown(data['latitude']!, _latitudeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_latitudeMeta);
+    }
+    if (data.containsKey('longitude')) {
+      context.handle(
+        _longitudeMeta,
+        longitude.isAcceptableOrUnknown(data['longitude']!, _longitudeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_longitudeMeta);
+    }
+    if (data.containsKey('hoops')) {
+      context.handle(
+        _hoopsMeta,
+        hoops.isAcceptableOrUnknown(data['hoops']!, _hoopsMeta),
+      );
+    }
+    if (data.containsKey('nets_status')) {
+      context.handle(
+        _netsStatusMeta,
+        netsStatus.isAcceptableOrUnknown(data['nets_status']!, _netsStatusMeta),
+      );
+    }
+    if (data.containsKey('court_status')) {
+      context.handle(
+        _courtStatusMeta,
+        courtStatus.isAcceptableOrUnknown(
+          data['court_status']!,
+          _courtStatusMeta,
+        ),
+      );
+    }
+    if (data.containsKey('lines_status')) {
+      context.handle(
+        _linesStatusMeta,
+        linesStatus.isAcceptableOrUnknown(
+          data['lines_status']!,
+          _linesStatusMeta,
+        ),
+      );
+    }
+    if (data.containsKey('has_lights')) {
+      context.handle(
+        _hasLightsMeta,
+        hasLights.isAcceptableOrUnknown(data['has_lights']!, _hasLightsMeta),
+      );
+    }
+    if (data.containsKey('stars')) {
+      context.handle(
+        _starsMeta,
+        stars.isAcceptableOrUnknown(data['stars']!, _starsMeta),
+      );
+    }
+    if (data.containsKey('cloud_id')) {
+      context.handle(
+        _cloudIdMeta,
+        cloudId.isAcceptableOrUnknown(data['cloud_id']!, _cloudIdMeta),
+      );
+    }
+    if (data.containsKey('source')) {
+      context.handle(
+        _sourceMeta,
+        source.isAcceptableOrUnknown(data['source']!, _sourceMeta),
+      );
+    }
+    if (data.containsKey('osm_id')) {
+      context.handle(
+        _osmIdMeta,
+        osmId.isAcceptableOrUnknown(data['osm_id']!, _osmIdMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  Court map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Court(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      tournamentId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}tournament_id'],
+      ),
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      description: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}description'],
+      ),
+      latitude: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}latitude'],
+      )!,
+      longitude: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}longitude'],
+      )!,
+      hoops: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}hoops'],
+      )!,
+      netsStatus: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}nets_status'],
+      )!,
+      courtStatus: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}court_status'],
+      )!,
+      linesStatus: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}lines_status'],
+      )!,
+      hasLights: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}has_lights'],
+      )!,
+      stars: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}stars'],
+      )!,
+      cloudId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}cloud_id'],
+      ),
+      source: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source'],
+      )!,
+      osmId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}osm_id'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $CourtsTable createAlias(String alias) {
+    return $CourtsTable(attachedDatabase, alias);
+  }
+}
+
+class Court extends DataClass implements Insertable<Court> {
+  final int id;
+  final int? tournamentId;
+  final String name;
+  final String? description;
+  final double latitude;
+  final double longitude;
+  final int hoops;
+  final String netsStatus;
+  final String courtStatus;
+  final String linesStatus;
+  final bool hasLights;
+  final int stars;
+  final String? cloudId;
+  final String source;
+  final String? osmId;
+  final DateTime createdAt;
+  const Court({
+    required this.id,
+    this.tournamentId,
+    required this.name,
+    this.description,
+    required this.latitude,
+    required this.longitude,
+    required this.hoops,
+    required this.netsStatus,
+    required this.courtStatus,
+    required this.linesStatus,
+    required this.hasLights,
+    required this.stars,
+    this.cloudId,
+    required this.source,
+    this.osmId,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    if (!nullToAbsent || tournamentId != null) {
+      map['tournament_id'] = Variable<int>(tournamentId);
+    }
+    map['name'] = Variable<String>(name);
+    if (!nullToAbsent || description != null) {
+      map['description'] = Variable<String>(description);
+    }
+    map['latitude'] = Variable<double>(latitude);
+    map['longitude'] = Variable<double>(longitude);
+    map['hoops'] = Variable<int>(hoops);
+    map['nets_status'] = Variable<String>(netsStatus);
+    map['court_status'] = Variable<String>(courtStatus);
+    map['lines_status'] = Variable<String>(linesStatus);
+    map['has_lights'] = Variable<bool>(hasLights);
+    map['stars'] = Variable<int>(stars);
+    if (!nullToAbsent || cloudId != null) {
+      map['cloud_id'] = Variable<String>(cloudId);
+    }
+    map['source'] = Variable<String>(source);
+    if (!nullToAbsent || osmId != null) {
+      map['osm_id'] = Variable<String>(osmId);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  CourtsCompanion toCompanion(bool nullToAbsent) {
+    return CourtsCompanion(
+      id: Value(id),
+      tournamentId: tournamentId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(tournamentId),
+      name: Value(name),
+      description: description == null && nullToAbsent
+          ? const Value.absent()
+          : Value(description),
+      latitude: Value(latitude),
+      longitude: Value(longitude),
+      hoops: Value(hoops),
+      netsStatus: Value(netsStatus),
+      courtStatus: Value(courtStatus),
+      linesStatus: Value(linesStatus),
+      hasLights: Value(hasLights),
+      stars: Value(stars),
+      cloudId: cloudId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(cloudId),
+      source: Value(source),
+      osmId: osmId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(osmId),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory Court.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Court(
+      id: serializer.fromJson<int>(json['id']),
+      tournamentId: serializer.fromJson<int?>(json['tournamentId']),
+      name: serializer.fromJson<String>(json['name']),
+      description: serializer.fromJson<String?>(json['description']),
+      latitude: serializer.fromJson<double>(json['latitude']),
+      longitude: serializer.fromJson<double>(json['longitude']),
+      hoops: serializer.fromJson<int>(json['hoops']),
+      netsStatus: serializer.fromJson<String>(json['netsStatus']),
+      courtStatus: serializer.fromJson<String>(json['courtStatus']),
+      linesStatus: serializer.fromJson<String>(json['linesStatus']),
+      hasLights: serializer.fromJson<bool>(json['hasLights']),
+      stars: serializer.fromJson<int>(json['stars']),
+      cloudId: serializer.fromJson<String?>(json['cloudId']),
+      source: serializer.fromJson<String>(json['source']),
+      osmId: serializer.fromJson<String?>(json['osmId']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'tournamentId': serializer.toJson<int?>(tournamentId),
+      'name': serializer.toJson<String>(name),
+      'description': serializer.toJson<String?>(description),
+      'latitude': serializer.toJson<double>(latitude),
+      'longitude': serializer.toJson<double>(longitude),
+      'hoops': serializer.toJson<int>(hoops),
+      'netsStatus': serializer.toJson<String>(netsStatus),
+      'courtStatus': serializer.toJson<String>(courtStatus),
+      'linesStatus': serializer.toJson<String>(linesStatus),
+      'hasLights': serializer.toJson<bool>(hasLights),
+      'stars': serializer.toJson<int>(stars),
+      'cloudId': serializer.toJson<String?>(cloudId),
+      'source': serializer.toJson<String>(source),
+      'osmId': serializer.toJson<String?>(osmId),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  Court copyWith({
+    int? id,
+    Value<int?> tournamentId = const Value.absent(),
+    String? name,
+    Value<String?> description = const Value.absent(),
+    double? latitude,
+    double? longitude,
+    int? hoops,
+    String? netsStatus,
+    String? courtStatus,
+    String? linesStatus,
+    bool? hasLights,
+    int? stars,
+    Value<String?> cloudId = const Value.absent(),
+    String? source,
+    Value<String?> osmId = const Value.absent(),
+    DateTime? createdAt,
+  }) => Court(
+    id: id ?? this.id,
+    tournamentId: tournamentId.present ? tournamentId.value : this.tournamentId,
+    name: name ?? this.name,
+    description: description.present ? description.value : this.description,
+    latitude: latitude ?? this.latitude,
+    longitude: longitude ?? this.longitude,
+    hoops: hoops ?? this.hoops,
+    netsStatus: netsStatus ?? this.netsStatus,
+    courtStatus: courtStatus ?? this.courtStatus,
+    linesStatus: linesStatus ?? this.linesStatus,
+    hasLights: hasLights ?? this.hasLights,
+    stars: stars ?? this.stars,
+    cloudId: cloudId.present ? cloudId.value : this.cloudId,
+    source: source ?? this.source,
+    osmId: osmId.present ? osmId.value : this.osmId,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  Court copyWithCompanion(CourtsCompanion data) {
+    return Court(
+      id: data.id.present ? data.id.value : this.id,
+      tournamentId: data.tournamentId.present
+          ? data.tournamentId.value
+          : this.tournamentId,
+      name: data.name.present ? data.name.value : this.name,
+      description: data.description.present
+          ? data.description.value
+          : this.description,
+      latitude: data.latitude.present ? data.latitude.value : this.latitude,
+      longitude: data.longitude.present ? data.longitude.value : this.longitude,
+      hoops: data.hoops.present ? data.hoops.value : this.hoops,
+      netsStatus: data.netsStatus.present
+          ? data.netsStatus.value
+          : this.netsStatus,
+      courtStatus: data.courtStatus.present
+          ? data.courtStatus.value
+          : this.courtStatus,
+      linesStatus: data.linesStatus.present
+          ? data.linesStatus.value
+          : this.linesStatus,
+      hasLights: data.hasLights.present ? data.hasLights.value : this.hasLights,
+      stars: data.stars.present ? data.stars.value : this.stars,
+      cloudId: data.cloudId.present ? data.cloudId.value : this.cloudId,
+      source: data.source.present ? data.source.value : this.source,
+      osmId: data.osmId.present ? data.osmId.value : this.osmId,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Court(')
+          ..write('id: $id, ')
+          ..write('tournamentId: $tournamentId, ')
+          ..write('name: $name, ')
+          ..write('description: $description, ')
+          ..write('latitude: $latitude, ')
+          ..write('longitude: $longitude, ')
+          ..write('hoops: $hoops, ')
+          ..write('netsStatus: $netsStatus, ')
+          ..write('courtStatus: $courtStatus, ')
+          ..write('linesStatus: $linesStatus, ')
+          ..write('hasLights: $hasLights, ')
+          ..write('stars: $stars, ')
+          ..write('cloudId: $cloudId, ')
+          ..write('source: $source, ')
+          ..write('osmId: $osmId, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    tournamentId,
+    name,
+    description,
+    latitude,
+    longitude,
+    hoops,
+    netsStatus,
+    courtStatus,
+    linesStatus,
+    hasLights,
+    stars,
+    cloudId,
+    source,
+    osmId,
+    createdAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Court &&
+          other.id == this.id &&
+          other.tournamentId == this.tournamentId &&
+          other.name == this.name &&
+          other.description == this.description &&
+          other.latitude == this.latitude &&
+          other.longitude == this.longitude &&
+          other.hoops == this.hoops &&
+          other.netsStatus == this.netsStatus &&
+          other.courtStatus == this.courtStatus &&
+          other.linesStatus == this.linesStatus &&
+          other.hasLights == this.hasLights &&
+          other.stars == this.stars &&
+          other.cloudId == this.cloudId &&
+          other.source == this.source &&
+          other.osmId == this.osmId &&
+          other.createdAt == this.createdAt);
+}
+
+class CourtsCompanion extends UpdateCompanion<Court> {
+  final Value<int> id;
+  final Value<int?> tournamentId;
+  final Value<String> name;
+  final Value<String?> description;
+  final Value<double> latitude;
+  final Value<double> longitude;
+  final Value<int> hoops;
+  final Value<String> netsStatus;
+  final Value<String> courtStatus;
+  final Value<String> linesStatus;
+  final Value<bool> hasLights;
+  final Value<int> stars;
+  final Value<String?> cloudId;
+  final Value<String> source;
+  final Value<String?> osmId;
+  final Value<DateTime> createdAt;
+  const CourtsCompanion({
+    this.id = const Value.absent(),
+    this.tournamentId = const Value.absent(),
+    this.name = const Value.absent(),
+    this.description = const Value.absent(),
+    this.latitude = const Value.absent(),
+    this.longitude = const Value.absent(),
+    this.hoops = const Value.absent(),
+    this.netsStatus = const Value.absent(),
+    this.courtStatus = const Value.absent(),
+    this.linesStatus = const Value.absent(),
+    this.hasLights = const Value.absent(),
+    this.stars = const Value.absent(),
+    this.cloudId = const Value.absent(),
+    this.source = const Value.absent(),
+    this.osmId = const Value.absent(),
+    this.createdAt = const Value.absent(),
+  });
+  CourtsCompanion.insert({
+    this.id = const Value.absent(),
+    this.tournamentId = const Value.absent(),
+    required String name,
+    this.description = const Value.absent(),
+    required double latitude,
+    required double longitude,
+    this.hoops = const Value.absent(),
+    this.netsStatus = const Value.absent(),
+    this.courtStatus = const Value.absent(),
+    this.linesStatus = const Value.absent(),
+    this.hasLights = const Value.absent(),
+    this.stars = const Value.absent(),
+    this.cloudId = const Value.absent(),
+    this.source = const Value.absent(),
+    this.osmId = const Value.absent(),
+    this.createdAt = const Value.absent(),
+  }) : name = Value(name),
+       latitude = Value(latitude),
+       longitude = Value(longitude);
+  static Insertable<Court> custom({
+    Expression<int>? id,
+    Expression<int>? tournamentId,
+    Expression<String>? name,
+    Expression<String>? description,
+    Expression<double>? latitude,
+    Expression<double>? longitude,
+    Expression<int>? hoops,
+    Expression<String>? netsStatus,
+    Expression<String>? courtStatus,
+    Expression<String>? linesStatus,
+    Expression<bool>? hasLights,
+    Expression<int>? stars,
+    Expression<String>? cloudId,
+    Expression<String>? source,
+    Expression<String>? osmId,
+    Expression<DateTime>? createdAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (tournamentId != null) 'tournament_id': tournamentId,
+      if (name != null) 'name': name,
+      if (description != null) 'description': description,
+      if (latitude != null) 'latitude': latitude,
+      if (longitude != null) 'longitude': longitude,
+      if (hoops != null) 'hoops': hoops,
+      if (netsStatus != null) 'nets_status': netsStatus,
+      if (courtStatus != null) 'court_status': courtStatus,
+      if (linesStatus != null) 'lines_status': linesStatus,
+      if (hasLights != null) 'has_lights': hasLights,
+      if (stars != null) 'stars': stars,
+      if (cloudId != null) 'cloud_id': cloudId,
+      if (source != null) 'source': source,
+      if (osmId != null) 'osm_id': osmId,
+      if (createdAt != null) 'created_at': createdAt,
+    });
+  }
+
+  CourtsCompanion copyWith({
+    Value<int>? id,
+    Value<int?>? tournamentId,
+    Value<String>? name,
+    Value<String?>? description,
+    Value<double>? latitude,
+    Value<double>? longitude,
+    Value<int>? hoops,
+    Value<String>? netsStatus,
+    Value<String>? courtStatus,
+    Value<String>? linesStatus,
+    Value<bool>? hasLights,
+    Value<int>? stars,
+    Value<String?>? cloudId,
+    Value<String>? source,
+    Value<String?>? osmId,
+    Value<DateTime>? createdAt,
+  }) {
+    return CourtsCompanion(
+      id: id ?? this.id,
+      tournamentId: tournamentId ?? this.tournamentId,
+      name: name ?? this.name,
+      description: description ?? this.description,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
+      hoops: hoops ?? this.hoops,
+      netsStatus: netsStatus ?? this.netsStatus,
+      courtStatus: courtStatus ?? this.courtStatus,
+      linesStatus: linesStatus ?? this.linesStatus,
+      hasLights: hasLights ?? this.hasLights,
+      stars: stars ?? this.stars,
+      cloudId: cloudId ?? this.cloudId,
+      source: source ?? this.source,
+      osmId: osmId ?? this.osmId,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (tournamentId.present) {
+      map['tournament_id'] = Variable<int>(tournamentId.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (description.present) {
+      map['description'] = Variable<String>(description.value);
+    }
+    if (latitude.present) {
+      map['latitude'] = Variable<double>(latitude.value);
+    }
+    if (longitude.present) {
+      map['longitude'] = Variable<double>(longitude.value);
+    }
+    if (hoops.present) {
+      map['hoops'] = Variable<int>(hoops.value);
+    }
+    if (netsStatus.present) {
+      map['nets_status'] = Variable<String>(netsStatus.value);
+    }
+    if (courtStatus.present) {
+      map['court_status'] = Variable<String>(courtStatus.value);
+    }
+    if (linesStatus.present) {
+      map['lines_status'] = Variable<String>(linesStatus.value);
+    }
+    if (hasLights.present) {
+      map['has_lights'] = Variable<bool>(hasLights.value);
+    }
+    if (stars.present) {
+      map['stars'] = Variable<int>(stars.value);
+    }
+    if (cloudId.present) {
+      map['cloud_id'] = Variable<String>(cloudId.value);
+    }
+    if (source.present) {
+      map['source'] = Variable<String>(source.value);
+    }
+    if (osmId.present) {
+      map['osm_id'] = Variable<String>(osmId.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CourtsCompanion(')
+          ..write('id: $id, ')
+          ..write('tournamentId: $tournamentId, ')
+          ..write('name: $name, ')
+          ..write('description: $description, ')
+          ..write('latitude: $latitude, ')
+          ..write('longitude: $longitude, ')
+          ..write('hoops: $hoops, ')
+          ..write('netsStatus: $netsStatus, ')
+          ..write('courtStatus: $courtStatus, ')
+          ..write('linesStatus: $linesStatus, ')
+          ..write('hasLights: $hasLights, ')
+          ..write('stars: $stars, ')
+          ..write('cloudId: $cloudId, ')
+          ..write('source: $source, ')
+          ..write('osmId: $osmId, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $TournamentsTable extends Tournaments
     with TableInfo<$TournamentsTable, Tournament> {
   @override
@@ -1443,6 +2335,20 @@ class $TournamentsTable extends Tournaments
     type: DriftSqlType.dateTime,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _venueCourtIdMeta = const VerificationMeta(
+    'venueCourtId',
+  );
+  @override
+  late final GeneratedColumn<int> venueCourtId = GeneratedColumn<int>(
+    'venue_court_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES courts (id) ON DELETE SET NULL',
+    ),
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -1488,6 +2394,7 @@ class $TournamentsTable extends Tournaments
     courtCount,
     lunchDuration,
     endDate,
+    venueCourtId,
     createdAt,
   ];
   @override
@@ -1734,6 +2641,15 @@ class $TournamentsTable extends Tournaments
         endDate.isAcceptableOrUnknown(data['end_date']!, _endDateMeta),
       );
     }
+    if (data.containsKey('venue_court_id')) {
+      context.handle(
+        _venueCourtIdMeta,
+        venueCourtId.isAcceptableOrUnknown(
+          data['venue_court_id']!,
+          _venueCourtIdMeta,
+        ),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -1873,6 +2789,10 @@ class $TournamentsTable extends Tournaments
         DriftSqlType.dateTime,
         data['${effectivePrefix}end_date'],
       ),
+      venueCourtId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}venue_court_id'],
+      ),
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -1920,6 +2840,7 @@ class Tournament extends DataClass implements Insertable<Tournament> {
   final int courtCount;
   final int lunchDuration;
   final DateTime? endDate;
+  final int? venueCourtId;
   final DateTime createdAt;
   const Tournament({
     required this.id,
@@ -1953,6 +2874,7 @@ class Tournament extends DataClass implements Insertable<Tournament> {
     required this.courtCount,
     required this.lunchDuration,
     this.endDate,
+    this.venueCourtId,
     required this.createdAt,
   });
   @override
@@ -2017,6 +2939,9 @@ class Tournament extends DataClass implements Insertable<Tournament> {
     if (!nullToAbsent || endDate != null) {
       map['end_date'] = Variable<DateTime>(endDate);
     }
+    if (!nullToAbsent || venueCourtId != null) {
+      map['venue_court_id'] = Variable<int>(venueCourtId);
+    }
     map['created_at'] = Variable<DateTime>(createdAt);
     return map;
   }
@@ -2078,6 +3003,9 @@ class Tournament extends DataClass implements Insertable<Tournament> {
       endDate: endDate == null && nullToAbsent
           ? const Value.absent()
           : Value(endDate),
+      venueCourtId: venueCourtId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(venueCourtId),
       createdAt: Value(createdAt),
     );
   }
@@ -2123,6 +3051,7 @@ class Tournament extends DataClass implements Insertable<Tournament> {
       courtCount: serializer.fromJson<int>(json['courtCount']),
       lunchDuration: serializer.fromJson<int>(json['lunchDuration']),
       endDate: serializer.fromJson<DateTime?>(json['endDate']),
+      venueCourtId: serializer.fromJson<int?>(json['venueCourtId']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
     );
   }
@@ -2165,6 +3094,7 @@ class Tournament extends DataClass implements Insertable<Tournament> {
       'courtCount': serializer.toJson<int>(courtCount),
       'lunchDuration': serializer.toJson<int>(lunchDuration),
       'endDate': serializer.toJson<DateTime?>(endDate),
+      'venueCourtId': serializer.toJson<int?>(venueCourtId),
       'createdAt': serializer.toJson<DateTime>(createdAt),
     };
   }
@@ -2201,6 +3131,7 @@ class Tournament extends DataClass implements Insertable<Tournament> {
     int? courtCount,
     int? lunchDuration,
     Value<DateTime?> endDate = const Value.absent(),
+    Value<int?> venueCourtId = const Value.absent(),
     DateTime? createdAt,
   }) => Tournament(
     id: id ?? this.id,
@@ -2242,6 +3173,7 @@ class Tournament extends DataClass implements Insertable<Tournament> {
     courtCount: courtCount ?? this.courtCount,
     lunchDuration: lunchDuration ?? this.lunchDuration,
     endDate: endDate.present ? endDate.value : this.endDate,
+    venueCourtId: venueCourtId.present ? venueCourtId.value : this.venueCourtId,
     createdAt: createdAt ?? this.createdAt,
   );
   Tournament copyWithCompanion(TournamentsCompanion data) {
@@ -2317,6 +3249,9 @@ class Tournament extends DataClass implements Insertable<Tournament> {
           ? data.lunchDuration.value
           : this.lunchDuration,
       endDate: data.endDate.present ? data.endDate.value : this.endDate,
+      venueCourtId: data.venueCourtId.present
+          ? data.venueCourtId.value
+          : this.venueCourtId,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
     );
   }
@@ -2355,6 +3290,7 @@ class Tournament extends DataClass implements Insertable<Tournament> {
           ..write('courtCount: $courtCount, ')
           ..write('lunchDuration: $lunchDuration, ')
           ..write('endDate: $endDate, ')
+          ..write('venueCourtId: $venueCourtId, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
@@ -2393,6 +3329,7 @@ class Tournament extends DataClass implements Insertable<Tournament> {
     courtCount,
     lunchDuration,
     endDate,
+    venueCourtId,
     createdAt,
   ]);
   @override
@@ -2430,6 +3367,7 @@ class Tournament extends DataClass implements Insertable<Tournament> {
           other.courtCount == this.courtCount &&
           other.lunchDuration == this.lunchDuration &&
           other.endDate == this.endDate &&
+          other.venueCourtId == this.venueCourtId &&
           other.createdAt == this.createdAt);
 }
 
@@ -2465,6 +3403,7 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
   final Value<int> courtCount;
   final Value<int> lunchDuration;
   final Value<DateTime?> endDate;
+  final Value<int?> venueCourtId;
   final Value<DateTime> createdAt;
   const TournamentsCompanion({
     this.id = const Value.absent(),
@@ -2498,6 +3437,7 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
     this.courtCount = const Value.absent(),
     this.lunchDuration = const Value.absent(),
     this.endDate = const Value.absent(),
+    this.venueCourtId = const Value.absent(),
     this.createdAt = const Value.absent(),
   });
   TournamentsCompanion.insert({
@@ -2532,6 +3472,7 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
     this.courtCount = const Value.absent(),
     this.lunchDuration = const Value.absent(),
     this.endDate = const Value.absent(),
+    this.venueCourtId = const Value.absent(),
     this.createdAt = const Value.absent(),
   }) : name = Value(name),
        location = Value(location);
@@ -2567,6 +3508,7 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
     Expression<int>? courtCount,
     Expression<int>? lunchDuration,
     Expression<DateTime>? endDate,
+    Expression<int>? venueCourtId,
     Expression<DateTime>? createdAt,
   }) {
     return RawValuesInsertable({
@@ -2604,6 +3546,7 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
       if (courtCount != null) 'court_count': courtCount,
       if (lunchDuration != null) 'lunch_duration': lunchDuration,
       if (endDate != null) 'end_date': endDate,
+      if (venueCourtId != null) 'venue_court_id': venueCourtId,
       if (createdAt != null) 'created_at': createdAt,
     });
   }
@@ -2640,6 +3583,7 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
     Value<int>? courtCount,
     Value<int>? lunchDuration,
     Value<DateTime?>? endDate,
+    Value<int?>? venueCourtId,
     Value<DateTime>? createdAt,
   }) {
     return TournamentsCompanion(
@@ -2676,6 +3620,7 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
       courtCount: courtCount ?? this.courtCount,
       lunchDuration: lunchDuration ?? this.lunchDuration,
       endDate: endDate ?? this.endDate,
+      venueCourtId: venueCourtId ?? this.venueCourtId,
       createdAt: createdAt ?? this.createdAt,
     );
   }
@@ -2780,6 +3725,9 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
     if (endDate.present) {
       map['end_date'] = Variable<DateTime>(endDate.value);
     }
+    if (venueCourtId.present) {
+      map['venue_court_id'] = Variable<int>(venueCourtId.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -2820,6 +3768,7 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
           ..write('courtCount: $courtCount, ')
           ..write('lunchDuration: $lunchDuration, ')
           ..write('endDate: $endDate, ')
+          ..write('venueCourtId: $venueCourtId, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
@@ -3932,772 +4881,17 @@ class MatchesCompanion extends UpdateCompanion<TournamentMatch> {
   }
 }
 
-class $CourtsTable extends Courts with TableInfo<$CourtsTable, Court> {
-  @override
-  final GeneratedDatabase attachedDatabase;
-  final String? _alias;
-  $CourtsTable(this.attachedDatabase, [this._alias]);
-  static const VerificationMeta _idMeta = const VerificationMeta('id');
-  @override
-  late final GeneratedColumn<int> id = GeneratedColumn<int>(
-    'id',
-    aliasedName,
-    false,
-    hasAutoIncrement: true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'PRIMARY KEY AUTOINCREMENT',
-    ),
-  );
-  static const VerificationMeta _tournamentIdMeta = const VerificationMeta(
-    'tournamentId',
-  );
-  @override
-  late final GeneratedColumn<int> tournamentId = GeneratedColumn<int>(
-    'tournament_id',
-    aliasedName,
-    true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES tournaments (id) ON DELETE CASCADE',
-    ),
-  );
-  static const VerificationMeta _nameMeta = const VerificationMeta('name');
-  @override
-  late final GeneratedColumn<String> name = GeneratedColumn<String>(
-    'name',
-    aliasedName,
-    false,
-    additionalChecks: GeneratedColumn.checkTextLength(
-      minTextLength: 1,
-      maxTextLength: 100,
-    ),
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _descriptionMeta = const VerificationMeta(
-    'description',
-  );
-  @override
-  late final GeneratedColumn<String> description = GeneratedColumn<String>(
-    'description',
-    aliasedName,
-    true,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _latitudeMeta = const VerificationMeta(
-    'latitude',
-  );
-  @override
-  late final GeneratedColumn<double> latitude = GeneratedColumn<double>(
-    'latitude',
-    aliasedName,
-    false,
-    type: DriftSqlType.double,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _longitudeMeta = const VerificationMeta(
-    'longitude',
-  );
-  @override
-  late final GeneratedColumn<double> longitude = GeneratedColumn<double>(
-    'longitude',
-    aliasedName,
-    false,
-    type: DriftSqlType.double,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _hoopsMeta = const VerificationMeta('hoops');
-  @override
-  late final GeneratedColumn<int> hoops = GeneratedColumn<int>(
-    'hoops',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    defaultValue: const Constant(2),
-  );
-  static const VerificationMeta _netsStatusMeta = const VerificationMeta(
-    'netsStatus',
-  );
-  @override
-  late final GeneratedColumn<String> netsStatus = GeneratedColumn<String>(
-    'nets_status',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-    defaultValue: const Constant('stoffa'),
-  );
-  static const VerificationMeta _courtStatusMeta = const VerificationMeta(
-    'courtStatus',
-  );
-  @override
-  late final GeneratedColumn<String> courtStatus = GeneratedColumn<String>(
-    'court_status',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-    defaultValue: const Constant('giocabile'),
-  );
-  static const VerificationMeta _linesStatusMeta = const VerificationMeta(
-    'linesStatus',
-  );
-  @override
-  late final GeneratedColumn<String> linesStatus = GeneratedColumn<String>(
-    'lines_status',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-    defaultValue: const Constant('visibili'),
-  );
-  static const VerificationMeta _hasLightsMeta = const VerificationMeta(
-    'hasLights',
-  );
-  @override
-  late final GeneratedColumn<bool> hasLights = GeneratedColumn<bool>(
-    'has_lights',
-    aliasedName,
-    false,
-    type: DriftSqlType.bool,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'CHECK ("has_lights" IN (0, 1))',
-    ),
-    defaultValue: const Constant(true),
-  );
-  static const VerificationMeta _starsMeta = const VerificationMeta('stars');
-  @override
-  late final GeneratedColumn<int> stars = GeneratedColumn<int>(
-    'stars',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    defaultValue: const Constant(3),
-  );
-  static const VerificationMeta _createdAtMeta = const VerificationMeta(
-    'createdAt',
-  );
-  @override
-  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
-    'created_at',
-    aliasedName,
-    false,
-    type: DriftSqlType.dateTime,
-    requiredDuringInsert: false,
-    defaultValue: currentDateAndTime,
-  );
-  @override
-  List<GeneratedColumn> get $columns => [
-    id,
-    tournamentId,
-    name,
-    description,
-    latitude,
-    longitude,
-    hoops,
-    netsStatus,
-    courtStatus,
-    linesStatus,
-    hasLights,
-    stars,
-    createdAt,
-  ];
-  @override
-  String get aliasedName => _alias ?? actualTableName;
-  @override
-  String get actualTableName => $name;
-  static const String $name = 'courts';
-  @override
-  VerificationContext validateIntegrity(
-    Insertable<Court> instance, {
-    bool isInserting = false,
-  }) {
-    final context = VerificationContext();
-    final data = instance.toColumns(true);
-    if (data.containsKey('id')) {
-      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
-    }
-    if (data.containsKey('tournament_id')) {
-      context.handle(
-        _tournamentIdMeta,
-        tournamentId.isAcceptableOrUnknown(
-          data['tournament_id']!,
-          _tournamentIdMeta,
-        ),
-      );
-    }
-    if (data.containsKey('name')) {
-      context.handle(
-        _nameMeta,
-        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_nameMeta);
-    }
-    if (data.containsKey('description')) {
-      context.handle(
-        _descriptionMeta,
-        description.isAcceptableOrUnknown(
-          data['description']!,
-          _descriptionMeta,
-        ),
-      );
-    }
-    if (data.containsKey('latitude')) {
-      context.handle(
-        _latitudeMeta,
-        latitude.isAcceptableOrUnknown(data['latitude']!, _latitudeMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_latitudeMeta);
-    }
-    if (data.containsKey('longitude')) {
-      context.handle(
-        _longitudeMeta,
-        longitude.isAcceptableOrUnknown(data['longitude']!, _longitudeMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_longitudeMeta);
-    }
-    if (data.containsKey('hoops')) {
-      context.handle(
-        _hoopsMeta,
-        hoops.isAcceptableOrUnknown(data['hoops']!, _hoopsMeta),
-      );
-    }
-    if (data.containsKey('nets_status')) {
-      context.handle(
-        _netsStatusMeta,
-        netsStatus.isAcceptableOrUnknown(data['nets_status']!, _netsStatusMeta),
-      );
-    }
-    if (data.containsKey('court_status')) {
-      context.handle(
-        _courtStatusMeta,
-        courtStatus.isAcceptableOrUnknown(
-          data['court_status']!,
-          _courtStatusMeta,
-        ),
-      );
-    }
-    if (data.containsKey('lines_status')) {
-      context.handle(
-        _linesStatusMeta,
-        linesStatus.isAcceptableOrUnknown(
-          data['lines_status']!,
-          _linesStatusMeta,
-        ),
-      );
-    }
-    if (data.containsKey('has_lights')) {
-      context.handle(
-        _hasLightsMeta,
-        hasLights.isAcceptableOrUnknown(data['has_lights']!, _hasLightsMeta),
-      );
-    }
-    if (data.containsKey('stars')) {
-      context.handle(
-        _starsMeta,
-        stars.isAcceptableOrUnknown(data['stars']!, _starsMeta),
-      );
-    }
-    if (data.containsKey('created_at')) {
-      context.handle(
-        _createdAtMeta,
-        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
-      );
-    }
-    return context;
-  }
-
-  @override
-  Set<GeneratedColumn> get $primaryKey => {id};
-  @override
-  Court map(Map<String, dynamic> data, {String? tablePrefix}) {
-    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return Court(
-      id: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}id'],
-      )!,
-      tournamentId: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}tournament_id'],
-      ),
-      name: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}name'],
-      )!,
-      description: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}description'],
-      ),
-      latitude: attachedDatabase.typeMapping.read(
-        DriftSqlType.double,
-        data['${effectivePrefix}latitude'],
-      )!,
-      longitude: attachedDatabase.typeMapping.read(
-        DriftSqlType.double,
-        data['${effectivePrefix}longitude'],
-      )!,
-      hoops: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}hoops'],
-      )!,
-      netsStatus: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}nets_status'],
-      )!,
-      courtStatus: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}court_status'],
-      )!,
-      linesStatus: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}lines_status'],
-      )!,
-      hasLights: attachedDatabase.typeMapping.read(
-        DriftSqlType.bool,
-        data['${effectivePrefix}has_lights'],
-      )!,
-      stars: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}stars'],
-      )!,
-      createdAt: attachedDatabase.typeMapping.read(
-        DriftSqlType.dateTime,
-        data['${effectivePrefix}created_at'],
-      )!,
-    );
-  }
-
-  @override
-  $CourtsTable createAlias(String alias) {
-    return $CourtsTable(attachedDatabase, alias);
-  }
-}
-
-class Court extends DataClass implements Insertable<Court> {
-  final int id;
-  final int? tournamentId;
-  final String name;
-  final String? description;
-  final double latitude;
-  final double longitude;
-  final int hoops;
-  final String netsStatus;
-  final String courtStatus;
-  final String linesStatus;
-  final bool hasLights;
-  final int stars;
-  final DateTime createdAt;
-  const Court({
-    required this.id,
-    this.tournamentId,
-    required this.name,
-    this.description,
-    required this.latitude,
-    required this.longitude,
-    required this.hoops,
-    required this.netsStatus,
-    required this.courtStatus,
-    required this.linesStatus,
-    required this.hasLights,
-    required this.stars,
-    required this.createdAt,
-  });
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    map['id'] = Variable<int>(id);
-    if (!nullToAbsent || tournamentId != null) {
-      map['tournament_id'] = Variable<int>(tournamentId);
-    }
-    map['name'] = Variable<String>(name);
-    if (!nullToAbsent || description != null) {
-      map['description'] = Variable<String>(description);
-    }
-    map['latitude'] = Variable<double>(latitude);
-    map['longitude'] = Variable<double>(longitude);
-    map['hoops'] = Variable<int>(hoops);
-    map['nets_status'] = Variable<String>(netsStatus);
-    map['court_status'] = Variable<String>(courtStatus);
-    map['lines_status'] = Variable<String>(linesStatus);
-    map['has_lights'] = Variable<bool>(hasLights);
-    map['stars'] = Variable<int>(stars);
-    map['created_at'] = Variable<DateTime>(createdAt);
-    return map;
-  }
-
-  CourtsCompanion toCompanion(bool nullToAbsent) {
-    return CourtsCompanion(
-      id: Value(id),
-      tournamentId: tournamentId == null && nullToAbsent
-          ? const Value.absent()
-          : Value(tournamentId),
-      name: Value(name),
-      description: description == null && nullToAbsent
-          ? const Value.absent()
-          : Value(description),
-      latitude: Value(latitude),
-      longitude: Value(longitude),
-      hoops: Value(hoops),
-      netsStatus: Value(netsStatus),
-      courtStatus: Value(courtStatus),
-      linesStatus: Value(linesStatus),
-      hasLights: Value(hasLights),
-      stars: Value(stars),
-      createdAt: Value(createdAt),
-    );
-  }
-
-  factory Court.fromJson(
-    Map<String, dynamic> json, {
-    ValueSerializer? serializer,
-  }) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return Court(
-      id: serializer.fromJson<int>(json['id']),
-      tournamentId: serializer.fromJson<int?>(json['tournamentId']),
-      name: serializer.fromJson<String>(json['name']),
-      description: serializer.fromJson<String?>(json['description']),
-      latitude: serializer.fromJson<double>(json['latitude']),
-      longitude: serializer.fromJson<double>(json['longitude']),
-      hoops: serializer.fromJson<int>(json['hoops']),
-      netsStatus: serializer.fromJson<String>(json['netsStatus']),
-      courtStatus: serializer.fromJson<String>(json['courtStatus']),
-      linesStatus: serializer.fromJson<String>(json['linesStatus']),
-      hasLights: serializer.fromJson<bool>(json['hasLights']),
-      stars: serializer.fromJson<int>(json['stars']),
-      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
-    );
-  }
-  @override
-  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return <String, dynamic>{
-      'id': serializer.toJson<int>(id),
-      'tournamentId': serializer.toJson<int?>(tournamentId),
-      'name': serializer.toJson<String>(name),
-      'description': serializer.toJson<String?>(description),
-      'latitude': serializer.toJson<double>(latitude),
-      'longitude': serializer.toJson<double>(longitude),
-      'hoops': serializer.toJson<int>(hoops),
-      'netsStatus': serializer.toJson<String>(netsStatus),
-      'courtStatus': serializer.toJson<String>(courtStatus),
-      'linesStatus': serializer.toJson<String>(linesStatus),
-      'hasLights': serializer.toJson<bool>(hasLights),
-      'stars': serializer.toJson<int>(stars),
-      'createdAt': serializer.toJson<DateTime>(createdAt),
-    };
-  }
-
-  Court copyWith({
-    int? id,
-    Value<int?> tournamentId = const Value.absent(),
-    String? name,
-    Value<String?> description = const Value.absent(),
-    double? latitude,
-    double? longitude,
-    int? hoops,
-    String? netsStatus,
-    String? courtStatus,
-    String? linesStatus,
-    bool? hasLights,
-    int? stars,
-    DateTime? createdAt,
-  }) => Court(
-    id: id ?? this.id,
-    tournamentId: tournamentId.present ? tournamentId.value : this.tournamentId,
-    name: name ?? this.name,
-    description: description.present ? description.value : this.description,
-    latitude: latitude ?? this.latitude,
-    longitude: longitude ?? this.longitude,
-    hoops: hoops ?? this.hoops,
-    netsStatus: netsStatus ?? this.netsStatus,
-    courtStatus: courtStatus ?? this.courtStatus,
-    linesStatus: linesStatus ?? this.linesStatus,
-    hasLights: hasLights ?? this.hasLights,
-    stars: stars ?? this.stars,
-    createdAt: createdAt ?? this.createdAt,
-  );
-  Court copyWithCompanion(CourtsCompanion data) {
-    return Court(
-      id: data.id.present ? data.id.value : this.id,
-      tournamentId: data.tournamentId.present
-          ? data.tournamentId.value
-          : this.tournamentId,
-      name: data.name.present ? data.name.value : this.name,
-      description: data.description.present
-          ? data.description.value
-          : this.description,
-      latitude: data.latitude.present ? data.latitude.value : this.latitude,
-      longitude: data.longitude.present ? data.longitude.value : this.longitude,
-      hoops: data.hoops.present ? data.hoops.value : this.hoops,
-      netsStatus: data.netsStatus.present
-          ? data.netsStatus.value
-          : this.netsStatus,
-      courtStatus: data.courtStatus.present
-          ? data.courtStatus.value
-          : this.courtStatus,
-      linesStatus: data.linesStatus.present
-          ? data.linesStatus.value
-          : this.linesStatus,
-      hasLights: data.hasLights.present ? data.hasLights.value : this.hasLights,
-      stars: data.stars.present ? data.stars.value : this.stars,
-      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
-    );
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('Court(')
-          ..write('id: $id, ')
-          ..write('tournamentId: $tournamentId, ')
-          ..write('name: $name, ')
-          ..write('description: $description, ')
-          ..write('latitude: $latitude, ')
-          ..write('longitude: $longitude, ')
-          ..write('hoops: $hoops, ')
-          ..write('netsStatus: $netsStatus, ')
-          ..write('courtStatus: $courtStatus, ')
-          ..write('linesStatus: $linesStatus, ')
-          ..write('hasLights: $hasLights, ')
-          ..write('stars: $stars, ')
-          ..write('createdAt: $createdAt')
-          ..write(')'))
-        .toString();
-  }
-
-  @override
-  int get hashCode => Object.hash(
-    id,
-    tournamentId,
-    name,
-    description,
-    latitude,
-    longitude,
-    hoops,
-    netsStatus,
-    courtStatus,
-    linesStatus,
-    hasLights,
-    stars,
-    createdAt,
-  );
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      (other is Court &&
-          other.id == this.id &&
-          other.tournamentId == this.tournamentId &&
-          other.name == this.name &&
-          other.description == this.description &&
-          other.latitude == this.latitude &&
-          other.longitude == this.longitude &&
-          other.hoops == this.hoops &&
-          other.netsStatus == this.netsStatus &&
-          other.courtStatus == this.courtStatus &&
-          other.linesStatus == this.linesStatus &&
-          other.hasLights == this.hasLights &&
-          other.stars == this.stars &&
-          other.createdAt == this.createdAt);
-}
-
-class CourtsCompanion extends UpdateCompanion<Court> {
-  final Value<int> id;
-  final Value<int?> tournamentId;
-  final Value<String> name;
-  final Value<String?> description;
-  final Value<double> latitude;
-  final Value<double> longitude;
-  final Value<int> hoops;
-  final Value<String> netsStatus;
-  final Value<String> courtStatus;
-  final Value<String> linesStatus;
-  final Value<bool> hasLights;
-  final Value<int> stars;
-  final Value<DateTime> createdAt;
-  const CourtsCompanion({
-    this.id = const Value.absent(),
-    this.tournamentId = const Value.absent(),
-    this.name = const Value.absent(),
-    this.description = const Value.absent(),
-    this.latitude = const Value.absent(),
-    this.longitude = const Value.absent(),
-    this.hoops = const Value.absent(),
-    this.netsStatus = const Value.absent(),
-    this.courtStatus = const Value.absent(),
-    this.linesStatus = const Value.absent(),
-    this.hasLights = const Value.absent(),
-    this.stars = const Value.absent(),
-    this.createdAt = const Value.absent(),
-  });
-  CourtsCompanion.insert({
-    this.id = const Value.absent(),
-    this.tournamentId = const Value.absent(),
-    required String name,
-    this.description = const Value.absent(),
-    required double latitude,
-    required double longitude,
-    this.hoops = const Value.absent(),
-    this.netsStatus = const Value.absent(),
-    this.courtStatus = const Value.absent(),
-    this.linesStatus = const Value.absent(),
-    this.hasLights = const Value.absent(),
-    this.stars = const Value.absent(),
-    this.createdAt = const Value.absent(),
-  }) : name = Value(name),
-       latitude = Value(latitude),
-       longitude = Value(longitude);
-  static Insertable<Court> custom({
-    Expression<int>? id,
-    Expression<int>? tournamentId,
-    Expression<String>? name,
-    Expression<String>? description,
-    Expression<double>? latitude,
-    Expression<double>? longitude,
-    Expression<int>? hoops,
-    Expression<String>? netsStatus,
-    Expression<String>? courtStatus,
-    Expression<String>? linesStatus,
-    Expression<bool>? hasLights,
-    Expression<int>? stars,
-    Expression<DateTime>? createdAt,
-  }) {
-    return RawValuesInsertable({
-      if (id != null) 'id': id,
-      if (tournamentId != null) 'tournament_id': tournamentId,
-      if (name != null) 'name': name,
-      if (description != null) 'description': description,
-      if (latitude != null) 'latitude': latitude,
-      if (longitude != null) 'longitude': longitude,
-      if (hoops != null) 'hoops': hoops,
-      if (netsStatus != null) 'nets_status': netsStatus,
-      if (courtStatus != null) 'court_status': courtStatus,
-      if (linesStatus != null) 'lines_status': linesStatus,
-      if (hasLights != null) 'has_lights': hasLights,
-      if (stars != null) 'stars': stars,
-      if (createdAt != null) 'created_at': createdAt,
-    });
-  }
-
-  CourtsCompanion copyWith({
-    Value<int>? id,
-    Value<int?>? tournamentId,
-    Value<String>? name,
-    Value<String?>? description,
-    Value<double>? latitude,
-    Value<double>? longitude,
-    Value<int>? hoops,
-    Value<String>? netsStatus,
-    Value<String>? courtStatus,
-    Value<String>? linesStatus,
-    Value<bool>? hasLights,
-    Value<int>? stars,
-    Value<DateTime>? createdAt,
-  }) {
-    return CourtsCompanion(
-      id: id ?? this.id,
-      tournamentId: tournamentId ?? this.tournamentId,
-      name: name ?? this.name,
-      description: description ?? this.description,
-      latitude: latitude ?? this.latitude,
-      longitude: longitude ?? this.longitude,
-      hoops: hoops ?? this.hoops,
-      netsStatus: netsStatus ?? this.netsStatus,
-      courtStatus: courtStatus ?? this.courtStatus,
-      linesStatus: linesStatus ?? this.linesStatus,
-      hasLights: hasLights ?? this.hasLights,
-      stars: stars ?? this.stars,
-      createdAt: createdAt ?? this.createdAt,
-    );
-  }
-
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    if (id.present) {
-      map['id'] = Variable<int>(id.value);
-    }
-    if (tournamentId.present) {
-      map['tournament_id'] = Variable<int>(tournamentId.value);
-    }
-    if (name.present) {
-      map['name'] = Variable<String>(name.value);
-    }
-    if (description.present) {
-      map['description'] = Variable<String>(description.value);
-    }
-    if (latitude.present) {
-      map['latitude'] = Variable<double>(latitude.value);
-    }
-    if (longitude.present) {
-      map['longitude'] = Variable<double>(longitude.value);
-    }
-    if (hoops.present) {
-      map['hoops'] = Variable<int>(hoops.value);
-    }
-    if (netsStatus.present) {
-      map['nets_status'] = Variable<String>(netsStatus.value);
-    }
-    if (courtStatus.present) {
-      map['court_status'] = Variable<String>(courtStatus.value);
-    }
-    if (linesStatus.present) {
-      map['lines_status'] = Variable<String>(linesStatus.value);
-    }
-    if (hasLights.present) {
-      map['has_lights'] = Variable<bool>(hasLights.value);
-    }
-    if (stars.present) {
-      map['stars'] = Variable<int>(stars.value);
-    }
-    if (createdAt.present) {
-      map['created_at'] = Variable<DateTime>(createdAt.value);
-    }
-    return map;
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('CourtsCompanion(')
-          ..write('id: $id, ')
-          ..write('tournamentId: $tournamentId, ')
-          ..write('name: $name, ')
-          ..write('description: $description, ')
-          ..write('latitude: $latitude, ')
-          ..write('longitude: $longitude, ')
-          ..write('hoops: $hoops, ')
-          ..write('netsStatus: $netsStatus, ')
-          ..write('courtStatus: $courtStatus, ')
-          ..write('linesStatus: $linesStatus, ')
-          ..write('hasLights: $hasLights, ')
-          ..write('stars: $stars, ')
-          ..write('createdAt: $createdAt')
-          ..write(')'))
-        .toString();
-  }
-}
-
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $CommunitiesTable communities = $CommunitiesTable(this);
   late final $TeamsTable teams = $TeamsTable(this);
+  late final $CourtsTable courts = $CourtsTable(this);
   late final $TournamentsTable tournaments = $TournamentsTable(this);
   late final $TournamentTeamsTable tournamentTeams = $TournamentTeamsTable(
     this,
   );
   late final $MatchesTable matches = $MatchesTable(this);
-  late final $CourtsTable courts = $CourtsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -4705,19 +4899,19 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   List<DatabaseSchemaEntity> get allSchemaEntities => [
     communities,
     teams,
+    courts,
     tournaments,
     tournamentTeams,
     matches,
-    courts,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
     WritePropagation(
       on: TableUpdateQuery.onTableName(
-        'tournaments',
+        'courts',
         limitUpdateKind: UpdateKind.delete,
       ),
-      result: [TableUpdate('courts', kind: UpdateKind.delete)],
+      result: [TableUpdate('tournaments', kind: UpdateKind.update)],
     ),
   ]);
 }
@@ -5749,6 +5943,515 @@ typedef $$TeamsTableProcessedTableManager =
         bool tournamentTeamsRefs,
       })
     >;
+typedef $$CourtsTableCreateCompanionBuilder =
+    CourtsCompanion Function({
+      Value<int> id,
+      Value<int?> tournamentId,
+      required String name,
+      Value<String?> description,
+      required double latitude,
+      required double longitude,
+      Value<int> hoops,
+      Value<String> netsStatus,
+      Value<String> courtStatus,
+      Value<String> linesStatus,
+      Value<bool> hasLights,
+      Value<int> stars,
+      Value<String?> cloudId,
+      Value<String> source,
+      Value<String?> osmId,
+      Value<DateTime> createdAt,
+    });
+typedef $$CourtsTableUpdateCompanionBuilder =
+    CourtsCompanion Function({
+      Value<int> id,
+      Value<int?> tournamentId,
+      Value<String> name,
+      Value<String?> description,
+      Value<double> latitude,
+      Value<double> longitude,
+      Value<int> hoops,
+      Value<String> netsStatus,
+      Value<String> courtStatus,
+      Value<String> linesStatus,
+      Value<bool> hasLights,
+      Value<int> stars,
+      Value<String?> cloudId,
+      Value<String> source,
+      Value<String?> osmId,
+      Value<DateTime> createdAt,
+    });
+
+final class $$CourtsTableReferences
+    extends BaseReferences<_$AppDatabase, $CourtsTable, Court> {
+  $$CourtsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static MultiTypedResultKey<$TournamentsTable, List<Tournament>>
+  _tournamentsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.tournaments,
+    aliasName: $_aliasNameGenerator(db.courts.id, db.tournaments.venueCourtId),
+  );
+
+  $$TournamentsTableProcessedTableManager get tournamentsRefs {
+    final manager = $$TournamentsTableTableManager(
+      $_db,
+      $_db.tournaments,
+    ).filter((f) => f.venueCourtId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_tournamentsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
+class $$CourtsTableFilterComposer
+    extends Composer<_$AppDatabase, $CourtsTable> {
+  $$CourtsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get tournamentId => $composableBuilder(
+    column: $table.tournamentId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get latitude => $composableBuilder(
+    column: $table.latitude,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get longitude => $composableBuilder(
+    column: $table.longitude,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get hoops => $composableBuilder(
+    column: $table.hoops,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get netsStatus => $composableBuilder(
+    column: $table.netsStatus,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get courtStatus => $composableBuilder(
+    column: $table.courtStatus,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get linesStatus => $composableBuilder(
+    column: $table.linesStatus,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get hasLights => $composableBuilder(
+    column: $table.hasLights,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get stars => $composableBuilder(
+    column: $table.stars,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get cloudId => $composableBuilder(
+    column: $table.cloudId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get source => $composableBuilder(
+    column: $table.source,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get osmId => $composableBuilder(
+    column: $table.osmId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  Expression<bool> tournamentsRefs(
+    Expression<bool> Function($$TournamentsTableFilterComposer f) f,
+  ) {
+    final $$TournamentsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.tournaments,
+      getReferencedColumn: (t) => t.venueCourtId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TournamentsTableFilterComposer(
+            $db: $db,
+            $table: $db.tournaments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$CourtsTableOrderingComposer
+    extends Composer<_$AppDatabase, $CourtsTable> {
+  $$CourtsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get tournamentId => $composableBuilder(
+    column: $table.tournamentId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get latitude => $composableBuilder(
+    column: $table.latitude,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get longitude => $composableBuilder(
+    column: $table.longitude,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get hoops => $composableBuilder(
+    column: $table.hoops,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get netsStatus => $composableBuilder(
+    column: $table.netsStatus,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get courtStatus => $composableBuilder(
+    column: $table.courtStatus,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get linesStatus => $composableBuilder(
+    column: $table.linesStatus,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get hasLights => $composableBuilder(
+    column: $table.hasLights,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get stars => $composableBuilder(
+    column: $table.stars,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get cloudId => $composableBuilder(
+    column: $table.cloudId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get source => $composableBuilder(
+    column: $table.source,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get osmId => $composableBuilder(
+    column: $table.osmId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$CourtsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CourtsTable> {
+  $$CourtsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get tournamentId => $composableBuilder(
+    column: $table.tournamentId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get latitude =>
+      $composableBuilder(column: $table.latitude, builder: (column) => column);
+
+  GeneratedColumn<double> get longitude =>
+      $composableBuilder(column: $table.longitude, builder: (column) => column);
+
+  GeneratedColumn<int> get hoops =>
+      $composableBuilder(column: $table.hoops, builder: (column) => column);
+
+  GeneratedColumn<String> get netsStatus => $composableBuilder(
+    column: $table.netsStatus,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get courtStatus => $composableBuilder(
+    column: $table.courtStatus,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get linesStatus => $composableBuilder(
+    column: $table.linesStatus,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get hasLights =>
+      $composableBuilder(column: $table.hasLights, builder: (column) => column);
+
+  GeneratedColumn<int> get stars =>
+      $composableBuilder(column: $table.stars, builder: (column) => column);
+
+  GeneratedColumn<String> get cloudId =>
+      $composableBuilder(column: $table.cloudId, builder: (column) => column);
+
+  GeneratedColumn<String> get source =>
+      $composableBuilder(column: $table.source, builder: (column) => column);
+
+  GeneratedColumn<String> get osmId =>
+      $composableBuilder(column: $table.osmId, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  Expression<T> tournamentsRefs<T extends Object>(
+    Expression<T> Function($$TournamentsTableAnnotationComposer a) f,
+  ) {
+    final $$TournamentsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.tournaments,
+      getReferencedColumn: (t) => t.venueCourtId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TournamentsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.tournaments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$CourtsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CourtsTable,
+          Court,
+          $$CourtsTableFilterComposer,
+          $$CourtsTableOrderingComposer,
+          $$CourtsTableAnnotationComposer,
+          $$CourtsTableCreateCompanionBuilder,
+          $$CourtsTableUpdateCompanionBuilder,
+          (Court, $$CourtsTableReferences),
+          Court,
+          PrefetchHooks Function({bool tournamentsRefs})
+        > {
+  $$CourtsTableTableManager(_$AppDatabase db, $CourtsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CourtsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CourtsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CourtsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int?> tournamentId = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<String?> description = const Value.absent(),
+                Value<double> latitude = const Value.absent(),
+                Value<double> longitude = const Value.absent(),
+                Value<int> hoops = const Value.absent(),
+                Value<String> netsStatus = const Value.absent(),
+                Value<String> courtStatus = const Value.absent(),
+                Value<String> linesStatus = const Value.absent(),
+                Value<bool> hasLights = const Value.absent(),
+                Value<int> stars = const Value.absent(),
+                Value<String?> cloudId = const Value.absent(),
+                Value<String> source = const Value.absent(),
+                Value<String?> osmId = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+              }) => CourtsCompanion(
+                id: id,
+                tournamentId: tournamentId,
+                name: name,
+                description: description,
+                latitude: latitude,
+                longitude: longitude,
+                hoops: hoops,
+                netsStatus: netsStatus,
+                courtStatus: courtStatus,
+                linesStatus: linesStatus,
+                hasLights: hasLights,
+                stars: stars,
+                cloudId: cloudId,
+                source: source,
+                osmId: osmId,
+                createdAt: createdAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int?> tournamentId = const Value.absent(),
+                required String name,
+                Value<String?> description = const Value.absent(),
+                required double latitude,
+                required double longitude,
+                Value<int> hoops = const Value.absent(),
+                Value<String> netsStatus = const Value.absent(),
+                Value<String> courtStatus = const Value.absent(),
+                Value<String> linesStatus = const Value.absent(),
+                Value<bool> hasLights = const Value.absent(),
+                Value<int> stars = const Value.absent(),
+                Value<String?> cloudId = const Value.absent(),
+                Value<String> source = const Value.absent(),
+                Value<String?> osmId = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+              }) => CourtsCompanion.insert(
+                id: id,
+                tournamentId: tournamentId,
+                name: name,
+                description: description,
+                latitude: latitude,
+                longitude: longitude,
+                hoops: hoops,
+                netsStatus: netsStatus,
+                courtStatus: courtStatus,
+                linesStatus: linesStatus,
+                hasLights: hasLights,
+                stars: stars,
+                cloudId: cloudId,
+                source: source,
+                osmId: osmId,
+                createdAt: createdAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) =>
+                    (e.readTable(table), $$CourtsTableReferences(db, table, e)),
+              )
+              .toList(),
+          prefetchHooksCallback: ({tournamentsRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [if (tournamentsRefs) db.tournaments],
+              addJoins: null,
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (tournamentsRefs)
+                    await $_getPrefetchedData<Court, $CourtsTable, Tournament>(
+                      currentTable: table,
+                      referencedTable: $$CourtsTableReferences
+                          ._tournamentsRefsTable(db),
+                      managerFromTypedResult: (p0) => $$CourtsTableReferences(
+                        db,
+                        table,
+                        p0,
+                      ).tournamentsRefs,
+                      referencedItemsForCurrentItem: (item, referencedItems) =>
+                          referencedItems.where(
+                            (e) => e.venueCourtId == item.id,
+                          ),
+                      typedResults: items,
+                    ),
+                ];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$CourtsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CourtsTable,
+      Court,
+      $$CourtsTableFilterComposer,
+      $$CourtsTableOrderingComposer,
+      $$CourtsTableAnnotationComposer,
+      $$CourtsTableCreateCompanionBuilder,
+      $$CourtsTableUpdateCompanionBuilder,
+      (Court, $$CourtsTableReferences),
+      Court,
+      PrefetchHooks Function({bool tournamentsRefs})
+    >;
 typedef $$TournamentsTableCreateCompanionBuilder =
     TournamentsCompanion Function({
       Value<int> id,
@@ -5782,6 +6485,7 @@ typedef $$TournamentsTableCreateCompanionBuilder =
       Value<int> courtCount,
       Value<int> lunchDuration,
       Value<DateTime?> endDate,
+      Value<int?> venueCourtId,
       Value<DateTime> createdAt,
     });
 typedef $$TournamentsTableUpdateCompanionBuilder =
@@ -5817,6 +6521,7 @@ typedef $$TournamentsTableUpdateCompanionBuilder =
       Value<int> courtCount,
       Value<int> lunchDuration,
       Value<DateTime?> endDate,
+      Value<int?> venueCourtId,
       Value<DateTime> createdAt,
     });
 
@@ -5862,6 +6567,25 @@ final class $$TournamentsTableReferences
     );
   }
 
+  static $CourtsTable _venueCourtIdTable(_$AppDatabase db) =>
+      db.courts.createAlias(
+        $_aliasNameGenerator(db.tournaments.venueCourtId, db.courts.id),
+      );
+
+  $$CourtsTableProcessedTableManager? get venueCourtId {
+    final $_column = $_itemColumn<int>('venue_court_id');
+    if ($_column == null) return null;
+    final manager = $$CourtsTableTableManager(
+      $_db,
+      $_db.courts,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_venueCourtIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
   static MultiTypedResultKey<$TournamentTeamsTable, List<TournamentTeam>>
   _tournamentTeamsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
     db.tournamentTeams,
@@ -5898,25 +6622,6 @@ final class $$TournamentsTableReferences
     ).filter((f) => f.tournamentId.id.sqlEquals($_itemColumn<int>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_matchesRefsTable($_db));
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: cache),
-    );
-  }
-
-  static MultiTypedResultKey<$CourtsTable, List<Court>> _courtsRefsTable(
-    _$AppDatabase db,
-  ) => MultiTypedResultKey.fromTable(
-    db.courts,
-    aliasName: $_aliasNameGenerator(db.tournaments.id, db.courts.tournamentId),
-  );
-
-  $$CourtsTableProcessedTableManager get courtsRefs {
-    final manager = $$CourtsTableTableManager(
-      $_db,
-      $_db.courts,
-    ).filter((f) => f.tournamentId.id.sqlEquals($_itemColumn<int>('id')!));
-
-    final cache = $_typedResult.readTableOrNull(_courtsRefsTable($_db));
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
     );
@@ -6128,6 +6833,29 @@ class $$TournamentsTableFilterComposer
     return composer;
   }
 
+  $$CourtsTableFilterComposer get venueCourtId {
+    final $$CourtsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.venueCourtId,
+      referencedTable: $db.courts,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CourtsTableFilterComposer(
+            $db: $db,
+            $table: $db.courts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
   Expression<bool> tournamentTeamsRefs(
     Expression<bool> Function($$TournamentTeamsTableFilterComposer f) f,
   ) {
@@ -6169,31 +6897,6 @@ class $$TournamentsTableFilterComposer
           }) => $$MatchesTableFilterComposer(
             $db: $db,
             $table: $db.matches,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
-
-  Expression<bool> courtsRefs(
-    Expression<bool> Function($$CourtsTableFilterComposer f) f,
-  ) {
-    final $$CourtsTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.courts,
-      getReferencedColumn: (t) => t.tournamentId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$CourtsTableFilterComposer(
-            $db: $db,
-            $table: $db.courts,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -6408,6 +7111,29 @@ class $$TournamentsTableOrderingComposer
     );
     return composer;
   }
+
+  $$CourtsTableOrderingComposer get venueCourtId {
+    final $$CourtsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.venueCourtId,
+      referencedTable: $db.courts,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CourtsTableOrderingComposer(
+            $db: $db,
+            $table: $db.courts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 }
 
 class $$TournamentsTableAnnotationComposer
@@ -6591,6 +7317,29 @@ class $$TournamentsTableAnnotationComposer
     return composer;
   }
 
+  $$CourtsTableAnnotationComposer get venueCourtId {
+    final $$CourtsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.venueCourtId,
+      referencedTable: $db.courts,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CourtsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.courts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
   Expression<T> tournamentTeamsRefs<T extends Object>(
     Expression<T> Function($$TournamentTeamsTableAnnotationComposer a) f,
   ) {
@@ -6640,31 +7389,6 @@ class $$TournamentsTableAnnotationComposer
     );
     return f(composer);
   }
-
-  Expression<T> courtsRefs<T extends Object>(
-    Expression<T> Function($$CourtsTableAnnotationComposer a) f,
-  ) {
-    final $$CourtsTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.courts,
-      getReferencedColumn: (t) => t.tournamentId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$CourtsTableAnnotationComposer(
-            $db: $db,
-            $table: $db.courts,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
 }
 
 class $$TournamentsTableTableManager
@@ -6683,9 +7407,9 @@ class $$TournamentsTableTableManager
           PrefetchHooks Function({
             bool winnerTeamId,
             bool communityId,
+            bool venueCourtId,
             bool tournamentTeamsRefs,
             bool matchesRefs,
-            bool courtsRefs,
           })
         > {
   $$TournamentsTableTableManager(_$AppDatabase db, $TournamentsTable table)
@@ -6732,6 +7456,7 @@ class $$TournamentsTableTableManager
                 Value<int> courtCount = const Value.absent(),
                 Value<int> lunchDuration = const Value.absent(),
                 Value<DateTime?> endDate = const Value.absent(),
+                Value<int?> venueCourtId = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => TournamentsCompanion(
                 id: id,
@@ -6765,6 +7490,7 @@ class $$TournamentsTableTableManager
                 courtCount: courtCount,
                 lunchDuration: lunchDuration,
                 endDate: endDate,
+                venueCourtId: venueCourtId,
                 createdAt: createdAt,
               ),
           createCompanionCallback:
@@ -6800,6 +7526,7 @@ class $$TournamentsTableTableManager
                 Value<int> courtCount = const Value.absent(),
                 Value<int> lunchDuration = const Value.absent(),
                 Value<DateTime?> endDate = const Value.absent(),
+                Value<int?> venueCourtId = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => TournamentsCompanion.insert(
                 id: id,
@@ -6833,6 +7560,7 @@ class $$TournamentsTableTableManager
                 courtCount: courtCount,
                 lunchDuration: lunchDuration,
                 endDate: endDate,
+                venueCourtId: venueCourtId,
                 createdAt: createdAt,
               ),
           withReferenceMapper: (p0) => p0
@@ -6847,16 +7575,15 @@ class $$TournamentsTableTableManager
               ({
                 winnerTeamId = false,
                 communityId = false,
+                venueCourtId = false,
                 tournamentTeamsRefs = false,
                 matchesRefs = false,
-                courtsRefs = false,
               }) {
                 return PrefetchHooks(
                   db: db,
                   explicitlyWatchedTables: [
                     if (tournamentTeamsRefs) db.tournamentTeams,
                     if (matchesRefs) db.matches,
-                    if (courtsRefs) db.courts,
                   ],
                   addJoins:
                       <
@@ -6900,6 +7627,21 @@ class $$TournamentsTableTableManager
                                     referencedColumn:
                                         $$TournamentsTableReferences
                                             ._communityIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
+                        if (venueCourtId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.venueCourtId,
+                                    referencedTable:
+                                        $$TournamentsTableReferences
+                                            ._venueCourtIdTable(db),
+                                    referencedColumn:
+                                        $$TournamentsTableReferences
+                                            ._venueCourtIdTable(db)
                                             .id,
                                   )
                                   as T;
@@ -6951,27 +7693,6 @@ class $$TournamentsTableTableManager
                               ),
                           typedResults: items,
                         ),
-                      if (courtsRefs)
-                        await $_getPrefetchedData<
-                          Tournament,
-                          $TournamentsTable,
-                          Court
-                        >(
-                          currentTable: table,
-                          referencedTable: $$TournamentsTableReferences
-                              ._courtsRefsTable(db),
-                          managerFromTypedResult: (p0) =>
-                              $$TournamentsTableReferences(
-                                db,
-                                table,
-                                p0,
-                              ).courtsRefs,
-                          referencedItemsForCurrentItem:
-                              (item, referencedItems) => referencedItems.where(
-                                (e) => e.tournamentId == item.id,
-                              ),
-                          typedResults: items,
-                        ),
                     ];
                   },
                 );
@@ -6995,9 +7716,9 @@ typedef $$TournamentsTableProcessedTableManager =
       PrefetchHooks Function({
         bool winnerTeamId,
         bool communityId,
+        bool venueCourtId,
         bool tournamentTeamsRefs,
         bool matchesRefs,
-        bool courtsRefs,
       })
     >;
 typedef $$TournamentTeamsTableCreateCompanionBuilder =
@@ -8057,477 +8778,6 @@ typedef $$MatchesTableProcessedTableManager =
         bool awayTeamId,
       })
     >;
-typedef $$CourtsTableCreateCompanionBuilder =
-    CourtsCompanion Function({
-      Value<int> id,
-      Value<int?> tournamentId,
-      required String name,
-      Value<String?> description,
-      required double latitude,
-      required double longitude,
-      Value<int> hoops,
-      Value<String> netsStatus,
-      Value<String> courtStatus,
-      Value<String> linesStatus,
-      Value<bool> hasLights,
-      Value<int> stars,
-      Value<DateTime> createdAt,
-    });
-typedef $$CourtsTableUpdateCompanionBuilder =
-    CourtsCompanion Function({
-      Value<int> id,
-      Value<int?> tournamentId,
-      Value<String> name,
-      Value<String?> description,
-      Value<double> latitude,
-      Value<double> longitude,
-      Value<int> hoops,
-      Value<String> netsStatus,
-      Value<String> courtStatus,
-      Value<String> linesStatus,
-      Value<bool> hasLights,
-      Value<int> stars,
-      Value<DateTime> createdAt,
-    });
-
-final class $$CourtsTableReferences
-    extends BaseReferences<_$AppDatabase, $CourtsTable, Court> {
-  $$CourtsTableReferences(super.$_db, super.$_table, super.$_typedResult);
-
-  static $TournamentsTable _tournamentIdTable(_$AppDatabase db) =>
-      db.tournaments.createAlias(
-        $_aliasNameGenerator(db.courts.tournamentId, db.tournaments.id),
-      );
-
-  $$TournamentsTableProcessedTableManager? get tournamentId {
-    final $_column = $_itemColumn<int>('tournament_id');
-    if ($_column == null) return null;
-    final manager = $$TournamentsTableTableManager(
-      $_db,
-      $_db.tournaments,
-    ).filter((f) => f.id.sqlEquals($_column));
-    final item = $_typedResult.readTableOrNull(_tournamentIdTable($_db));
-    if (item == null) return manager;
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: [item]),
-    );
-  }
-}
-
-class $$CourtsTableFilterComposer
-    extends Composer<_$AppDatabase, $CourtsTable> {
-  $$CourtsTableFilterComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnFilters<int> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get name => $composableBuilder(
-    column: $table.name,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get description => $composableBuilder(
-    column: $table.description,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<double> get latitude => $composableBuilder(
-    column: $table.latitude,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<double> get longitude => $composableBuilder(
-    column: $table.longitude,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<int> get hoops => $composableBuilder(
-    column: $table.hoops,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get netsStatus => $composableBuilder(
-    column: $table.netsStatus,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get courtStatus => $composableBuilder(
-    column: $table.courtStatus,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get linesStatus => $composableBuilder(
-    column: $table.linesStatus,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<bool> get hasLights => $composableBuilder(
-    column: $table.hasLights,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<int> get stars => $composableBuilder(
-    column: $table.stars,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<DateTime> get createdAt => $composableBuilder(
-    column: $table.createdAt,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  $$TournamentsTableFilterComposer get tournamentId {
-    final $$TournamentsTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.tournamentId,
-      referencedTable: $db.tournaments,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$TournamentsTableFilterComposer(
-            $db: $db,
-            $table: $db.tournaments,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
-}
-
-class $$CourtsTableOrderingComposer
-    extends Composer<_$AppDatabase, $CourtsTable> {
-  $$CourtsTableOrderingComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnOrderings<int> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get name => $composableBuilder(
-    column: $table.name,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get description => $composableBuilder(
-    column: $table.description,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<double> get latitude => $composableBuilder(
-    column: $table.latitude,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<double> get longitude => $composableBuilder(
-    column: $table.longitude,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<int> get hoops => $composableBuilder(
-    column: $table.hoops,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get netsStatus => $composableBuilder(
-    column: $table.netsStatus,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get courtStatus => $composableBuilder(
-    column: $table.courtStatus,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get linesStatus => $composableBuilder(
-    column: $table.linesStatus,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<bool> get hasLights => $composableBuilder(
-    column: $table.hasLights,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<int> get stars => $composableBuilder(
-    column: $table.stars,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
-    column: $table.createdAt,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  $$TournamentsTableOrderingComposer get tournamentId {
-    final $$TournamentsTableOrderingComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.tournamentId,
-      referencedTable: $db.tournaments,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$TournamentsTableOrderingComposer(
-            $db: $db,
-            $table: $db.tournaments,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
-}
-
-class $$CourtsTableAnnotationComposer
-    extends Composer<_$AppDatabase, $CourtsTable> {
-  $$CourtsTableAnnotationComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  GeneratedColumn<int> get id =>
-      $composableBuilder(column: $table.id, builder: (column) => column);
-
-  GeneratedColumn<String> get name =>
-      $composableBuilder(column: $table.name, builder: (column) => column);
-
-  GeneratedColumn<String> get description => $composableBuilder(
-    column: $table.description,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<double> get latitude =>
-      $composableBuilder(column: $table.latitude, builder: (column) => column);
-
-  GeneratedColumn<double> get longitude =>
-      $composableBuilder(column: $table.longitude, builder: (column) => column);
-
-  GeneratedColumn<int> get hoops =>
-      $composableBuilder(column: $table.hoops, builder: (column) => column);
-
-  GeneratedColumn<String> get netsStatus => $composableBuilder(
-    column: $table.netsStatus,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<String> get courtStatus => $composableBuilder(
-    column: $table.courtStatus,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<String> get linesStatus => $composableBuilder(
-    column: $table.linesStatus,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<bool> get hasLights =>
-      $composableBuilder(column: $table.hasLights, builder: (column) => column);
-
-  GeneratedColumn<int> get stars =>
-      $composableBuilder(column: $table.stars, builder: (column) => column);
-
-  GeneratedColumn<DateTime> get createdAt =>
-      $composableBuilder(column: $table.createdAt, builder: (column) => column);
-
-  $$TournamentsTableAnnotationComposer get tournamentId {
-    final $$TournamentsTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.tournamentId,
-      referencedTable: $db.tournaments,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$TournamentsTableAnnotationComposer(
-            $db: $db,
-            $table: $db.tournaments,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
-}
-
-class $$CourtsTableTableManager
-    extends
-        RootTableManager<
-          _$AppDatabase,
-          $CourtsTable,
-          Court,
-          $$CourtsTableFilterComposer,
-          $$CourtsTableOrderingComposer,
-          $$CourtsTableAnnotationComposer,
-          $$CourtsTableCreateCompanionBuilder,
-          $$CourtsTableUpdateCompanionBuilder,
-          (Court, $$CourtsTableReferences),
-          Court,
-          PrefetchHooks Function({bool tournamentId})
-        > {
-  $$CourtsTableTableManager(_$AppDatabase db, $CourtsTable table)
-    : super(
-        TableManagerState(
-          db: db,
-          table: table,
-          createFilteringComposer: () =>
-              $$CourtsTableFilterComposer($db: db, $table: table),
-          createOrderingComposer: () =>
-              $$CourtsTableOrderingComposer($db: db, $table: table),
-          createComputedFieldComposer: () =>
-              $$CourtsTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback:
-              ({
-                Value<int> id = const Value.absent(),
-                Value<int?> tournamentId = const Value.absent(),
-                Value<String> name = const Value.absent(),
-                Value<String?> description = const Value.absent(),
-                Value<double> latitude = const Value.absent(),
-                Value<double> longitude = const Value.absent(),
-                Value<int> hoops = const Value.absent(),
-                Value<String> netsStatus = const Value.absent(),
-                Value<String> courtStatus = const Value.absent(),
-                Value<String> linesStatus = const Value.absent(),
-                Value<bool> hasLights = const Value.absent(),
-                Value<int> stars = const Value.absent(),
-                Value<DateTime> createdAt = const Value.absent(),
-              }) => CourtsCompanion(
-                id: id,
-                tournamentId: tournamentId,
-                name: name,
-                description: description,
-                latitude: latitude,
-                longitude: longitude,
-                hoops: hoops,
-                netsStatus: netsStatus,
-                courtStatus: courtStatus,
-                linesStatus: linesStatus,
-                hasLights: hasLights,
-                stars: stars,
-                createdAt: createdAt,
-              ),
-          createCompanionCallback:
-              ({
-                Value<int> id = const Value.absent(),
-                Value<int?> tournamentId = const Value.absent(),
-                required String name,
-                Value<String?> description = const Value.absent(),
-                required double latitude,
-                required double longitude,
-                Value<int> hoops = const Value.absent(),
-                Value<String> netsStatus = const Value.absent(),
-                Value<String> courtStatus = const Value.absent(),
-                Value<String> linesStatus = const Value.absent(),
-                Value<bool> hasLights = const Value.absent(),
-                Value<int> stars = const Value.absent(),
-                Value<DateTime> createdAt = const Value.absent(),
-              }) => CourtsCompanion.insert(
-                id: id,
-                tournamentId: tournamentId,
-                name: name,
-                description: description,
-                latitude: latitude,
-                longitude: longitude,
-                hoops: hoops,
-                netsStatus: netsStatus,
-                courtStatus: courtStatus,
-                linesStatus: linesStatus,
-                hasLights: hasLights,
-                stars: stars,
-                createdAt: createdAt,
-              ),
-          withReferenceMapper: (p0) => p0
-              .map(
-                (e) =>
-                    (e.readTable(table), $$CourtsTableReferences(db, table, e)),
-              )
-              .toList(),
-          prefetchHooksCallback: ({tournamentId = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [],
-              addJoins:
-                  <
-                    T extends TableManagerState<
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic
-                    >
-                  >(state) {
-                    if (tournamentId) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.tournamentId,
-                                referencedTable: $$CourtsTableReferences
-                                    ._tournamentIdTable(db),
-                                referencedColumn: $$CourtsTableReferences
-                                    ._tournamentIdTable(db)
-                                    .id,
-                              )
-                              as T;
-                    }
-
-                    return state;
-                  },
-              getPrefetchedDataCallback: (items) async {
-                return [];
-              },
-            );
-          },
-        ),
-      );
-}
-
-typedef $$CourtsTableProcessedTableManager =
-    ProcessedTableManager<
-      _$AppDatabase,
-      $CourtsTable,
-      Court,
-      $$CourtsTableFilterComposer,
-      $$CourtsTableOrderingComposer,
-      $$CourtsTableAnnotationComposer,
-      $$CourtsTableCreateCompanionBuilder,
-      $$CourtsTableUpdateCompanionBuilder,
-      (Court, $$CourtsTableReferences),
-      Court,
-      PrefetchHooks Function({bool tournamentId})
-    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -8536,12 +8786,12 @@ class $AppDatabaseManager {
       $$CommunitiesTableTableManager(_db, _db.communities);
   $$TeamsTableTableManager get teams =>
       $$TeamsTableTableManager(_db, _db.teams);
+  $$CourtsTableTableManager get courts =>
+      $$CourtsTableTableManager(_db, _db.courts);
   $$TournamentsTableTableManager get tournaments =>
       $$TournamentsTableTableManager(_db, _db.tournaments);
   $$TournamentTeamsTableTableManager get tournamentTeams =>
       $$TournamentTeamsTableTableManager(_db, _db.tournamentTeams);
   $$MatchesTableTableManager get matches =>
       $$MatchesTableTableManager(_db, _db.matches);
-  $$CourtsTableTableManager get courts =>
-      $$CourtsTableTableManager(_db, _db.courts);
 }

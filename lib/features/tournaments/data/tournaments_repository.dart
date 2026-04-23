@@ -216,6 +216,7 @@ class TournamentsRepository {
     int courtCount = 1,
     int lunchDuration = 0,
     DateTime? endDate,
+    int? venueCourtId,
   }) async {
     return await _db.into(_db.tournaments).insert(
       TournamentsCompanion.insert(
@@ -240,6 +241,7 @@ class TournamentsRepository {
         courtCount: Value(courtCount),
         lunchDuration: Value(lunchDuration),
         endDate: Value(endDate),
+        venueCourtId: Value(venueCourtId),
       ),
     );
   }

@@ -80,6 +80,7 @@ class Tournaments extends Table {
   IntColumn get courtCount => integer().withDefault(const Constant(1))();
   IntColumn get lunchDuration => integer().withDefault(const Constant(0))();
   DateTimeColumn get endDate => dateTime().nullable()();
+  IntColumn get venueCourtId => integer().nullable().references(Courts, #id, onDelete: KeyAction.setNull)();
 
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 }
@@ -132,6 +133,9 @@ class Courts extends Table {
   TextColumn get linesStatus => text().withDefault(const Constant('visibili'))();
   BoolColumn get hasLights => boolean().withDefault(const Constant(true))();
   IntColumn get stars => integer().withDefault(const Constant(3))();
+  TextColumn get cloudId => text().nullable()(); 
+  TextColumn get source => text().withDefault(const Constant('trnmnt'))(); // 'trnmnt' or 'osm'
+  TextColumn get osmId => text().nullable()(); // Added for OSM tracking
   
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 }
@@ -141,7 +145,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 18;
+  int get schemaVersion => 20;
 
   @override
   MigrationStrategy get migration {
@@ -203,11 +207,31 @@ class AppDatabase extends _$AppDatabase {
           await m.addColumn(this.tournaments, this.tournaments.youtubeVideoId);
         }
         if (from < 17) {
-          await m.addColumn(tournaments, tournaments.courtCount);
-          await m.addColumn(tournaments, tournaments.lunchDuration);
+          await m.addColumn(this.tournaments, this.tournaments.courtCount);
+          await m.addColumn(this.tournaments, this.tournaments.lunchDuration);
         }
         if (from < 18) {
-          await m.addColumn(tournaments, tournaments.endDate);
+          await m.addColumn(this.tournaments, this.tournaments.endDate);
+        }
+        if (from < 19) {
+          await m.addColumn(this.tournaments, this.tournaments.venueCourtId);
+          await m.addColumn(this.courts, this.courts.cloudId);
+          await m.addColumn(this.courts, this.courts.source);
+          await m.addColumn(this.courts, this.courts.osmId);
+        }
+        if (from < 20) {
+          // Rescue migration just in case v19 failed
+          Future<void> addColumnSafely(TableInfo table, GeneratedColumn column) async {
+            try {
+              await m.addColumn(table, column);
+            } catch (e) {
+              // Column probably exists
+            }
+          }
+          await addColumnSafely(courts, courts.source);
+          await addColumnSafely(courts, courts.osmId);
+          await addColumnSafely(courts, courts.cloudId);
+          await addColumnSafely(tournaments, tournaments.venueCourtId);
         }
       },
     );

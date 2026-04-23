@@ -65,6 +65,7 @@ class _TournamentSetupScreenState extends ConsumerState<TournamentSetupScreen> {
   List<OsmCourt> _nearbyOsmCourts = [];
   bool _isSearchingOsm = false;
   String? _lastOsmError;
+  int? _selectedVenueCourtId; // Official DB association
 
   @override
   void dispose() {
@@ -107,6 +108,7 @@ class _TournamentSetupScreenState extends ConsumerState<TournamentSetupScreen> {
         courtCount: _courtCount,
         lunchDuration: _lunchDuration,
         endDate: _endDate,
+        venueCourtId: _selectedVenueCourtId,
       );
 
       await repo.setTournamentTeams(tournamentId, _selectedTeamIds, teamToGroup: _isMultiGroup ? _teamToGroup : null);
@@ -594,7 +596,7 @@ class _TournamentSetupScreenState extends ConsumerState<TournamentSetupScreen> {
   }
 
   void _showCourtsPicker() async {
-    final selectedName = await showModalBottomSheet<String>(
+    final selection = await showModalBottomSheet<CourtSelection>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
@@ -604,8 +606,13 @@ class _TournamentSetupScreenState extends ConsumerState<TournamentSetupScreen> {
       ),
     );
 
-    if (selectedName != null && mounted) {
-      setState(() => _locationController.text = selectedName);
+    if (selection != null && mounted) {
+      setState(() {
+        _locationController.text = selection.name;
+        _selectedVenueCourtId = selection.localId;
+        _suggestions = [];
+        _nearbyOsmCourts = [];
+      });
     }
   }
 

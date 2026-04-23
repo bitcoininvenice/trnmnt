@@ -89,6 +89,13 @@ class ShareRepository {
 
     final activeCommunity = await _communityRepo.getActiveCommunity(null);
     final tournamentMap = tournament.toJson();
+    if (tournament.venueCourtId != null) {
+      final court = await (_db.select(_db.courts)..where((c) => c.id.equals(tournament.venueCourtId!))).getSingleOrNull();
+      if (court != null && court.cloudId != null) {
+         tournamentMap['venue_court_id'] = court.cloudId;
+      }
+    }
+
     if (activeCommunity != null && tournament.communityId == activeCommunity.id) {
       tournamentMap['communityName'] = activeCommunity.name;
     }
@@ -177,6 +184,7 @@ class ShareRepository {
           'data': export,
           'community_id': communityId,
           'community_slug': slug,
+          'venue_court_id': (export['tournament'] as Map?)?['venue_court_id'],
           'last_updated': DateTime.now().toIso8601String(),
         }).select('id').single();
         
@@ -195,6 +203,7 @@ class ShareRepository {
           'data': export,
           'community_id': communityId,
           'community_slug': slug,
+          'venue_court_id': (export['tournament'] as Map?)?['venue_court_id'],
           'last_updated': DateTime.now().toIso8601String(),
         }).eq('id', cloudId);
       }

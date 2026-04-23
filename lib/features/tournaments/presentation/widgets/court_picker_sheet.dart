@@ -7,6 +7,16 @@ import 'package:trnmnt/core/providers/osm_settings_provider.dart';
 import 'package:trnmnt/core/services/geocoding_service.dart';
 import 'dart:async';
 
+class CourtSelection {
+  final String name;
+  final int? localId;
+  final String? osmId;
+  final double? lat;
+  final double? lon;
+
+  CourtSelection({required this.name, this.localId, this.osmId, this.lat, this.lon});
+}
+
 class CourtPickerSheet extends ConsumerStatefulWidget {
   const CourtPickerSheet({super.key});
 
@@ -102,7 +112,12 @@ class _CourtPickerSheetState extends ConsumerState<CourtPickerSheet> {
                             leading: const CircleAvatar(backgroundColor: Colors.orange, child: Icon(Icons.sports_basketball, size: 16, color: Colors.white)),
                             title: Text(court.name, style: const TextStyle(fontWeight: FontWeight.bold)),
                             subtitle: Text('Valutazione: ${"⭐" * court.stars}', style: const TextStyle(fontSize: 12)),
-                            onTap: () => Navigator.pop(context, court.name),
+                            onTap: () => Navigator.pop(context, CourtSelection(
+                              name: court.name,
+                              localId: court.id,
+                              lat: court.latitude,
+                              lon: court.longitude,
+                            )),
                           );
                         },
                       );
@@ -143,7 +158,12 @@ class _CourtPickerSheetState extends ConsumerState<CourtPickerSheet> {
                                       leading: const CircleAvatar(backgroundColor: Colors.blue, child: Icon(Icons.stars, size: 16, color: Colors.white)),
                                       title: Text(court.name, style: const TextStyle(fontWeight: FontWeight.bold)),
                                       subtitle: Text(court.address ?? 'Campetto Pubblico'),
-                                      onTap: () => Navigator.pop(context, court.name),
+                                      onTap: () => Navigator.pop(context, CourtSelection(
+                                        name: court.name,
+                                        osmId: court.id,
+                                        lat: court.lat,
+                                        lon: court.lon,
+                                      )),
                                     );
                                   },
                                 ),
