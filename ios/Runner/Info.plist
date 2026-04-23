@@ -51,14 +51,6 @@
 		<string>This app needs camera access to scan tournament QR codes.</string>
 		<key>NSPhotoLibraryUsageDescription</key>
 		<string>This app needs gallery access to upload team and tournament logos.</string>
-		<key>NSMicrophoneUsageDescription</key>
-		<string>This app needs microphone access for video features (if used).</string>
-		<key>NSLocalNetworkUsageDescription</key>
-		<string>This app needs access to your local network to share tournament data with nearby devices.</string>
-		<key>NSAppTransportSecurity</key>
-		<dict>
-			<key>NSAllowsLocalNetworking</key>
-			<true/>
-		</dict>
+
 	</dict>
 </plist>

@@ -305,8 +305,6 @@
   "activeTournamentMatch": "PARTITA TORNEO LIVE",
   "future": "Futuri",
   "past": "Passati",
-  "mapDataSourceLocal": "Aggiunti in app",
-  "mapDataSourcePickRoll": "Fonte Pick&Roll",
   "syncSuccess": "Sincronizzato sul Cloud! ☁️🏀",
   "webResult": "Risultati Web",
   "coManagement": "Co-Gestione",
@@ -421,5 +419,38 @@
   "hubSubtitle": "Hub aggiornamenti e risultati live",
   "defaultHomeScreen": "Schermata Iniziale",
   "dashboard": "Dashboard",
-  "hub": "HUB"
+  "hub": "HUB",
+  "mapSettings": "Impostazioni Mappa",
+  "enableOsmData": "Abilita dati OpenStreetMap",
+  "osmDataDesc": "Mostra i campetti pubblici censiti su OSM.",
+  "mapDataSourceOsm": "Fonte OpenStreetMap",
+  "mapDataSourceLocal": "TRNMNT app",
+  "syncOsm": "Sincronizzazione OSM...",
+  "searchInArea": "CERCA IN QUESTA ZONA",
+  "tapMapToAdd": "TOCCA LA MAPPA PER AGGIUNGERE UN CAMPETTO",
+  "addressLabel": "INDIRIZZO:",
+  "surfaceLabel": "SUPERFICIE:",
+  "hoopsLabel": "CANESTRI:",
+  "litLabel": "ILLUMINAZIONE:",
+  "accessLabel": "ACCESSO:",
+  "otherSportsLabel": "ALTRI SPORT:",
+  "lastCheckLabel": "ULTIMO CONTROLLO:",
+  "osmSourceInfo": "FONTE: OpenStreetMap",
+  "addToMyCourts": "AGGIUNGI AI MIEI",
+  "netsStatusLabel": "Stato reti",
+  "starsLabel": "Stelle:",
+  "netsLabel": "Reti:",
+  "osmFoundCount": "OSM: Trovati {count} campetti",
+  "@osmFoundCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "osmFoundCount_desc": "Messaggio di conferma dei risultati trovati su OSM",
+  "courtSaved": "Campetto salvato!",
+  "searchingOsmNearby": "CERCO CAMPETTI OSM VICINI...",
+  "noOsmCourtsFound": "NESSUN CAMPETTO OSM TROVATO IN QUESTA ZONA",
+  "osmResultsTitle": "RISULTATI OPENSTREETMAP"
 }

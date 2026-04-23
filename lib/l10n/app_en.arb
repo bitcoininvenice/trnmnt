@@ -305,8 +305,6 @@
   "activeTournamentMatch": "LIVE TOURNAMENT MATCH",
   "future": "Future",
   "past": "Past",
-  "mapDataSourceLocal": "Added in-app",
-  "mapDataSourcePickRoll": "Pick&Roll Source",
   "syncSuccess": "Synced to Cloud! ☁️🏀",
   "webResult": "Web Results",
   "coManagement": "Co-Management",
@@ -421,5 +419,38 @@
   "hubSubtitle": "Hub updates and live results",
   "defaultHomeScreen": "Default Home Screen",
   "dashboard": "Dashboard",
-  "hub": "HUB"
+  "hub": "HUB",
+  "mapSettings": "Map Settings",
+  "enableOsmData": "Enable OpenStreetMap data",
+  "osmDataDesc": "Show public street courts from OSM.",
+  "mapDataSourceOsm": "OpenStreetMap Source",
+  "mapDataSourceLocal": "TRNMNT app",
+  "syncOsm": "Syncing OSM...",
+  "searchInArea": "SEARCH IN THIS AREA",
+  "tapMapToAdd": "TAP THE MAP TO ADD A COURT",
+  "addressLabel": "ADDRESS:",
+  "surfaceLabel": "SURFACE:",
+  "hoopsLabel": "HOOPS:",
+  "litLabel": "LIGHTING:",
+  "accessLabel": "ACCESS:",
+  "otherSportsLabel": "OTHER SPORTS:",
+  "lastCheckLabel": "LAST CHECK:",
+  "osmSourceInfo": "SOURCE: OpenStreetMap",
+  "addToMyCourts": "ADD TO MINE",
+  "netsStatusLabel": "Nets Status",
+  "starsLabel": "Stars:",
+  "netsLabel": "Nets:",
+  "osmFoundCount": "OSM: Found {count} courts",
+  "@osmFoundCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "osmFoundCount_desc": "Confirmation message for OSM search results",
+  "courtSaved": "Court saved!",
+  "searchingOsmNearby": "SEARCHING FOR NEARBY OSM COURTS...",
+  "noOsmCourtsFound": "NO OSM COURTS FOUND IN THIS AREA",
+  "osmResultsTitle": "OPENSTREETMAP RESULTS"
 }

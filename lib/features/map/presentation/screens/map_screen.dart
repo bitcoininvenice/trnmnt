@@ -2,13 +2,17 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:drift/drift.dart' as drift;
-import '../../../../core/database/app_database.dart';
-import '../../data/courts_repository.dart';
-import '../../data/pickroll_repository.dart';
+import 'package:trnmnt/core/database/app_database.dart';
+import 'package:trnmnt/features/map/data/courts_repository.dart';
+import 'package:trnmnt/features/map/data/osm_repository.dart';
+import 'package:trnmnt/core/providers/osm_settings_provider.dart';
 import 'package:trnmnt/generated/l10n/app_localizations.dart';
+
+enum MapDataSource { local, osm }
 
 class MapScreen extends ConsumerStatefulWidget {
   const MapScreen({super.key});
@@ -21,12 +25,13 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   final MapController _mapController = MapController();
   final LatLng _defaultCenter = const LatLng(45.4408, 12.3155); // Venice
   bool _isAddingMode = false;
-  bool _isSatellite = false;
-  
-  int _dataSourceIndex = 0; // 0: TRNMNT, 1: Pick&Roll
-  Set<int> _selectedSources = {0}; 
+  bool _isSatellite = true;
   LatLng _searchCenter = const LatLng(45.4408, 12.3155);
-  Timer? _debounceTimer;
+  
+  MapDataSource _selectedSource = MapDataSource.local;
+  List<OsmCourt> _osmCourts = [];
+  bool _isFetchingOsm = false;
+  Timer? _osmDebounce;
 
   @override
   void initState() {
@@ -36,7 +41,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
   @override
   void dispose() {
-    _debounceTimer?.cancel();
+    _osmDebounce?.cancel();
+    _mapController.dispose();
     super.dispose();
   }
 
@@ -47,8 +53,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     final zoom = prefs.getDouble('map_zoom');
     
     if (lat != null && lng != null && zoom != null) {
-       _mapController.move(LatLng(lat, lng), zoom);
-       if (mounted) setState(() => _searchCenter = LatLng(lat, lng));
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _mapController.move(LatLng(lat, lng), zoom);
+      });
     }
   }
 
@@ -62,8 +69,54 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context)!.positionSaved)),
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.positionSaved),
+          behavior: SnackBarBehavior.floating,
+        ),
       );
+    }
+  }
+
+  void _fetchOsmCourts({bool immediate = false}) {
+    if (_osmDebounce?.isActive ?? false) _osmDebounce!.cancel();
+    
+    final fetchAction = () async {
+      if (!mounted || _selectedSource != MapDataSource.osm) return;
+
+      setState(() => _isFetchingOsm = true);
+      try {
+        final center = _mapController.camera.center;
+        final courts = await ref.read(osmRepositoryProvider).fetchNearbyCourts(
+          center.latitude, 
+          center.longitude,
+          radius: 10000,
+        );
+        if (mounted) {
+          setState(() => _osmCourts = courts);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(AppLocalizations.of(context)!.osmFoundCount(courts.length)),
+              duration: const Duration(seconds: 2),
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: Colors.blueAccent,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+          );
+        }
+      } finally {
+        if (mounted) setState(() => _isFetchingOsm = false);
+      }
+    };
+
+    if (immediate) {
+      fetchAction();
+    } else {
+      _osmDebounce = Timer(const Duration(milliseconds: 1000), fetchAction);
     }
   }
 
@@ -75,19 +128,27 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     _mapController.move(_mapController.camera.center, _mapController.camera.zoom - 1);
   }
 
-  void _showAddCourtForm(LatLng position) {
-    if (!_isAddingMode) return;
+  void _showAddCourtForm(LatLng position, {String? name, String? description, int? hoops, bool? lights}) {
+    if (!_isAddingMode && name == null) return;
     
     setState(() => _isAddingMode = false);
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      builder: (context) => Padding(
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
         padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
         child: AddCourtForm(
           position: position,
+          initialName: name,
+          initialDescription: description,
+          initialHoops: hoops,
+          initialLights: lights,
           onSave: (name, description, hoops, nets, courtStatus, linesStatus, hasLights, stars) async {
             final repo = ref.read(courtsRepositoryProvider);
             await repo.insertCourt(CourtsCompanion.insert(
@@ -102,8 +163,13 @@ class _MapScreenState extends ConsumerState<MapScreen> {
               hasLights: drift.Value(hasLights),
               stars: drift.Value(stars),
             ));
-            ref.invalidate(courtsProvider);
-            if (context.mounted) Navigator.pop(context);
+            if (mounted) {
+              setState(() => _selectedSource = MapDataSource.local);
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(AppLocalizations.of(context)!.courtSaved)),
+              );
+            }
           },
         ),
       ),
@@ -113,47 +179,88 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   void _showCourtDetails(Court court) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      builder: (context) => Padding(
-        padding: const EdgeInsets.all(24.0),
+      backgroundColor: Colors.transparent,
+      builder: (context) => _DetailsSheet(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(court.name, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+            Text(court.name.toUpperCase(), style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900)),
             const SizedBox(height: 8),
-            if (court.description != null && court.description!.isNotEmpty) ...[
-              Text(court.description!, style: const TextStyle(fontSize: 16)),
-              const SizedBox(height: 16),
-            ],
-            Row(
-              children: [
-                const Icon(Icons.sports_basketball, color: Colors.orange),
-                const SizedBox(width: 8),
-                Text(AppLocalizations.of(context)!.hoopsCount(court.hoops)),
+            if (court.description != null && court.description!.isNotEmpty)
+              Text(court.description!, style: const TextStyle(fontSize: 14, color: Colors.grey)),
+            const SizedBox(height: 16),
+            _DetailGrid(
+              items: [
+                _DetailItem(icon: Icons.sports_basketball, label: AppLocalizations.of(context)!.hoops, value: court.hoops.toString(), color: Colors.orange),
+                _DetailItem(icon: Icons.grid_on, label: AppLocalizations.of(context)!.netsLabel, value: _translateNets(context, court.netsStatus ?? 'N/D'), color: Colors.blue),
+                _DetailItem(icon: Icons.lightbulb, label: AppLocalizations.of(context)!.litLabel, value: court.hasLights == true ? AppLocalizations.of(context)!.yes : AppLocalizations.of(context)!.no, color: Colors.yellow),
+                _DetailItem(icon: Icons.star, label: AppLocalizations.of(context)!.rating, value: "${court.stars}/5", color: Colors.amber),
               ],
             ),
-            const SizedBox(height: 8),
-            Text('${AppLocalizations.of(context)!.netsTitle}: ${_translateNets(context, court.netsStatus)}'),
-            const SizedBox(height: 8),
-            Text('${AppLocalizations.of(context)!.courtTitle}: ${_translateCourt(context, court.courtStatus)}'),
-            const SizedBox(height: 8),
-            Text('${AppLocalizations.of(context)!.linesTitle}: ${_translateLines(context, court.linesStatus)}'),
-            const SizedBox(height: 8),
-            Text('${AppLocalizations.of(context)!.lightsTitle}: ${court.hasLights ? AppLocalizations.of(context)!.yes : AppLocalizations.of(context)!.no}'),
-            const SizedBox(height: 16),
-            Text(AppLocalizations.of(context)!.starsCount(court.stars)),
-            const SizedBox(height: 8),
+            const SizedBox(height: 24),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showOsmCourtDetails(OsmCourt court) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _DetailsSheet(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
             Row(
-              children: List.generate(
-                5,
-                (index) => Icon(
-                  index < court.stars ? Icons.star : Icons.star_border,
-                  color: Colors.amber,
-                ),
-              ),
+              children: [
+                const Icon(Icons.public, color: Colors.blueAccent),
+                const SizedBox(width: 8),
+                Expanded(child: Text(court.name.toUpperCase(), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900))),
+              ],
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 16),
+            if (court.address != null) ...[
+              Text(AppLocalizations.of(context)!.addressLabel, style: const TextStyle(color: Colors.grey, fontSize: 10, fontWeight: FontWeight.bold)),
+              Text(court.address!, style: const TextStyle(fontSize: 14)),
+              const SizedBox(height: 12),
+            ],
+            _DetailGrid(
+              items: [
+                if (court.surface != null) _DetailItem(icon: Icons.layers, label: AppLocalizations.of(context)!.surfaceLabel, value: court.surface!.toUpperCase(), color: Colors.cyan),
+                if (court.hoops != null) _DetailItem(icon: Icons.sports_basketball, label: AppLocalizations.of(context)!.hoopsLabel, value: court.hoops!, color: Colors.orange),
+                if (court.lit != null) _DetailItem(icon: Icons.wb_sunny, label: AppLocalizations.of(context)!.litLabel, value: court.lit == 'yes' ? AppLocalizations.of(context)!.yes : AppLocalizations.of(context)!.no, color: Colors.yellow),
+                if (court.access != null) _DetailItem(icon: Icons.door_front_door, label: AppLocalizations.of(context)!.accessLabel, value: court.access!.toUpperCase(), color: Colors.greenAccent),
+              ],
+            ),
+            const SizedBox(height: 16),
+            if (court.checkDate != null)
+              Text("${AppLocalizations.of(context)!.lastCheckLabel} ${court.checkDate}", style: const TextStyle(fontSize: 11, color: Colors.grey, fontStyle: FontStyle.italic)),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(child: TextButton(onPressed: () => Navigator.pop(context), child: Text(AppLocalizations.of(context)!.close))),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent),
+                    onPressed: () {
+                      Navigator.pop(context);
+                      _showAddCourtForm(
+                        LatLng(court.lat, court.lon),
+                        name: court.name,
+                        description: 'OSM: ${court.address ?? ''}\nSurface: ${court.surface ?? ''}',
+                        hoops: int.tryParse(court.hoops ?? '2'),
+                        lights: court.lit == 'yes',
+                      );
+                    },
+                    child: Text(AppLocalizations.of(context)!.addToMyCourts, style: const TextStyle(color: Colors.white, fontSize: 12)),
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
       ),
@@ -170,119 +277,23 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     }
   }
 
-  String _translateCourt(BuildContext context, String value) {
-    switch (value) {
-      case 'ben mantenuto': return AppLocalizations.of(context)!.wellMaintained;
-      case 'giocabile': return AppLocalizations.of(context)!.playable;
-      case 'preso male': return AppLocalizations.of(context)!.poorCondition;
-      default: return value;
-    }
-  }
-
-  String _translateLines(BuildContext context, String value) {
-    switch (value) {
-      case 'ben definite': return AppLocalizations.of(context)!.wellDefined;
-      case 'visibili': return AppLocalizations.of(context)!.visible;
-      case 'rovinate': return AppLocalizations.of(context)!.damaged;
-      default: return value;
-    }
-  }
-
-  void _showPickrollDetails(PickrollCourt court) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      builder: (context) => Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const Icon(Icons.public, color: Colors.blue),
-                const SizedBox(width: 8),
-                Text('Pick&Roll Street Court', style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold, fontSize: 12)),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(court.name, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            if (court.address != null) ...[
-              Text(court.address!, style: const TextStyle(fontSize: 16)),
-              const SizedBox(height: 16),
-            ],
-            const SizedBox(height: 32),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _onMapPositionChanged(MapCamera camera, bool hasGesture) {
-    if (!hasGesture || !_selectedSources.contains(1)) return;
-    
-    if (_debounceTimer?.isActive ?? false) _debounceTimer!.cancel();
-    _debounceTimer = Timer(const Duration(milliseconds: 800), () {
-      if (mounted) {
-        setState(() => _searchCenter = camera.center);
-      }
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     final courtsAsync = ref.watch(courtsProvider);
-    final pickrollAsync = ref.watch(pickrollCourtsProvider(_searchCenter));
-    
-    ref.listen(pickrollCourtsProvider(_searchCenter), (prev, next) {
-      if (next.hasError && _selectedSources.contains(1)) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Errore connessione API Pick&Roll: ${next.error}'), backgroundColor: Colors.red),
-          );
-        }
-      }
-    });
+    final osmEnabled = ref.watch(osmSettingsProvider);
 
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(
-        title: Text(AppLocalizations.of(context)!.courtsMap),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(60),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-            child: SegmentedButton<int>(
-              segments: [
-                ButtonSegment(value: 0, label: Text(AppLocalizations.of(context)!.mapDataSourceLocal), icon: const Icon(Icons.people)),
-                ButtonSegment(value: 1, label: Text(AppLocalizations.of(context)!.mapDataSourcePickRoll), icon: const Icon(Icons.public)),
-              ],
-              selected: _selectedSources,
-              multiSelectionEnabled: true,
-              onSelectionChanged: (set) {
-                if (set.isEmpty) return; // Must select at least one
-                setState(() {
-                  _selectedSources = set;
-                  if (_selectedSources.contains(1)) {
-                    _searchCenter = _mapController.camera.center;
-                  }
-                });
-              },
-            ),
-          ),
-        ),
+        title: Text(AppLocalizations.of(context)!.courtsMap, style: const TextStyle(fontWeight: FontWeight.w900)),
       ),
       body: Stack(
         children: [
-          Container(color: Theme.of(context).colorScheme.surface), // Background for offline
           FlutterMap(
             mapController: _mapController,
             options: MapOptions(
-              initialCenter: _defaultCenter,
+              initialCenter: _searchCenter,
               initialZoom: 13.0,
               onTap: (tapPosition, point) => _showAddCourtForm(point),
-              onPositionChanged: _onMapPositionChanged,
             ),
             children: [
               TileLayer(
@@ -291,167 +302,271 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                   : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                 userAgentPackageName: 'com.trnmnt.app',
               ),
-              if (_selectedSources.contains(0))
+              if (_selectedSource == MapDataSource.local)
                 courtsAsync.when(
                   data: (courts) => MarkerLayer(
-                    markers: courts.map((c) => Marker(
-                      point: LatLng(c.latitude, c.longitude),
+                    markers: courts.map((court) => Marker(
+                      point: LatLng(court.latitude, court.longitude),
                       width: 40,
                       height: 40,
-                      child: GestureDetector(
-                        onTap: () => _showCourtDetails(c),
-                        child: const Icon(
-                          Icons.location_on,
-                          color: Colors.orange,
-                          size: 40,
-                        ),
+                      child: _CourtMarker(
+                        color: Colors.orange,
+                        icon: Icons.sports_basketball,
+                        onTap: () => _showCourtDetails(court),
                       ),
                     )).toList(),
                   ),
                   loading: () => const MarkerLayer(markers: []),
-                  error: (e, s) => const MarkerLayer(markers: []),
+                  error: (_, __) => const MarkerLayer(markers: []),
                 ),
-              if (_selectedSources.contains(1))
-                pickrollAsync.when(
-                  data: (courts) => MarkerLayer(
-                    markers: courts.map((c) => Marker(
-                      point: LatLng(c.lat, c.lng),
-                      width: 50,
-                      height: 50,
-                      child: GestureDetector(
-                        onTap: () => _showPickrollDetails(c),
-                        child: const Icon(
-                          Icons.location_on,
-                          color: Colors.orange,
-                          size: 40,
-                        ),
-                      ),
-                    )).toList(),
-                  ),
-                  loading: () => const MarkerLayer(markers: []),
-                  error: (e, s) => const MarkerLayer(markers: []),
+              if (_selectedSource == MapDataSource.osm && osmEnabled)
+                MarkerLayer(
+                  markers: _osmCourts.map((court) => Marker(
+                    point: LatLng(court.lat, court.lon),
+                    width: 40,
+                    height: 40,
+                    child: _CourtMarker(
+                      color: Colors.blueAccent,
+                      icon: Icons.public,
+                      onTap: () => _showOsmCourtDetails(court),
+                    ),
+                  )).toList(),
                 ),
             ],
           ),
-          if (_selectedSources.contains(1) && pickrollAsync.isLoading)
-            const Positioned(
-              bottom: 100,
-              left: 40,
-              right: 40,
-              child: Card(
-                elevation: 4,
-                child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
-                      SizedBox(width: 16),
-                      Text('Sincronizzazione Pick&Roll...', style: TextStyle(fontWeight: FontWeight.bold)),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          if (_isAddingMode)
+
+          // Source Selector
+          if (osmEnabled)
             Positioned(
               top: 16,
               left: 16,
               right: 16,
-              child: Card(
-                color: Colors.orange,
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        AppLocalizations.of(context)!.tapMapInstruction,
-                        style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.close, color: Colors.white),
-                        onPressed: () => setState(() => _isAddingMode = false),
-                      )
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(color: Colors.black54, borderRadius: BorderRadius.circular(20)),
+                  child: SegmentedButton<MapDataSource>(
+                    style: SegmentedButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      selectedBackgroundColor: Colors.white24,
+                      side: BorderSide.none,
+                    ),
+                    segments: [
+                      ButtonSegment(value: MapDataSource.local, label: Text(AppLocalizations.of(context)!.mapDataSourceLocal, style: const TextStyle(fontSize: 11)), icon: const Icon(Icons.person_pin, size: 16)),
+                      ButtonSegment(value: MapDataSource.osm, label: Text(AppLocalizations.of(context)!.mapDataSourceOsm, style: const TextStyle(fontSize: 11)), icon: const Icon(Icons.public, size: 16)),
                     ],
+                    selected: {_selectedSource},
+                    onSelectionChanged: (set) => setState(() => _selectedSource = set.first),
                   ),
                 ),
               ),
             ),
-        ],
-      ),
-      floatingActionButton: !_isAddingMode
-          ? Column(
-              mainAxisAlignment: MainAxisAlignment.end,
+
+          if (osmEnabled && _selectedSource == MapDataSource.osm)
+            Positioned(
+              bottom: 110,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: _isFetchingOsm 
+                  ? Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(color: Colors.black87, borderRadius: BorderRadius.circular(20)),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2)),
+                          const SizedBox(width: 10),
+                          Text(AppLocalizations.of(context)!.syncOsm, style: const TextStyle(color: Colors.white, fontSize: 12)),
+                        ],
+                      ),
+                    )
+                  : ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent),
+                      onPressed: () => _fetchOsmCourts(immediate: true),
+                      icon: const Icon(Icons.refresh, color: Colors.white),
+                      label: Text(AppLocalizations.of(context)!.searchInArea, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    ),
+              ),
+            ),
+
+          if (_isAddingMode)
+            Positioned(
+              top: 80,
+              left: 20,
+              right: 20,
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(color: Colors.orange, borderRadius: BorderRadius.circular(12)),
+                child: Text(AppLocalizations.of(context)!.tapMapToAdd, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              ),
+            ),
+
+          Positioned(
+            bottom: 24,
+            right: 16,
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                FloatingActionButton(
-                  heroTag: 'saveCenter',
-                  mini: true,
-                  backgroundColor: Theme.of(context).cardColor,
-                  foregroundColor: Theme.of(context).colorScheme.onSurface,
-                  onPressed: _saveMapCenter,
-                  child: const Icon(Icons.bookmark),
-                ),
+                _MapFab(icon: Icons.save, onTap: _saveMapCenter),
                 const SizedBox(height: 8),
-                FloatingActionButton(
-                  heroTag: 'layerToggle',
-                  mini: true,
-                  backgroundColor: Theme.of(context).cardColor,
-                  foregroundColor: Theme.of(context).colorScheme.primary,
-                  onPressed: () => setState(() => _isSatellite = !_isSatellite),
-                  child: Icon(_isSatellite ? Icons.map : Icons.satellite),
-                ),
+                _MapFab(icon: _isSatellite ? Icons.map : Icons.satellite, onTap: () => setState(() => _isSatellite = !_isSatellite)),
                 const SizedBox(height: 8),
-                FloatingActionButton(
-                  heroTag: 'zoomIn',
-                  mini: true,
-                  backgroundColor: Theme.of(context).cardColor,
-                  foregroundColor: Theme.of(context).colorScheme.onSurface,
-                  onPressed: _zoomIn,
-                  child: const Icon(Icons.add),
-                ),
+                _MapFab(icon: Icons.add, onTap: _zoomIn),
                 const SizedBox(height: 8),
-                FloatingActionButton(
-                  heroTag: 'zoomOut',
-                  mini: true,
-                  backgroundColor: Theme.of(context).cardColor,
-                  foregroundColor: Theme.of(context).colorScheme.onSurface,
-                  onPressed: _zoomOut,
-                  child: const Icon(Icons.remove),
-                ),
+                _MapFab(icon: Icons.remove, onTap: _zoomOut),
                 const SizedBox(height: 16),
                 FloatingActionButton.extended(
-                  heroTag: 'addCourt',
+                  heroTag: 'add_court_fab',
+                  backgroundColor: Colors.orange,
                   onPressed: () => setState(() => _isAddingMode = true),
-                  icon: const Icon(Icons.add_location),
-                  label: Text(AppLocalizations.of(context)!.addAction),
+                  icon: const Icon(Icons.add_location_alt, color: Colors.white),
+                  label: Text(AppLocalizations.of(context)!.addAction, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                 ),
               ],
-            )
-          : null,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CourtMarker extends StatelessWidget {
+  final Color color;
+  final IconData icon;
+  final VoidCallback onTap;
+  const _CourtMarker({required this.color, required this.icon, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.9),
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.white, width: 2),
+        ),
+        child: Icon(icon, color: Colors.white, size: 18),
+      ),
+    );
+  }
+}
+
+class _DetailsSheet extends StatelessWidget {
+  final Widget child;
+  const _DetailsSheet({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).scaffoldBackgroundColor,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      padding: const EdgeInsets.all(24),
+      child: child,
+    );
+  }
+}
+
+class _MapFab extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+  const _MapFab({required this.icon, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return FloatingActionButton.small(
+      onPressed: onTap,
+      backgroundColor: Colors.black54,
+      child: Icon(icon, color: Colors.white),
+    );
+  }
+}
+
+class _DetailGrid extends StatelessWidget {
+  final List<_DetailItem> items;
+  const _DetailGrid({required this.items});
+
+  @override
+  Widget build(BuildContext context) {
+    return GridView.count(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      crossAxisCount: 2,
+      childAspectRatio: 2.8,
+      mainAxisSpacing: 10,
+      crossAxisSpacing: 10,
+      children: items,
+    );
+  }
+}
+
+class _DetailItem extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+  final Color color;
+
+  const _DetailItem({required this.icon, required this.label, required this.value, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(10)),
+      child: Row(
+        children: [
+          Icon(icon, color: color, size: 16),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(label.toUpperCase(), style: const TextStyle(fontSize: 7, color: Colors.grey, fontWeight: FontWeight.bold)),
+                Text(value, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, overflow: TextOverflow.ellipsis)),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
 
 class AddCourtForm extends StatefulWidget {
   final LatLng position;
+  final String? initialName;
+  final String? initialDescription;
+  final int? initialHoops;
+  final bool? initialLights;
   final Function(String name, String description, int hoops, String nets, String court, String lines, bool lights, int stars) onSave;
 
-  const AddCourtForm({super.key, required this.position, required this.onSave});
+  const AddCourtForm({
+    super.key, 
+    required this.position, 
+    required this.onSave,
+    this.initialName,
+    this.initialDescription,
+    this.initialHoops,
+    this.initialLights,
+  });
 
   @override
   State<AddCourtForm> createState() => _AddCourtFormState();
 }
 
 class _AddCourtFormState extends State<AddCourtForm> {
-  final _nameController = TextEditingController();
-  final _descController = TextEditingController();
-  int _hoops = 2;
+  late final _nameController = TextEditingController(text: widget.initialName);
+  late final _descController = TextEditingController(text: widget.initialDescription);
+  late int _hoops = widget.initialHoops ?? 2;
   String _nets = 'stoffa';
   String _court = 'giocabile';
   String _lines = 'visibili';
-  bool _lights = true;
+  late bool _lights = widget.initialLights ?? true;
   int _stars = 3;
 
   @override
@@ -471,82 +586,43 @@ class _AddCourtFormState extends State<AddCourtForm> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(AppLocalizations.of(context)!.newCourtTitle, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 16),
-            TextField(controller: _nameController, decoration: InputDecoration(labelText: AppLocalizations.of(context)!.nameLabel)),
-            TextField(controller: _descController, decoration: InputDecoration(labelText: AppLocalizations.of(context)!.descLabel)),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
+            TextField(controller: _nameController, decoration: InputDecoration(labelText: AppLocalizations.of(context)!.nameLabel, border: const OutlineInputBorder())),
+            const SizedBox(height: 12),
+            TextField(controller: _descController, maxLines: 2, decoration: InputDecoration(labelText: AppLocalizations.of(context)!.descLabel, border: const OutlineInputBorder())),
+            const SizedBox(height: 20),
             Row(
               children: [
-                Text('${AppLocalizations.of(context)!.hoops}:'),
+                const Icon(Icons.sports_basketball, color: Colors.orange),
+                const SizedBox(width: 8),
+                Text(AppLocalizations.of(context)!.hoops),
                 const Spacer(),
-                IconButton(icon: const Icon(Icons.remove), onPressed: () => setState(() => _hoops = _hoops > 1 ? _hoops - 1 : 1)),
-                Text(_hoops.toString()),
-                IconButton(icon: const Icon(Icons.add), onPressed: () => setState(() => _hoops++)),
+                IconButton(icon: const Icon(Icons.remove_circle_outline), onPressed: () => setState(() => _hoops = _hoops > 1 ? _hoops - 1 : 1)),
+                Text(_hoops.toString(), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                IconButton(icon: const Icon(Icons.add_circle_outline), onPressed: () => setState(() => _hoops = _hoops + 1)),
               ],
             ),
             DropdownButtonFormField<String>(
               value: _nets,
-              decoration: InputDecoration(labelText: AppLocalizations.of(context)!.netsTitle),
-              items: [
-                DropdownMenuItem(value: 'ferro', child: Text(AppLocalizations.of(context)!.metal)),
-                DropdownMenuItem(value: 'stoffa', child: Text(AppLocalizations.of(context)!.cloth)),
-                DropdownMenuItem(value: 'rotte', child: Text(AppLocalizations.of(context)!.broken)),
-                DropdownMenuItem(value: 'non presenti', child: Text(AppLocalizations.of(context)!.notPresent)),
-              ],
+              items: ['stoffa', 'ferro', 'rotte', 'non presenti'].map((v) => DropdownMenuItem(value: v, child: Text(v))).toList(),
               onChanged: (v) => setState(() => _nets = v!),
+              decoration: InputDecoration(labelText: AppLocalizations.of(context)!.netsStatusLabel),
             ),
-            DropdownButtonFormField<String>(
-              value: _court,
-              decoration: InputDecoration(labelText: AppLocalizations.of(context)!.courtTitle),
-              items: [
-                DropdownMenuItem(value: 'ben mantenuto', child: Text(AppLocalizations.of(context)!.wellMaintained)),
-                DropdownMenuItem(value: 'giocabile', child: Text(AppLocalizations.of(context)!.playable)),
-                DropdownMenuItem(value: 'preso male', child: Text(AppLocalizations.of(context)!.poorCondition)),
-              ],
-              onChanged: (v) => setState(() => _court = v!),
-            ),
-            DropdownButtonFormField<String>(
-              value: _lines,
-              decoration: InputDecoration(labelText: AppLocalizations.of(context)!.linesTitle),
-              items: [
-                DropdownMenuItem(value: 'ben definite', child: Text(AppLocalizations.of(context)!.wellDefined)),
-                DropdownMenuItem(value: 'visibili', child: Text(AppLocalizations.of(context)!.visible)),
-                DropdownMenuItem(value: 'rovinate', child: Text(AppLocalizations.of(context)!.damaged)),
-              ],
-              onChanged: (v) => setState(() => _lines = v!),
-            ),
-            SwitchListTile(
-              title: Text(AppLocalizations.of(context)!.lightsTitle),
-              value: _lights,
-              onChanged: (v) => setState(() => _lights = v),
-              contentPadding: EdgeInsets.zero,
-            ),
+            const SizedBox(height: 20),
             Row(
-              children: [
-                Text('${AppLocalizations.of(context)!.rating}:'),
-                const Spacer(),
-                ...List.generate(5, (index) => IconButton(
-                  icon: Icon(index < _stars ? Icons.star : Icons.star_border, color: Colors.amber),
-                  onPressed: () => setState(() => _stars = index + 1),
-                ))
-              ],
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(5, (index) => IconButton(
+                onPressed: () => setState(() => _stars = index + 1),
+                icon: Icon(index < _stars ? Icons.star : Icons.star_border, color: Colors.amber, size: 28),
+              )),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
             ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, padding: const EdgeInsets.symmetric(vertical: 16)),
               onPressed: () {
-                if (_nameController.text.trim().isEmpty) return;
-                widget.onSave(
-                  _nameController.text.trim(),
-                  _descController.text.trim(),
-                  _hoops,
-                  _nets,
-                  _court,
-                  _lines,
-                  _lights,
-                  _stars,
-                );
+                widget.onSave(_nameController.text, _descController.text, _hoops, _nets, _court, _lines, _lights, _stars);
               },
-              child: Text(AppLocalizations.of(context)!.saveAction),
+              child: Text(AppLocalizations.of(context)!.saveAction, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             )
           ],
         ),

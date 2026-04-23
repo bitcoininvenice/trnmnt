@@ -6,6 +6,8 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/intl.dart' as intl;
 
 import 'app_localizations_en.dart';
+import 'app_localizations_es.dart';
+import 'app_localizations_fr.dart';
 import 'app_localizations_it.dart';
 
 // ignore_for_file: type=lint
@@ -95,6 +97,8 @@ abstract class AppLocalizations {
   /// A list of this localizations delegate's supported locales.
   static const List<Locale> supportedLocales = <Locale>[
     Locale('en'),
+    Locale('es'),
+    Locale('fr'),
     Locale('it'),
   ];
 
@@ -1466,18 +1470,6 @@ abstract class AppLocalizations {
   /// **'Passati'**
   String get past;
 
-  /// No description provided for @mapDataSourceLocal.
-  ///
-  /// In it, this message translates to:
-  /// **'Aggiunti in app'**
-  String get mapDataSourceLocal;
-
-  /// No description provided for @mapDataSourcePickRoll.
-  ///
-  /// In it, this message translates to:
-  /// **'Fonte Pick&Roll'**
-  String get mapDataSourcePickRoll;
-
   /// No description provided for @syncSuccess.
   ///
   /// In it, this message translates to:
@@ -2041,6 +2033,162 @@ abstract class AppLocalizations {
   /// In it, this message translates to:
   /// **'HUB'**
   String get hub;
+
+  /// No description provided for @mapSettings.
+  ///
+  /// In it, this message translates to:
+  /// **'Impostazioni Mappa'**
+  String get mapSettings;
+
+  /// No description provided for @enableOsmData.
+  ///
+  /// In it, this message translates to:
+  /// **'Abilita dati OpenStreetMap'**
+  String get enableOsmData;
+
+  /// No description provided for @osmDataDesc.
+  ///
+  /// In it, this message translates to:
+  /// **'Mostra i campetti pubblici censiti su OSM.'**
+  String get osmDataDesc;
+
+  /// No description provided for @mapDataSourceOsm.
+  ///
+  /// In it, this message translates to:
+  /// **'Fonte OpenStreetMap'**
+  String get mapDataSourceOsm;
+
+  /// No description provided for @mapDataSourceLocal.
+  ///
+  /// In it, this message translates to:
+  /// **'TRNMNT app'**
+  String get mapDataSourceLocal;
+
+  /// No description provided for @syncOsm.
+  ///
+  /// In it, this message translates to:
+  /// **'Sincronizzazione OSM...'**
+  String get syncOsm;
+
+  /// No description provided for @searchInArea.
+  ///
+  /// In it, this message translates to:
+  /// **'CERCA IN QUESTA ZONA'**
+  String get searchInArea;
+
+  /// No description provided for @tapMapToAdd.
+  ///
+  /// In it, this message translates to:
+  /// **'TOCCA LA MAPPA PER AGGIUNGERE UN CAMPETTO'**
+  String get tapMapToAdd;
+
+  /// No description provided for @addressLabel.
+  ///
+  /// In it, this message translates to:
+  /// **'INDIRIZZO:'**
+  String get addressLabel;
+
+  /// No description provided for @surfaceLabel.
+  ///
+  /// In it, this message translates to:
+  /// **'SUPERFICIE:'**
+  String get surfaceLabel;
+
+  /// No description provided for @hoopsLabel.
+  ///
+  /// In it, this message translates to:
+  /// **'CANESTRI:'**
+  String get hoopsLabel;
+
+  /// No description provided for @litLabel.
+  ///
+  /// In it, this message translates to:
+  /// **'ILLUMINAZIONE:'**
+  String get litLabel;
+
+  /// No description provided for @accessLabel.
+  ///
+  /// In it, this message translates to:
+  /// **'ACCESSO:'**
+  String get accessLabel;
+
+  /// No description provided for @otherSportsLabel.
+  ///
+  /// In it, this message translates to:
+  /// **'ALTRI SPORT:'**
+  String get otherSportsLabel;
+
+  /// No description provided for @lastCheckLabel.
+  ///
+  /// In it, this message translates to:
+  /// **'ULTIMO CONTROLLO:'**
+  String get lastCheckLabel;
+
+  /// No description provided for @osmSourceInfo.
+  ///
+  /// In it, this message translates to:
+  /// **'FONTE: OpenStreetMap'**
+  String get osmSourceInfo;
+
+  /// No description provided for @addToMyCourts.
+  ///
+  /// In it, this message translates to:
+  /// **'AGGIUNGI AI MIEI'**
+  String get addToMyCourts;
+
+  /// No description provided for @netsStatusLabel.
+  ///
+  /// In it, this message translates to:
+  /// **'Stato reti'**
+  String get netsStatusLabel;
+
+  /// No description provided for @starsLabel.
+  ///
+  /// In it, this message translates to:
+  /// **'Stelle:'**
+  String get starsLabel;
+
+  /// No description provided for @netsLabel.
+  ///
+  /// In it, this message translates to:
+  /// **'Reti:'**
+  String get netsLabel;
+
+  /// No description provided for @osmFoundCount.
+  ///
+  /// In it, this message translates to:
+  /// **'OSM: Trovati {count} campetti'**
+  String osmFoundCount(int count);
+
+  /// No description provided for @osmFoundCount_desc.
+  ///
+  /// In it, this message translates to:
+  /// **'Messaggio di conferma dei risultati trovati su OSM'**
+  String get osmFoundCount_desc;
+
+  /// No description provided for @courtSaved.
+  ///
+  /// In it, this message translates to:
+  /// **'Campetto salvato!'**
+  String get courtSaved;
+
+  /// No description provided for @searchingOsmNearby.
+  ///
+  /// In it, this message translates to:
+  /// **'CERCO CAMPETTI OSM VICINI...'**
+  String get searchingOsmNearby;
+
+  /// No description provided for @noOsmCourtsFound.
+  ///
+  /// In it, this message translates to:
+  /// **'NESSUN CAMPETTO OSM TROVATO IN QUESTA ZONA'**
+  String get noOsmCourtsFound;
+
+  /// No description provided for @osmResultsTitle.
+  ///
+  /// In it, this message translates to:
+  /// **'RISULTATI OPENSTREETMAP'**
+  String get osmResultsTitle;
 }
 
 class _AppLocalizationsDelegate
@@ -2054,7 +2202,7 @@ class _AppLocalizationsDelegate
 
   @override
   bool isSupported(Locale locale) =>
-      <String>['en', 'it'].contains(locale.languageCode);
+      <String>['en', 'es', 'fr', 'it'].contains(locale.languageCode);
 
   @override
   bool shouldReload(_AppLocalizationsDelegate old) => false;
@@ -2065,6 +2213,10 @@ AppLocalizations lookupAppLocalizations(Locale locale) {
   switch (locale.languageCode) {
     case 'en':
       return AppLocalizationsEn();
+    case 'es':
+      return AppLocalizationsEs();
+    case 'fr':
+      return AppLocalizationsFr();
     case 'it':
       return AppLocalizationsIt();
   }

@@ -735,12 +735,6 @@ class AppLocalizationsIt extends AppLocalizations {
   String get past => 'Passati';
 
   @override
-  String get mapDataSourceLocal => 'Aggiunti in app';
-
-  @override
-  String get mapDataSourcePickRoll => 'Fonte Pick&Roll';
-
-  @override
   String get syncSuccess => 'Sincronizzato sul Cloud! ☁️🏀';
 
   @override
@@ -1038,4 +1032,85 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get hub => 'HUB';
+
+  @override
+  String get mapSettings => 'Impostazioni Mappa';
+
+  @override
+  String get enableOsmData => 'Abilita dati OpenStreetMap';
+
+  @override
+  String get osmDataDesc => 'Mostra i campetti pubblici censiti su OSM.';
+
+  @override
+  String get mapDataSourceOsm => 'Fonte OpenStreetMap';
+
+  @override
+  String get mapDataSourceLocal => 'TRNMNT app';
+
+  @override
+  String get syncOsm => 'Sincronizzazione OSM...';
+
+  @override
+  String get searchInArea => 'CERCA IN QUESTA ZONA';
+
+  @override
+  String get tapMapToAdd => 'TOCCA LA MAPPA PER AGGIUNGERE UN CAMPETTO';
+
+  @override
+  String get addressLabel => 'INDIRIZZO:';
+
+  @override
+  String get surfaceLabel => 'SUPERFICIE:';
+
+  @override
+  String get hoopsLabel => 'CANESTRI:';
+
+  @override
+  String get litLabel => 'ILLUMINAZIONE:';
+
+  @override
+  String get accessLabel => 'ACCESSO:';
+
+  @override
+  String get otherSportsLabel => 'ALTRI SPORT:';
+
+  @override
+  String get lastCheckLabel => 'ULTIMO CONTROLLO:';
+
+  @override
+  String get osmSourceInfo => 'FONTE: OpenStreetMap';
+
+  @override
+  String get addToMyCourts => 'AGGIUNGI AI MIEI';
+
+  @override
+  String get netsStatusLabel => 'Stato reti';
+
+  @override
+  String get starsLabel => 'Stelle:';
+
+  @override
+  String get netsLabel => 'Reti:';
+
+  @override
+  String osmFoundCount(int count) {
+    return 'OSM: Trovati $count campetti';
+  }
+
+  @override
+  String get osmFoundCount_desc =>
+      'Messaggio di conferma dei risultati trovati su OSM';
+
+  @override
+  String get courtSaved => 'Campetto salvato!';
+
+  @override
+  String get searchingOsmNearby => 'CERCO CAMPETTI OSM VICINI...';
+
+  @override
+  String get noOsmCourtsFound => 'NESSUN CAMPETTO OSM TROVATO IN QUESTA ZONA';
+
+  @override
+  String get osmResultsTitle => 'RISULTATI OPENSTREETMAP';
 }

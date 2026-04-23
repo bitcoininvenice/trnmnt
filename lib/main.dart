@@ -130,6 +130,8 @@ class TrnmntApp extends ConsumerWidget {
             supportedLocales: const [
               Locale('it', ''),
               Locale('en', ''),
+              Locale('es', ''),
+              Locale('fr', ''),
             ],
             routerConfig: router,
           );

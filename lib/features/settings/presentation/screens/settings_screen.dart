@@ -12,6 +12,7 @@ import 'package:trnmnt/core/providers/locale_provider.dart';
 import 'package:trnmnt/core/providers/api_config_provider.dart';
 import 'package:trnmnt/core/providers/icon_provider.dart';
 import 'package:trnmnt/core/providers/default_tab_provider.dart';
+import 'package:trnmnt/core/providers/osm_settings_provider.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -133,6 +134,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ],
               onChanged: (index) => ref.read(defaultTabProvider.notifier).setDefaultTab(index!),
             ),
+          ),
+          const Divider(),
+
+          _buildSectionHeader(context, AppLocalizations.of(context)!.mapSettings),
+          SwitchListTile(
+            secondary: const Icon(Icons.public, color: Colors.blue),
+            title: Text(AppLocalizations.of(context)!.enableOsmData),
+            subtitle: Text(AppLocalizations.of(context)!.osmDataDesc),
+            value: ref.watch(osmSettingsProvider),
+            onChanged: (value) => ref.read(osmSettingsProvider.notifier).setEnabled(value),
           ),
           const Divider(),
 

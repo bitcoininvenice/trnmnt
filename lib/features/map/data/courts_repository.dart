@@ -1,5 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:latlong2/latlong.dart';
 import '../../../../core/database/app_database.dart';
 import '../../../../core/providers/database_provider.dart';
 
@@ -7,9 +6,9 @@ final courtsRepositoryProvider = Provider<CourtsRepository>((ref) {
   return CourtsRepository(ref.watch(dbProvider));
 });
 
-final courtsProvider = FutureProvider<List<Court>>((ref) {
+final courtsProvider = StreamProvider<List<Court>>((ref) {
   final repo = ref.watch(courtsRepositoryProvider);
-  return repo.getAllCourts();
+  return repo.watchAllCourts();
 });
 
 class CourtsRepository {
@@ -19,6 +18,10 @@ class CourtsRepository {
 
   Future<List<Court>> getAllCourts() async {
     return await _db.select(_db.courts).get();
+  }
+
+  Stream<List<Court>> watchAllCourts() {
+    return _db.select(_db.courts).watch();
   }
 
   Future<int> insertCourt(CourtsCompanion court) async {

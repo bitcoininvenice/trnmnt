@@ -10,9 +10,10 @@ import 'package:trnmnt/features/community/data/selected_community_provider.dart'
 import 'package:trnmnt/features/map/data/courts_repository.dart';
 import 'package:trnmnt/core/services/geocoding_service.dart';
 import 'dart:async';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:trnmnt/features/map/data/pickroll_repository.dart';
 import 'dart:convert';
+import 'package:trnmnt/features/map/data/osm_repository.dart';
+import 'package:trnmnt/core/providers/osm_settings_provider.dart';
+import 'package:trnmnt/features/tournaments/presentation/widgets/court_picker_sheet.dart';
 
 class TournamentSetupScreen extends ConsumerStatefulWidget {
   const TournamentSetupScreen({super.key});
@@ -61,8 +62,9 @@ class _TournamentSetupScreenState extends ConsumerState<TournamentSetupScreen> {
   List<LocationSuggestion> _suggestions = [];
   Timer? _debounce;
   bool _isSearchingLocation = false;
-  List<PickrollCourt> _nearbyPickrollCourts = [];
-  bool _isSearchingPickroll = false;
+  List<OsmCourt> _nearbyOsmCourts = [];
+  bool _isSearchingOsm = false;
+  String? _lastOsmError;
 
   @override
   void dispose() {
@@ -408,6 +410,7 @@ class _TournamentSetupScreenState extends ConsumerState<TournamentSetupScreen> {
   }
 
   Widget _buildEnhancedLocationField() {
+    final osmEnabled = ref.watch(osmSettingsProvider);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -460,55 +463,76 @@ class _TournamentSetupScreenState extends ConsumerState<TournamentSetupScreen> {
                     setState(() {
                       _locationController.text = suggestion.displayName;
                       _suggestions = [];
-                      _isSearchingPickroll = true;
-                      _nearbyPickrollCourts = [];
                     });
-                    
-                    try {
-                      final prRepo = ref.read(pickrollRepositoryProvider);
-                      final courts = await prRepo.fetchNearbyCourts(suggestion.lat, suggestion.lon);
-                      if (mounted) setState(() => _nearbyPickrollCourts = courts);
-                    } catch (_) {
-                    } finally {
-                      if (mounted) setState(() => _isSearchingPickroll = false);
+
+                    if (osmEnabled) {
+                      setState(() {
+                        _isSearchingOsm = true;
+                        _nearbyOsmCourts = [];
+                      });
+
+                      try {
+                        final osmRepo = ref.read(osmRepositoryProvider);
+                        final courts = await osmRepo.fetchNearbyCourts(suggestion.lat, suggestion.lon, radius: 10000);
+                        if (mounted) setState(() => _nearbyOsmCourts = courts);
+                      } catch (e) {
+                        _lastOsmError = e.toString();
+                      } finally {
+                        if (mounted) setState(() => _isSearchingOsm = false);
+                      }
                     }
                   },
                 );
               },
             ),
           ),
-        if (_isSearchingPickroll)
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 8),
+        if (osmEnabled && _isSearchingOsm)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
             child: Column(
               children: [
-                LinearProgressIndicator(minHeight: 2, color: Colors.orange),
-                SizedBox(height: 4),
-                Text('CERCO CAMPETTI P&R VICINI...', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.orange)),
+                const LinearProgressIndicator(minHeight: 2, color: Colors.blue),
+                const SizedBox(height: 4),
+                Text(AppLocalizations.of(context)!.searchingOsmNearby, 
+                  style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.blue)),
               ],
             ),
           ),
-        if (_nearbyPickrollCourts.isNotEmpty && _suggestions.isEmpty)
+        if (osmEnabled && !_isSearchingOsm && _nearbyOsmCourts.isEmpty && _locationController.text.length > 5 && _suggestions.isEmpty)
+           Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Text(AppLocalizations.of(context)!.noOsmCourtsFound, 
+              style: const TextStyle(fontSize: 10, color: Colors.orange, fontWeight: FontWeight.bold)),
+          ),
+        if (osmEnabled && _nearbyOsmCourts.isNotEmpty && _suggestions.isEmpty)
           Container(
             margin: const EdgeInsets.only(top: 8),
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.orange.withValues(alpha: 0.05),
+              color: Colors.blue.withValues(alpha: 0.05),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.orange.withValues(alpha: 0.2)),
+              border: Border.all(color: Colors.blue.withValues(alpha: 0.2)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.stars, color: Colors.orange, size: 16),
+                    const Icon(Icons.stars, color: Colors.blue, size: 16),
                     const SizedBox(width: 8),
-                    Text('CAMPETTI TROVATI SU PICK&ROLL', style: Theme.of(context).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.bold, color: Colors.orange)),
-                    const Spacer(),
+                    Expanded(
+                      child: Text(AppLocalizations.of(context)!.osmResultsTitle, 
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          fontWeight: FontWeight.bold, 
+                          color: Colors.blue,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
                     IconButton(
                       icon: const Icon(Icons.close, size: 14),
-                      onPressed: () => setState(() => _nearbyPickrollCourts = []),
+                      onPressed: () => setState(() => _nearbyOsmCourts = []),
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
                     ),
@@ -519,15 +543,15 @@ class _TournamentSetupScreenState extends ConsumerState<TournamentSetupScreen> {
                   constraints: const BoxConstraints(maxHeight: 200),
                   child: ListView.builder(
                     shrinkWrap: true,
-                    itemCount: _nearbyPickrollCourts.length,
+                    itemCount: _nearbyOsmCourts.length,
                     itemBuilder: (context, index) {
-                      final court = _nearbyPickrollCourts[index];
+                      final court = _nearbyOsmCourts[index];
                       return ListTile(
                         dense: true,
                         contentPadding: const EdgeInsets.symmetric(horizontal: 8),
                         leading: const CircleAvatar(
                           radius: 12,
-                          backgroundColor: Colors.orange,
+                          backgroundColor: Colors.blue,
                           child: Icon(Icons.sports_basketball, size: 12, color: Colors.white),
                         ),
                         title: Text(court.name, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
@@ -535,7 +559,7 @@ class _TournamentSetupScreenState extends ConsumerState<TournamentSetupScreen> {
                         onTap: () {
                           setState(() {
                             _locationController.text = court.name;
-                            _nearbyPickrollCourts = [];
+                            _nearbyOsmCourts = [];
                           });
                         },
                       );
@@ -555,7 +579,6 @@ class _TournamentSetupScreenState extends ConsumerState<TournamentSetupScreen> {
       if (query.length < 3) {
         setState(() {
           _suggestions = [];
-          _nearbyPickrollCourts = [];
         });
         return;
       }
@@ -570,70 +593,23 @@ class _TournamentSetupScreenState extends ConsumerState<TournamentSetupScreen> {
     });
   }
 
-  void _showCourtsPicker() {
-    showModalBottomSheet(
+  void _showCourtsPicker() async {
+    final selectedName = await showModalBottomSheet<String>(
       context: context,
+      isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => Consumer(
-        builder: (context, ref, _) {
-          final courtsAsync = ref.watch(courtsProvider);
-          return Container(
-            decoration: BoxDecoration(
-              color: Theme.of(context).scaffoldBackgroundColor,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-            ),
-            child: Column(
-              children: [
-                Container(
-                  width: 40, height: 4,
-                  margin: const EdgeInsets.symmetric(vertical: 12),
-                  decoration: BoxDecoration(color: Colors.grey[600], borderRadius: BorderRadius.circular(2)),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    children: [
-                      const Icon(FontAwesomeIcons.basketball, color: Colors.orange, size: 20),
-                      const SizedBox(width: 12),
-                      Text('SCEGLI UN CAMPETTO', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-                    ],
-                  ),
-                ),
-                Expanded(
-                  child: courtsAsync.when(
-                data: (courts) {
-                  if (courts.isEmpty) {
-                    return Center(child: Text('Nessun campetto salvato sulla mappa.'));
-                  }
-                  return ListView.builder(
-                    itemCount: courts.length,
-                    itemBuilder: (context, index) {
-                      final court = courts[index];
-                      return ListTile(
-                        leading: const CircleAvatar(backgroundColor: Colors.orange, child: Icon(Icons.sports_basketball, size: 16, color: Colors.white)),
-                        title: Text(court.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                        subtitle: Text('Valutazione: ${"⭐" * court.stars}', style: const TextStyle(fontSize: 12)),
-                        onTap: () {
-                          setState(() => _locationController.text = court.name);
-                          Navigator.pop(context);
-                        },
-                      );
-                    },
-                  );
-                },
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (e, s) => Center(child: Text('Errore nel caricamento campetti')),
-              ),
-            ),
-          ],
-        ),
-      );
-    }),
+      builder: (context) => const FractionallySizedBox(
+        heightFactor: 0.8,
+        child: CourtPickerSheet(),
+      ),
     );
+
+    if (selectedName != null && mounted) {
+      setState(() => _locationController.text = selectedName);
+    }
   }
 
   Widget _buildDateField() {
-    final dateStr = "${_startDate.day}/${_startDate.month}/${_startDate.year}";
     return InkWell(
       onTap: () async {
         final picked = await showDatePicker(

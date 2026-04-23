@@ -732,12 +732,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get past => 'Past';
 
   @override
-  String get mapDataSourceLocal => 'Added in-app';
-
-  @override
-  String get mapDataSourcePickRoll => 'Pick&Roll Source';
-
-  @override
   String get syncSuccess => 'Synced to Cloud! ☁️🏀';
 
   @override
@@ -1035,4 +1029,85 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get hub => 'HUB';
+
+  @override
+  String get mapSettings => 'Map Settings';
+
+  @override
+  String get enableOsmData => 'Enable OpenStreetMap data';
+
+  @override
+  String get osmDataDesc => 'Show public street courts from OSM.';
+
+  @override
+  String get mapDataSourceOsm => 'OpenStreetMap Source';
+
+  @override
+  String get mapDataSourceLocal => 'TRNMNT app';
+
+  @override
+  String get syncOsm => 'Syncing OSM...';
+
+  @override
+  String get searchInArea => 'SEARCH IN THIS AREA';
+
+  @override
+  String get tapMapToAdd => 'TAP THE MAP TO ADD A COURT';
+
+  @override
+  String get addressLabel => 'ADDRESS:';
+
+  @override
+  String get surfaceLabel => 'SURFACE:';
+
+  @override
+  String get hoopsLabel => 'HOOPS:';
+
+  @override
+  String get litLabel => 'LIGHTING:';
+
+  @override
+  String get accessLabel => 'ACCESS:';
+
+  @override
+  String get otherSportsLabel => 'OTHER SPORTS:';
+
+  @override
+  String get lastCheckLabel => 'LAST CHECK:';
+
+  @override
+  String get osmSourceInfo => 'SOURCE: OpenStreetMap';
+
+  @override
+  String get addToMyCourts => 'ADD TO MINE';
+
+  @override
+  String get netsStatusLabel => 'Nets Status';
+
+  @override
+  String get starsLabel => 'Stars:';
+
+  @override
+  String get netsLabel => 'Nets:';
+
+  @override
+  String osmFoundCount(int count) {
+    return 'OSM: Found $count courts';
+  }
+
+  @override
+  String get osmFoundCount_desc =>
+      'Confirmation message for OSM search results';
+
+  @override
+  String get courtSaved => 'Court saved!';
+
+  @override
+  String get searchingOsmNearby => 'SEARCHING FOR NEARBY OSM COURTS...';
+
+  @override
+  String get noOsmCourtsFound => 'NO OSM COURTS FOUND IN THIS AREA';
+
+  @override
+  String get osmResultsTitle => 'OPENSTREETMAP RESULTS';
 }
