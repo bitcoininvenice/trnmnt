@@ -139,7 +139,6 @@ class MainShell extends ConsumerWidget {
                       context.push('/community');
                     },
                   ),
-                  const Divider(),
                   ListTile(
                     leading: const Icon(Icons.emoji_events_outlined),
                     title: Text(l10n.tournaments),
@@ -190,11 +189,11 @@ class MainShell extends ConsumerWidget {
                     },
                   ),
                   ListTile(
-                    leading: const Icon(Icons.map_outlined),
-                    title: Text(l10n.map),
+                    leading: const Icon(Icons.track_changes, color: Colors.orange),
+                    title: Text(l10n.radar),
                     onTap: () {
                       Navigator.pop(context);
-                      context.push('/map');
+                      context.push('/radar');
                     },
                   ),
                 ],

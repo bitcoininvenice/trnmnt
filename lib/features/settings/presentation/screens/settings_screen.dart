@@ -129,15 +129,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               value: ref.watch(defaultTabProvider),
               underline: const SizedBox(),
               items: [
-                DropdownMenuItem(value: 0, child: Text(AppLocalizations.of(context)!.dashboard)),
-                DropdownMenuItem(value: 1, child: Text(AppLocalizations.of(context)!.hub)),
+                DropdownMenuItem(value: 0, child: Text(AppLocalizations.of(context)!.hub)),
+                DropdownMenuItem(value: 1, child: Text(AppLocalizations.of(context)!.dashboard)),
+                
               ],
               onChanged: (index) => ref.read(defaultTabProvider.notifier).setDefaultTab(index!),
             ),
           ),
           const Divider(),
 
-          _buildSectionHeader(context, AppLocalizations.of(context)!.mapSettings),
+          _buildSectionHeader(context, AppLocalizations.of(context)!.radarSettings),
           SwitchListTile(
             secondary: const Icon(Icons.public, color: Colors.blue),
             title: Text(AppLocalizations.of(context)!.enableOsmData),

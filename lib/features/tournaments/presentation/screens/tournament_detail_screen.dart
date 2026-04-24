@@ -8,6 +8,7 @@ import 'package:trnmnt/features/tournaments/data/tournaments_repository.dart';
 import 'package:trnmnt/features/sharing/data/share_repository.dart';
 import 'package:trnmnt/generated/l10n/app_localizations.dart';
 import 'package:trnmnt/features/community/data/community_repository.dart';
+import '../../../map/data/courts_repository.dart';
 
 class TournamentDetailScreen extends ConsumerStatefulWidget {
   final int tournamentId;
@@ -170,7 +171,6 @@ class _TournamentDetailScreenState extends ConsumerState<TournamentDetailScreen>
           context.push('/tournaments/${widget.tournamentId}/registrations?cloudId=$cloudId');
         }
       } catch (e) {
-        debugPrint('DB ERROR: $e');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('${l10n.error}: $e'), backgroundColor: Colors.red),
@@ -278,11 +278,26 @@ class _TournamentDetailScreenState extends ConsumerState<TournamentDetailScreen>
                       Row(
                         children: [
                           Expanded(
-                            child: _buildHeaderBadge(
-                              context, 
-                              icon: Icons.stadium, 
-                              label: tournament.location, 
-                              color: Colors.orange
+                            child: Consumer(
+                              builder: (context, ref, child) {
+                                String locationText = tournament.location;
+                                if (tournament.venueCourtId != null) {
+                                  final courtAsync = ref.watch(courtByIdProvider(tournament.venueCourtId!));
+                                  final resolvedName = courtAsync.when(
+                                    data: (c) => c?.name,
+                                    loading: () => '...',
+                                    error: (_, __) => null,
+                                  );
+                                  if (resolvedName != null) locationText = resolvedName;
+                                }
+                                
+                                return _buildHeaderBadge(
+                                  context, 
+                                  icon: Icons.location_on, 
+                                  label: locationText, 
+                                  color: Colors.orange
+                                );
+                              }
                             ),
                           ),
                           const SizedBox(width: 12),

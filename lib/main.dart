@@ -34,7 +34,6 @@ void main() async {
       await Supabase.instance.client.auth.signInAnonymously();
     }
   } catch (e) {
-    debugPrint('Supabase Auth error: $e');
   }
   
   // Lock to portrait mode

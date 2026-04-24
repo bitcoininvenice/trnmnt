@@ -16,7 +16,7 @@ import '../../features/tournaments/presentation/screens/madness_screen.dart';
 import '../../features/tournaments/presentation/screens/cloud_tournament_detail_screen.dart';
 import '../../features/timer/presentation/screens/timer_screen.dart';
 import '../../features/single_match/presentation/screens/single_match_setup_screen.dart';
-import '../../features/map/presentation/screens/map_screen.dart';
+import '../../features/map/presentation/screens/radar_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
 import '../../features/settings/presentation/screens/mode_legend_screen.dart';
 import '../../features/settings/presentation/screens/mode_detail_screen.dart';
@@ -228,10 +228,10 @@ final routerProvider = Provider<GoRouter>((ref) {
             ],
           ),
           GoRoute(
-            path: '/map',
-            name: 'map',
+            path: '/radar',
+            name: 'radar',
             pageBuilder: (context, state) => const NoTransitionPage(
-              child: MapScreen(),
+              child: RadarScreen(),
             ),
           ),
           GoRoute(

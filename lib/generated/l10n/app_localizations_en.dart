@@ -24,7 +24,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get newTournament => 'New Tournament';
 
   @override
-  String get map => 'Map';
+  String get radar => 'Radar';
 
   @override
   String get settings => 'Settings';
@@ -164,7 +164,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get startNow => 'Start now';
 
   @override
-  String get courtsMap => 'Courts map';
+  String get radarSubtitle => 'Radar';
 
   @override
   String get appOptions => 'App options';
@@ -664,7 +664,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get groupNameHint => 'Group Name (e.g. A, B...)';
 
   @override
-  String get upcoming => 'Upcoming';
+  String get all => 'All';
+
+  @override
+  String get upcoming => 'Scheduled';
 
   @override
   String get concluded => 'Concluded';
@@ -714,7 +717,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get manageYourBrand => 'Manage your Brand';
 
   @override
-  String get liveHighlights => 'WEB LIVE HIGHLIGHTS';
+  String get liveHighlights => 'FEATURED';
 
   @override
   String get statsOverview => 'APP OVERVIEW';
@@ -726,7 +729,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get activeTournamentMatch => 'LIVE TOURNAMENT MATCH';
 
   @override
-  String get future => 'Future';
+  String get future => 'Scheduled';
 
   @override
   String get past => 'Past';
@@ -1009,8 +1012,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get liveMatches => 'Live Matches';
 
   @override
-  String get exploreHub =>
-      'Explore tournaments and matches live from the cloud';
+  String get exploreHub => 'Explore tournaments and live matches';
 
   @override
   String get noLiveMatches => 'No matches live at the moment';
@@ -1031,7 +1033,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get hub => 'HUB';
 
   @override
-  String get mapSettings => 'Map Settings';
+  String get radarSettings => 'Radar Settings';
 
   @override
   String get enableOsmData => 'Enable OpenStreetMap data';
@@ -1040,10 +1042,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get osmDataDesc => 'Show public street courts from OSM.';
 
   @override
-  String get mapDataSourceOsm => 'OpenStreetMap Source';
+  String get radarDataSourceOsm => 'OpenStreetMap Source';
 
   @override
-  String get mapDataSourceLocal => 'TRNMNT app';
+  String get radarDataSourceLocal => 'TRNMNT';
 
   @override
   String get syncOsm => 'Syncing OSM...';
@@ -1110,4 +1112,18 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get osmResultsTitle => 'OPENSTREETMAP RESULTS';
+
+  @override
+  String get selectCourt => 'Select Court';
+
+  @override
+  String courtSelected(String name) {
+    return 'Court: $name';
+  }
+
+  @override
+  String get optional => 'Optional';
+
+  @override
+  String get radar_court_link => 'RADAR LINK';
 }

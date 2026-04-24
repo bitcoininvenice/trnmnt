@@ -24,7 +24,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get newTournament => 'Nouveau Tournoi';
 
   @override
-  String get map => 'Carte';
+  String get radar => 'Radar';
 
   @override
   String get settings => 'Paramètres';
@@ -167,7 +167,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get startNow => 'Commencer maintenant';
 
   @override
-  String get courtsMap => 'Carte des terrains';
+  String get radarSubtitle => 'Radar';
 
   @override
   String get appOptions => 'Options app';
@@ -669,7 +669,10 @@ class AppLocalizationsFr extends AppLocalizations {
   String get groupNameHint => 'Nom Groupe (ex. A, B...)';
 
   @override
-  String get upcoming => 'À venir';
+  String get all => 'Tous';
+
+  @override
+  String get upcoming => 'Programmé';
 
   @override
   String get concluded => 'Terminé';
@@ -719,7 +722,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get manageYourBrand => 'Gérer votre Marque';
 
   @override
-  String get liveHighlights => 'WEB LIVE HIGHLIGHTS';
+  String get liveHighlights => 'EN VEDETTE';
 
   @override
   String get statsOverview => 'APERÇU APP';
@@ -731,7 +734,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get activeTournamentMatch => 'MATCH TORNOI LIVE';
 
   @override
-  String get future => 'Futurs';
+  String get future => 'Programmé';
 
   @override
   String get past => 'Passés';
@@ -1016,8 +1019,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get liveMatches => 'Matchs Live';
 
   @override
-  String get exploreHub =>
-      'Explorez les tournois et les matchs en direct depuis le cloud';
+  String get exploreHub => 'Explorez tournois et matchs en direct';
 
   @override
   String get noLiveMatches => 'Aucun match live en cours';
@@ -1038,7 +1040,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get hub => 'HUB';
 
   @override
-  String get mapSettings => 'Paramètres Carte';
+  String get radarSettings => 'Paramètres Radar';
 
   @override
   String get enableOsmData => 'Activer les données OpenStreetMap';
@@ -1047,10 +1049,10 @@ class AppLocalizationsFr extends AppLocalizations {
   String get osmDataDesc => 'Afficher les terrains publics recensés sur OSM.';
 
   @override
-  String get mapDataSourceOsm => 'Source OpenStreetMap';
+  String get radarDataSourceOsm => 'Source OpenStreetMap';
 
   @override
-  String get mapDataSourceLocal => 'TRNMNT app';
+  String get radarDataSourceLocal => 'TRNMNT';
 
   @override
   String get syncOsm => 'Synchronisation OSM...';
@@ -1117,4 +1119,18 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get osmResultsTitle => 'RÉSULTATS OPENSTREETMAP';
+
+  @override
+  String get selectCourt => 'Seleziona Campetto';
+
+  @override
+  String courtSelected(String name) {
+    return 'Campetto: $name';
+  }
+
+  @override
+  String get optional => 'Opzionale';
+
+  @override
+  String get radar_court_link => 'COLLEGAMENTO RADAR';
 }

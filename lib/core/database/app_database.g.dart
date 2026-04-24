@@ -1220,10 +1220,12 @@ class $CourtsTable extends Courts with TableInfo<$CourtsTable, Court> {
     requiredDuringInsert: false,
     defaultValue: const Constant('trnmnt'),
   );
-  static const VerificationMeta _osmIdMeta = const VerificationMeta('osmId');
+  static const VerificationMeta _sourceIdMeta = const VerificationMeta(
+    'sourceId',
+  );
   @override
-  late final GeneratedColumn<String> osmId = GeneratedColumn<String>(
-    'osm_id',
+  late final GeneratedColumn<String> sourceId = GeneratedColumn<String>(
+    'source_id',
     aliasedName,
     true,
     type: DriftSqlType.string,
@@ -1257,7 +1259,7 @@ class $CourtsTable extends Courts with TableInfo<$CourtsTable, Court> {
     stars,
     cloudId,
     source,
-    osmId,
+    sourceId,
     createdAt,
   ];
   @override
@@ -1371,10 +1373,10 @@ class $CourtsTable extends Courts with TableInfo<$CourtsTable, Court> {
         source.isAcceptableOrUnknown(data['source']!, _sourceMeta),
       );
     }
-    if (data.containsKey('osm_id')) {
+    if (data.containsKey('source_id')) {
       context.handle(
-        _osmIdMeta,
-        osmId.isAcceptableOrUnknown(data['osm_id']!, _osmIdMeta),
+        _sourceIdMeta,
+        sourceId.isAcceptableOrUnknown(data['source_id']!, _sourceIdMeta),
       );
     }
     if (data.containsKey('created_at')) {
@@ -1448,9 +1450,9 @@ class $CourtsTable extends Courts with TableInfo<$CourtsTable, Court> {
         DriftSqlType.string,
         data['${effectivePrefix}source'],
       )!,
-      osmId: attachedDatabase.typeMapping.read(
+      sourceId: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
-        data['${effectivePrefix}osm_id'],
+        data['${effectivePrefix}source_id'],
       ),
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
@@ -1480,7 +1482,7 @@ class Court extends DataClass implements Insertable<Court> {
   final int stars;
   final String? cloudId;
   final String source;
-  final String? osmId;
+  final String? sourceId;
   final DateTime createdAt;
   const Court({
     required this.id,
@@ -1497,7 +1499,7 @@ class Court extends DataClass implements Insertable<Court> {
     required this.stars,
     this.cloudId,
     required this.source,
-    this.osmId,
+    this.sourceId,
     required this.createdAt,
   });
   @override
@@ -1523,8 +1525,8 @@ class Court extends DataClass implements Insertable<Court> {
       map['cloud_id'] = Variable<String>(cloudId);
     }
     map['source'] = Variable<String>(source);
-    if (!nullToAbsent || osmId != null) {
-      map['osm_id'] = Variable<String>(osmId);
+    if (!nullToAbsent || sourceId != null) {
+      map['source_id'] = Variable<String>(sourceId);
     }
     map['created_at'] = Variable<DateTime>(createdAt);
     return map;
@@ -1552,9 +1554,9 @@ class Court extends DataClass implements Insertable<Court> {
           ? const Value.absent()
           : Value(cloudId),
       source: Value(source),
-      osmId: osmId == null && nullToAbsent
+      sourceId: sourceId == null && nullToAbsent
           ? const Value.absent()
-          : Value(osmId),
+          : Value(sourceId),
       createdAt: Value(createdAt),
     );
   }
@@ -1579,7 +1581,7 @@ class Court extends DataClass implements Insertable<Court> {
       stars: serializer.fromJson<int>(json['stars']),
       cloudId: serializer.fromJson<String?>(json['cloudId']),
       source: serializer.fromJson<String>(json['source']),
-      osmId: serializer.fromJson<String?>(json['osmId']),
+      sourceId: serializer.fromJson<String?>(json['sourceId']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
     );
   }
@@ -1601,7 +1603,7 @@ class Court extends DataClass implements Insertable<Court> {
       'stars': serializer.toJson<int>(stars),
       'cloudId': serializer.toJson<String?>(cloudId),
       'source': serializer.toJson<String>(source),
-      'osmId': serializer.toJson<String?>(osmId),
+      'sourceId': serializer.toJson<String?>(sourceId),
       'createdAt': serializer.toJson<DateTime>(createdAt),
     };
   }
@@ -1621,7 +1623,7 @@ class Court extends DataClass implements Insertable<Court> {
     int? stars,
     Value<String?> cloudId = const Value.absent(),
     String? source,
-    Value<String?> osmId = const Value.absent(),
+    Value<String?> sourceId = const Value.absent(),
     DateTime? createdAt,
   }) => Court(
     id: id ?? this.id,
@@ -1638,7 +1640,7 @@ class Court extends DataClass implements Insertable<Court> {
     stars: stars ?? this.stars,
     cloudId: cloudId.present ? cloudId.value : this.cloudId,
     source: source ?? this.source,
-    osmId: osmId.present ? osmId.value : this.osmId,
+    sourceId: sourceId.present ? sourceId.value : this.sourceId,
     createdAt: createdAt ?? this.createdAt,
   );
   Court copyWithCompanion(CourtsCompanion data) {
@@ -1667,7 +1669,7 @@ class Court extends DataClass implements Insertable<Court> {
       stars: data.stars.present ? data.stars.value : this.stars,
       cloudId: data.cloudId.present ? data.cloudId.value : this.cloudId,
       source: data.source.present ? data.source.value : this.source,
-      osmId: data.osmId.present ? data.osmId.value : this.osmId,
+      sourceId: data.sourceId.present ? data.sourceId.value : this.sourceId,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
     );
   }
@@ -1689,7 +1691,7 @@ class Court extends DataClass implements Insertable<Court> {
           ..write('stars: $stars, ')
           ..write('cloudId: $cloudId, ')
           ..write('source: $source, ')
-          ..write('osmId: $osmId, ')
+          ..write('sourceId: $sourceId, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
@@ -1711,7 +1713,7 @@ class Court extends DataClass implements Insertable<Court> {
     stars,
     cloudId,
     source,
-    osmId,
+    sourceId,
     createdAt,
   );
   @override
@@ -1732,7 +1734,7 @@ class Court extends DataClass implements Insertable<Court> {
           other.stars == this.stars &&
           other.cloudId == this.cloudId &&
           other.source == this.source &&
-          other.osmId == this.osmId &&
+          other.sourceId == this.sourceId &&
           other.createdAt == this.createdAt);
 }
 
@@ -1751,7 +1753,7 @@ class CourtsCompanion extends UpdateCompanion<Court> {
   final Value<int> stars;
   final Value<String?> cloudId;
   final Value<String> source;
-  final Value<String?> osmId;
+  final Value<String?> sourceId;
   final Value<DateTime> createdAt;
   const CourtsCompanion({
     this.id = const Value.absent(),
@@ -1768,7 +1770,7 @@ class CourtsCompanion extends UpdateCompanion<Court> {
     this.stars = const Value.absent(),
     this.cloudId = const Value.absent(),
     this.source = const Value.absent(),
-    this.osmId = const Value.absent(),
+    this.sourceId = const Value.absent(),
     this.createdAt = const Value.absent(),
   });
   CourtsCompanion.insert({
@@ -1786,7 +1788,7 @@ class CourtsCompanion extends UpdateCompanion<Court> {
     this.stars = const Value.absent(),
     this.cloudId = const Value.absent(),
     this.source = const Value.absent(),
-    this.osmId = const Value.absent(),
+    this.sourceId = const Value.absent(),
     this.createdAt = const Value.absent(),
   }) : name = Value(name),
        latitude = Value(latitude),
@@ -1806,7 +1808,7 @@ class CourtsCompanion extends UpdateCompanion<Court> {
     Expression<int>? stars,
     Expression<String>? cloudId,
     Expression<String>? source,
-    Expression<String>? osmId,
+    Expression<String>? sourceId,
     Expression<DateTime>? createdAt,
   }) {
     return RawValuesInsertable({
@@ -1824,7 +1826,7 @@ class CourtsCompanion extends UpdateCompanion<Court> {
       if (stars != null) 'stars': stars,
       if (cloudId != null) 'cloud_id': cloudId,
       if (source != null) 'source': source,
-      if (osmId != null) 'osm_id': osmId,
+      if (sourceId != null) 'source_id': sourceId,
       if (createdAt != null) 'created_at': createdAt,
     });
   }
@@ -1844,7 +1846,7 @@ class CourtsCompanion extends UpdateCompanion<Court> {
     Value<int>? stars,
     Value<String?>? cloudId,
     Value<String>? source,
-    Value<String?>? osmId,
+    Value<String?>? sourceId,
     Value<DateTime>? createdAt,
   }) {
     return CourtsCompanion(
@@ -1862,7 +1864,7 @@ class CourtsCompanion extends UpdateCompanion<Court> {
       stars: stars ?? this.stars,
       cloudId: cloudId ?? this.cloudId,
       source: source ?? this.source,
-      osmId: osmId ?? this.osmId,
+      sourceId: sourceId ?? this.sourceId,
       createdAt: createdAt ?? this.createdAt,
     );
   }
@@ -1912,8 +1914,8 @@ class CourtsCompanion extends UpdateCompanion<Court> {
     if (source.present) {
       map['source'] = Variable<String>(source.value);
     }
-    if (osmId.present) {
-      map['osm_id'] = Variable<String>(osmId.value);
+    if (sourceId.present) {
+      map['source_id'] = Variable<String>(sourceId.value);
     }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
@@ -1938,7 +1940,7 @@ class CourtsCompanion extends UpdateCompanion<Court> {
           ..write('stars: $stars, ')
           ..write('cloudId: $cloudId, ')
           ..write('source: $source, ')
-          ..write('osmId: $osmId, ')
+          ..write('sourceId: $sourceId, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
@@ -5959,7 +5961,7 @@ typedef $$CourtsTableCreateCompanionBuilder =
       Value<int> stars,
       Value<String?> cloudId,
       Value<String> source,
-      Value<String?> osmId,
+      Value<String?> sourceId,
       Value<DateTime> createdAt,
     });
 typedef $$CourtsTableUpdateCompanionBuilder =
@@ -5978,7 +5980,7 @@ typedef $$CourtsTableUpdateCompanionBuilder =
       Value<int> stars,
       Value<String?> cloudId,
       Value<String> source,
-      Value<String?> osmId,
+      Value<String?> sourceId,
       Value<DateTime> createdAt,
     });
 
@@ -6084,8 +6086,8 @@ class $$CourtsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<String> get osmId => $composableBuilder(
-    column: $table.osmId,
+  ColumnFilters<String> get sourceId => $composableBuilder(
+    column: $table.sourceId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -6199,8 +6201,8 @@ class $$CourtsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get osmId => $composableBuilder(
-    column: $table.osmId,
+  ColumnOrderings<String> get sourceId => $composableBuilder(
+    column: $table.sourceId,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -6271,8 +6273,8 @@ class $$CourtsTableAnnotationComposer
   GeneratedColumn<String> get source =>
       $composableBuilder(column: $table.source, builder: (column) => column);
 
-  GeneratedColumn<String> get osmId =>
-      $composableBuilder(column: $table.osmId, builder: (column) => column);
+  GeneratedColumn<String> get sourceId =>
+      $composableBuilder(column: $table.sourceId, builder: (column) => column);
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -6345,7 +6347,7 @@ class $$CourtsTableTableManager
                 Value<int> stars = const Value.absent(),
                 Value<String?> cloudId = const Value.absent(),
                 Value<String> source = const Value.absent(),
-                Value<String?> osmId = const Value.absent(),
+                Value<String?> sourceId = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => CourtsCompanion(
                 id: id,
@@ -6362,7 +6364,7 @@ class $$CourtsTableTableManager
                 stars: stars,
                 cloudId: cloudId,
                 source: source,
-                osmId: osmId,
+                sourceId: sourceId,
                 createdAt: createdAt,
               ),
           createCompanionCallback:
@@ -6381,7 +6383,7 @@ class $$CourtsTableTableManager
                 Value<int> stars = const Value.absent(),
                 Value<String?> cloudId = const Value.absent(),
                 Value<String> source = const Value.absent(),
-                Value<String?> osmId = const Value.absent(),
+                Value<String?> sourceId = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => CourtsCompanion.insert(
                 id: id,
@@ -6398,7 +6400,7 @@ class $$CourtsTableTableManager
                 stars: stars,
                 cloudId: cloudId,
                 source: source,
-                osmId: osmId,
+                sourceId: sourceId,
                 createdAt: createdAt,
               ),
           withReferenceMapper: (p0) => p0

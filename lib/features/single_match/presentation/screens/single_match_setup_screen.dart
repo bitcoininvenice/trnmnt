@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:trnmnt/generated/l10n/app_localizations.dart';
 import '../../../teams/data/teams_repository.dart';
 import '../../../game/providers/game_provider.dart';
+import '../../../tournaments/presentation/widgets/court_picker_sheet.dart';
+import '../../../../core/database/app_database.dart';
 
 class SingleMatchSetupScreen extends ConsumerStatefulWidget {
   const SingleMatchSetupScreen({super.key});
@@ -21,6 +23,8 @@ class _SingleMatchSetupScreenState extends ConsumerState<SingleMatchSetupScreen>
   bool _isPublic = false;
   String _twitchUsername = '';
   String _matchTitle = '';
+  String? _venueCourtId;
+  String? _selectedCourtName;
 
   @override
   Widget build(BuildContext context) {
@@ -90,45 +94,134 @@ class _SingleMatchSetupScreenState extends ConsumerState<SingleMatchSetupScreen>
                       return null;
                     },
                   ),
+                  const SizedBox(height: 16),
+                  // Court Picker (Now core field)
+                  InkWell(
+                    onTap: () async {
+                      final selection = await showModalBottomSheet<CourtSelection>(
+                        context: context,
+                        isScrollControlled: true,
+                        backgroundColor: Colors.transparent,
+                        builder: (context) => const FractionallySizedBox(
+                          heightFactor: 0.8,
+                          child: CourtPickerSheet(),
+                        ),
+                      );
+                      if (selection != null) {
+                        setState(() {
+                          _venueCourtId = selection.cloudId ?? selection.osmId ?? selection.localId?.toString();
+                          _selectedCourtName = selection.name;
+                        });
+                      }
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.03),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.white.withOpacity(0.05)),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.orange.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(Icons.location_on, color: Colors.orange, size: 20),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  AppLocalizations.of(context)!.selectCourt,
+                                  style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  _selectedCourtName ?? '${AppLocalizations.of(context)!.optional} - Radar Map',
+                                  style: TextStyle(
+                                    color: _selectedCourtName != null ? Colors.white : Colors.white38,
+                                    fontSize: 14,
+                                    fontWeight: _selectedCourtName != null ? FontWeight.bold : FontWeight.normal,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (_selectedCourtName != null)
+                            IconButton(
+                              icon: const Icon(Icons.close, size: 18, color: Colors.white38),
+                              onPressed: () => setState(() {
+                                _selectedCourtName = null;
+                                _venueCourtId = null;
+                              }),
+                            )
+                          else
+                            const Icon(Icons.chevron_right, color: Colors.white24),
+                        ],
+                      ),
+                    ),
+                  ),
                   const SizedBox(height: 24),
                   Container(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: Colors.orange.withOpacity(0.05),
-                      borderRadius: BorderRadius.circular(16),
+                      gradient: LinearGradient(
+                        colors: [Colors.orange.withOpacity(0.1), Colors.orange.withOpacity(0.02)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(20),
                       border: Border.all(color: Colors.orange.withOpacity(0.1)),
                     ),
                     child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        SwitchListTile(
-                          title: Text(AppLocalizations.of(context)!.publishToCloud_switch, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                          subtitle: Text(AppLocalizations.of(context)!.publishToCloud_subtitle, style: const TextStyle(fontSize: 11)),
-                          value: _isPublic,
-                          activeColor: Colors.orange,
-                          contentPadding: EdgeInsets.zero,
-                          onChanged: (val) => setState(() => _isPublic = val),
+                        Row(
+                          children: [
+                            const Icon(Icons.cloud_upload, color: Colors.orange, size: 20),
+                            const SizedBox(width: 12),
+                            Text(
+                              AppLocalizations.of(context)!.publishToCloud_switch.toUpperCase(),
+                              style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 1),
+                            ),
+                            const Spacer(),
+                            Switch(
+                              value: _isPublic,
+                              activeColor: Colors.orange,
+                              onChanged: (val) => setState(() => _isPublic = val),
+                            ),
+                          ],
+                        ),
+                        Text(
+                          AppLocalizations.of(context)!.publishToCloud_subtitle,
+                          style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 11),
                         ),
                         if (_isPublic) ...[
-                          const Divider(height: 24),
+                          const SizedBox(height: 20),
+                          const Divider(color: Colors.white10),
+                          const SizedBox(height: 20),
                           TextFormField(
                             decoration: InputDecoration(
                               labelText: AppLocalizations.of(context)!.matchTitle_label,
                               hintText: AppLocalizations.of(context)!.matchTitle_hint,
                               prefixIcon: const Icon(Icons.title, size: 20),
-                              labelStyle: const TextStyle(fontSize: 12),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                             ),
-                            style: const TextStyle(fontSize: 14),
                             onChanged: (val) => _matchTitle = val,
                           ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 16),
                           TextFormField(
                             decoration: InputDecoration(
                               labelText: AppLocalizations.of(context)!.twitch_label,
                               hintText: AppLocalizations.of(context)!.twitch_hint,
                               prefixIcon: const Icon(Icons.video_camera_front, size: 20),
-                              labelStyle: const TextStyle(fontSize: 12),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                             ),
-                            style: const TextStyle(fontSize: 14),
                             onChanged: (val) => _twitchUsername = val,
                           ),
                         ],
@@ -151,6 +244,7 @@ class _SingleMatchSetupScreenState extends ConsumerState<SingleMatchSetupScreen>
                           isPublic: _isPublic,
                           matchTitle: _matchTitle,
                           twitchUsername: _twitchUsername,
+                          venueCourtId: _venueCourtId,
                         );
                         context.pushNamed(
                           'single-match-board',

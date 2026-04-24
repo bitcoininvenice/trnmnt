@@ -132,11 +132,11 @@ abstract class AppLocalizations {
   /// **'Nuovo Torneo'**
   String get newTournament;
 
-  /// No description provided for @map.
+  /// No description provided for @radar.
   ///
   /// In it, this message translates to:
-  /// **'Mappa'**
-  String get map;
+  /// **'Radar'**
+  String get radar;
 
   /// No description provided for @settings.
   ///
@@ -396,11 +396,11 @@ abstract class AppLocalizations {
   /// **'Inizia subito'**
   String get startNow;
 
-  /// No description provided for @courtsMap.
+  /// No description provided for @radarSubtitle.
   ///
   /// In it, this message translates to:
-  /// **'La mappa dei campetti'**
-  String get courtsMap;
+  /// **'Radar'**
+  String get radarSubtitle;
 
   /// No description provided for @appOptions.
   ///
@@ -1344,10 +1344,16 @@ abstract class AppLocalizations {
   /// **'Nome Girone (es. A, B...)'**
   String get groupNameHint;
 
+  /// No description provided for @all.
+  ///
+  /// In it, this message translates to:
+  /// **'Tutti'**
+  String get all;
+
   /// No description provided for @upcoming.
   ///
   /// In it, this message translates to:
-  /// **'Prossimamente'**
+  /// **'In programma'**
   String get upcoming;
 
   /// No description provided for @concluded.
@@ -1437,7 +1443,7 @@ abstract class AppLocalizations {
   /// No description provided for @liveHighlights.
   ///
   /// In it, this message translates to:
-  /// **'WEB LIVE HIGHLIGHTS'**
+  /// **'IN EVIDENZA'**
   String get liveHighlights;
 
   /// No description provided for @statsOverview.
@@ -1461,7 +1467,7 @@ abstract class AppLocalizations {
   /// No description provided for @future.
   ///
   /// In it, this message translates to:
-  /// **'Futuri'**
+  /// **'In programma'**
   String get future;
 
   /// No description provided for @past.
@@ -1995,7 +2001,7 @@ abstract class AppLocalizations {
   /// No description provided for @exploreHub.
   ///
   /// In it, this message translates to:
-  /// **'Esplora i tornei e le partite live dal cloud'**
+  /// **'Esplora tornei e partite live'**
   String get exploreHub;
 
   /// No description provided for @noLiveMatches.
@@ -2034,11 +2040,11 @@ abstract class AppLocalizations {
   /// **'HUB'**
   String get hub;
 
-  /// No description provided for @mapSettings.
+  /// No description provided for @radarSettings.
   ///
   /// In it, this message translates to:
-  /// **'Impostazioni Mappa'**
-  String get mapSettings;
+  /// **'Impostazioni Radar'**
+  String get radarSettings;
 
   /// No description provided for @enableOsmData.
   ///
@@ -2052,17 +2058,17 @@ abstract class AppLocalizations {
   /// **'Mostra i campetti pubblici censiti su OSM.'**
   String get osmDataDesc;
 
-  /// No description provided for @mapDataSourceOsm.
+  /// No description provided for @radarDataSourceOsm.
   ///
   /// In it, this message translates to:
   /// **'Fonte OpenStreetMap'**
-  String get mapDataSourceOsm;
+  String get radarDataSourceOsm;
 
-  /// No description provided for @mapDataSourceLocal.
+  /// No description provided for @radarDataSourceLocal.
   ///
   /// In it, this message translates to:
-  /// **'TRNMNT app'**
-  String get mapDataSourceLocal;
+  /// **'TRNMNT'**
+  String get radarDataSourceLocal;
 
   /// No description provided for @syncOsm.
   ///
@@ -2189,6 +2195,30 @@ abstract class AppLocalizations {
   /// In it, this message translates to:
   /// **'RISULTATI OPENSTREETMAP'**
   String get osmResultsTitle;
+
+  /// No description provided for @selectCourt.
+  ///
+  /// In it, this message translates to:
+  /// **'Seleziona Campetto'**
+  String get selectCourt;
+
+  /// No description provided for @courtSelected.
+  ///
+  /// In it, this message translates to:
+  /// **'Campetto: {name}'**
+  String courtSelected(String name);
+
+  /// No description provided for @optional.
+  ///
+  /// In it, this message translates to:
+  /// **'Opzionale'**
+  String get optional;
+
+  /// No description provided for @radar_court_link.
+  ///
+  /// In it, this message translates to:
+  /// **'COLLEGAMENTO RADAR'**
+  String get radar_court_link;
 }
 
 class _AppLocalizationsDelegate

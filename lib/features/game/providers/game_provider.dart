@@ -1,13 +1,13 @@
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:trnmnt/core/database/app_database.dart';
 import '../../tournaments/data/matches_repository.dart';
 import '../../tournaments/data/tournaments_repository.dart';
 import '../../sharing/data/share_repository.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/scheduler.dart';
 
 class GameState {
   final int? matchId;
@@ -26,6 +26,7 @@ class GameState {
   final String? matchTitle;
   final String? standaloneUuid;
   final bool isHistorySaved;
+  final String? venueCourtId;
 
   GameState({
     this.matchId,
@@ -44,6 +45,7 @@ class GameState {
     this.matchTitle,
     this.standaloneUuid,
     this.isHistorySaved = false,
+    this.venueCourtId,
   });
 
   String get formattedTime {
@@ -69,6 +71,7 @@ class GameState {
     String? matchTitle,
     String? standaloneUuid,
     bool? isHistorySaved,
+    String? venueCourtId,
   }) {
     return GameState(
       matchId: matchId ?? this.matchId,
@@ -87,6 +90,7 @@ class GameState {
       matchTitle: matchTitle ?? this.matchTitle,
       standaloneUuid: standaloneUuid ?? this.standaloneUuid,
       isHistorySaved: isHistorySaved ?? this.isHistorySaved,
+      venueCourtId: venueCourtId ?? this.venueCourtId,
     );
   }
 }
@@ -101,18 +105,39 @@ class GameNotifier extends StateNotifier<GameState> {
 
   GameNotifier(this._ref) : super(GameState());
 
+  bool _isDisposed = false;
+
   @override
   void dispose() {
+    _isDisposed = true;
     _timer?.cancel();
     _syncTimer?.cancel();
     _audioPlayer.dispose();
     super.dispose();
   }
 
-  void setupStandalone(String home, String away, {int minutes = 10, bool isPublic = false, String? twitchUsername, String? matchTitle}) {
+  void _updateState(GameState newState) {
+    if (_isDisposed) return;
+    
+    // To avoid "defunct element" assertion errors, we check if it's safe to update the state.
+    // If we are currently in the middle of a frame (build, layout, or paint), we must defer.
+    // Using Future.microtask is often safer than addPostFrameCallback for this purpose
+    // because it executes before the next frame, reducing the window for disposal crashes.
+    final scheduler = SchedulerBinding.instance;
+    if (scheduler.schedulerPhase == SchedulerPhase.idle || 
+        scheduler.schedulerPhase == SchedulerPhase.postFrameCallbacks) {
+      state = newState;
+    } else {
+      Future.microtask(() {
+        if (!_isDisposed) state = newState;
+      });
+    }
+  }
+
+  void setupStandalone(String home, String away, {int minutes = 10, bool isPublic = false, String? twitchUsername, String? matchTitle, String? venueCourtId}) {
     _timer?.cancel();
     _syncTimer?.cancel();
-    state = GameState(
+    final newState = GameState(
       homeTeamName: home,
       awayTeamName: away,
       totalSeconds: minutes * 60,
@@ -121,10 +146,12 @@ class GameNotifier extends StateNotifier<GameState> {
       matchTitle: matchTitle,
       twitchUsername: twitchUsername,
       standaloneUuid: isPublic ? _generateUuid() : null,
+      venueCourtId: venueCourtId,
     );
+    _updateState(newState);
 
     if (isPublic) {
-      _syncToLive(force: true);
+      _syncToLive(newState, force: true);
     }
   }
 
@@ -132,7 +159,7 @@ class GameNotifier extends StateNotifier<GameState> {
     _timer?.cancel();
     _syncTimer?.cancel();
 
-    state = GameState(
+    final newState = GameState(
       matchId: matchData.match.id,
       matchData: matchData,
       homeScore: matchData.match.homeScore ?? 0,
@@ -142,11 +169,12 @@ class GameNotifier extends StateNotifier<GameState> {
       homeTeamName: matchData.homeTeam?.name ?? 'Home',
       awayTeamName: matchData.awayTeam?.name ?? 'Away',
     );
+    _updateState(newState);
     
-    _lastSyncHomeScore = state.homeScore;
-    _lastSyncAwayScore = state.awayScore;
+    _lastSyncHomeScore = newState.homeScore;
+    _lastSyncAwayScore = newState.awayScore;
 
-    _syncToLive(force: true); // Initial push
+    _syncToLive(newState, force: true); // Initial push
   }
 
   void quitGame() {
@@ -173,32 +201,42 @@ class GameNotifier extends StateNotifier<GameState> {
          twitchUsername: state.twitchUsername,
          period: state.period,
          timer: state.formattedTime,
+         venueCourtId: state.venueCourtId,
        ).catchError((_) => null);
        
        _ref.read(shareRepositoryProvider).clearLiveMatch('standalone', 0, customId: state.standaloneUuid).catchError((_) => null);
     }
     
-    state = GameState();
+    _updateState(GameState());
   }
 
   void toggleTimer() {
+    if (_isDisposed) return;
     if (state.isRunning) {
       _timer?.cancel();
-      state = state.copyWith(isRunning: false);
-      _syncToLive(force: true);
+      final newState = state.copyWith(isRunning: false);
+      _updateState(newState);
+      _syncToLive(newState, force: true);
     } else {
       if (state.remainingSeconds <= 0) return;
-      state = state.copyWith(isRunning: true);
-      _syncToLive(force: true); // Inform frontend to start local timer
+      final newState = state.copyWith(isRunning: true);
+      _updateState(newState);
+      _syncToLive(newState, force: true); // Inform frontend to start local timer
       
       _timer = Timer.periodic(const Duration(seconds: 1), (t) {
+        if (_isDisposed) {
+          t.cancel();
+          return;
+        }
         if (state.remainingSeconds > 0) {
-          state = state.copyWith(remainingSeconds: state.remainingSeconds - 1);
+          final newState = state.copyWith(remainingSeconds: state.remainingSeconds - 1);
+          _updateState(newState);
         } else {
-          _timer?.cancel();
-          state = state.copyWith(isRunning: false, isFinished: true);
+          t.cancel();
+          final newState = state.copyWith(isRunning: false, isFinished: true);
+          _updateState(newState);
           _playBuzzer();
-          _syncToLive(force: true); // Inform frontend to stop
+          _syncToLive(newState, force: true); // Inform frontend to stop
         }
       });
     }
@@ -215,40 +253,44 @@ class GameNotifier extends StateNotifier<GameState> {
 
   void resetTimer() {
     _timer?.cancel();
-    state = state.copyWith(
+    final newState = state.copyWith(
       remainingSeconds: state.totalSeconds,
       isRunning: false,
       isFinished: false,
     );
-    _syncToLive(force: true);
+    _updateState(newState);
+    _syncToLive(newState, force: true);
   }
 
   void updateHomeScore(int val) {
-    if (val < 0) return;
-    state = state.copyWith(homeScore: val);
-    _syncToLive(force: true); // Sync on every point
+    if (val < 0 || _isDisposed) return;
+    final newState = state.copyWith(homeScore: val);
+    _updateState(newState);
+    _syncToLive(newState, force: true); // Sync on every point
   }
 
   void updateAwayScore(int val) {
-    if (val < 0) return;
-    state = state.copyWith(awayScore: val);
-    _syncToLive(force: true); // Sync on every point
+    if (val < 0 || _isDisposed) return;
+    final newState = state.copyWith(awayScore: val);
+    _updateState(newState);
+    _syncToLive(newState, force: true); // Sync on every point
   }
 
   void updatePeriod(int val) {
-    if (val < 1) return;
-    state = state.copyWith(period: val);
-    _syncToLive(force: true);
+    if (val < 1 || _isDisposed) return;
+    final newState = state.copyWith(period: val);
+    _updateState(newState);
+    _syncToLive(newState, force: true);
   }
 
   void setDuration(int minutes) {
-    if (state.isRunning) return;
+    if (_isDisposed || state.isRunning) return;
     final seconds = minutes * 60;
-    state = state.copyWith(
+    _updateState(state.copyWith(
       totalSeconds: seconds,
       remainingSeconds: seconds,
       isFinished: false,
-    );
+    ));
   }
 
   void triggerSpecialShot(String type, String side, {int? manualMatchId, int? manualTournamentId}) async {
@@ -316,10 +358,11 @@ class GameNotifier extends StateNotifier<GameState> {
   }
 
   /// Pushes tiny status updates specifically to the live_matches table
-  Future<void> _syncToLive({bool force = false}) async {
-    final bool isStandalone = state.matchId == null && state.isPublic;
+  Future<void> _syncToLive(GameState syncState, {bool force = false}) async {
+    if (_isDisposed) return;
+    final bool isStandalone = syncState.matchId == null && syncState.isPublic;
     
-    if (state.matchId == null && !isStandalone) return;
+    if (syncState.matchId == null && !isStandalone) return;
     
     try {
       final repo = _ref.read(shareRepositoryProvider);
@@ -329,21 +372,22 @@ class GameNotifier extends StateNotifier<GameState> {
         await repo.updateLiveMatch(
           cloudId: 'standalone',
           matchId: 0, // Not used when we have compositeId logic
-          standaloneCustomId: state.standaloneUuid, // New param
-          homeScore: state.homeScore,
-          awayScore: state.awayScore,
-          timer: state.formattedTime,
-          homeName: state.homeTeamName,
-          awayName: state.awayTeamName,
-          isRunning: state.isRunning,
-          period: state.period,
-          twitchUsername: state.twitchUsername,
-          matchTitle: state.matchTitle,
+          standaloneCustomId: syncState.standaloneUuid, // New param
+          homeScore: syncState.homeScore,
+          awayScore: syncState.awayScore,
+          timer: syncState.formattedTime,
+          homeName: syncState.homeTeamName,
+          awayName: syncState.awayTeamName,
+          isRunning: syncState.isRunning,
+          period: syncState.period,
+          twitchUsername: syncState.twitchUsername,
+          matchTitle: syncState.matchTitle,
+          venueCourtId: syncState.venueCourtId,
         );
         return;
       }
 
-      final tournamentId = state.matchData?.match.tournamentId;
+      final tournamentId = syncState.matchData?.match.tournamentId;
       if (tournamentId == null) return;
 
       final tournament = await _ref.read(tournamentByIdProvider(tournamentId).future);
@@ -353,21 +397,17 @@ class GameNotifier extends StateNotifier<GameState> {
       // Update live match on Supabase
       await repo.updateLiveMatch(
         cloudId: tournament.cloudId!,
-        matchId: state.matchId!,
-        homeScore: state.homeScore,
-        awayScore: state.awayScore,
-        timer: state.formattedTime,
-        homeName: state.homeTeamName,
-        awayName: state.awayTeamName,
-        isRunning: state.isRunning,
-        period: state.period,
-        matchTitle: state.matchTitle,
+        matchId: syncState.matchId!,
+        homeScore: syncState.homeScore,
+        awayScore: syncState.awayScore,
+        timer: syncState.formattedTime,
+        homeName: syncState.homeTeamName,
+        awayName: syncState.awayTeamName,
+        isRunning: syncState.isRunning,
+        period: syncState.period,
+        matchTitle: syncState.matchTitle,
       );
-
-      _lastSyncHomeScore = state.homeScore;
-      _lastSyncAwayScore = state.awayScore;
-    } catch (_) {
-      // Silent error for production
+    } catch (e) {
     }
   }
 
@@ -398,6 +438,7 @@ class GameNotifier extends StateNotifier<GameState> {
         twitchUsername: state.twitchUsername,
         period: state.period,
         timer: state.formattedTime,
+        venueCourtId: state.venueCourtId,
       ).catchError((_) => null);
       
       // Clear from live scoreboard
@@ -406,7 +447,7 @@ class GameNotifier extends StateNotifier<GameState> {
       state = state.copyWith(isHistorySaved: true);
     }
 
-    state = state.copyWith(isRunning: false, isFinished: true);
+    _updateState(state.copyWith(isRunning: false, isFinished: true));
   }
 
   String _generateUuid() {

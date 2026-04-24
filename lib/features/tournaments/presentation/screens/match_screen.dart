@@ -11,7 +11,6 @@ import '../../data/tournaments_repository.dart';
 import '../../../sharing/data/share_repository.dart';
 import '../../../game/providers/game_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:supabase/supabase.dart';
 import 'package:trnmnt/generated/l10n/app_localizations.dart';
 
 /// Provider for a single match by ID (only for tournament matches)
@@ -53,9 +52,12 @@ class _MatchScreenState extends ConsumerState<MatchScreen> {
 
   String? _sessionId;
 
+  late final ShareRepository _shareRepo;
+
   @override
   void initState() {
     super.initState();
+    _shareRepo = ref.read(shareRepositoryProvider);
     _sessionId = 'match-app-${DateTime.now().millisecondsSinceEpoch}-${widget.matchId}';
     _recordVisit();
   }
@@ -63,7 +65,7 @@ class _MatchScreenState extends ConsumerState<MatchScreen> {
   @override
   void dispose() {
     if (_sessionId != null) {
-      ref.read(shareRepositoryProvider).endTournamentHit(_sessionId!);
+      _shareRepo.endTournamentHit(_sessionId!);
     }
     super.dispose();
   }
@@ -83,7 +85,7 @@ class _MatchScreenState extends ConsumerState<MatchScreen> {
       final matchData = await ref.read(matchByIdProvider(widget.matchId!).future);
       final tId = matchData?.match.tournamentId;
       if (tId != null) {
-        final t = await ref.read(tournamentByIdProvider(tId!).future);
+        final t = await ref.read(tournamentByIdProvider(tId).future);
         if (t?.cloudId != null) {
           trackingCloudId = t!.cloudId;
           trackingMatchId = '${trackingCloudId}_${widget.matchId}';
@@ -192,29 +194,36 @@ class _MatchScreenState extends ConsumerState<MatchScreen> {
         body: Center(child: CircularProgressIndicator(color: Colors.orange)),
       );
     }
-
+    final l10n = AppLocalizations.of(context)!;
+    
     if (_isGuest) {
       return _buildGuestMatchDetail(context, ref);
     }
 
-    final activeGame = ref.watch(activeGameProvider);
-    final activeGameNotifier = ref.read(activeGameProvider.notifier);
-    final l10n = AppLocalizations.of(context)!;
+    // Use a stable selector to decide between Live and Static views.
+    // This prevents the entire MatchScreen from rebuilding every second due to the timer.
+    final bool isLive = ref.watch(activeGameProvider.select((s) {
+      if (widget.matchId == null) return s.matchId == null && s.matchData == null;
+      return s.matchId == widget.matchId;
+    }));
 
-    // Is this specific match currently active?
-    final bool isThisMatchActive = (widget.matchId == null) 
-        ? (activeGame.matchId == null) // If we came here as standalone, we are active if the current game is standalone
-        : (activeGame.matchId == widget.matchId);
-
-    if (isThisMatchActive && (activeGame.matchData != null || widget.matchId == null)) {
-      return _buildLiveMatchScreen(context, activeGame, activeGameNotifier);
+    if (isLive) {
+      return _LiveMatchView(
+        matchId: widget.matchId,
+        onFinished: () => setState(() => _isFinishing = true),
+      );
     }
 
-    // If no matchId, it shouldn't even reach here without being "active" or "setup"
+    // Fallback to static view if not active
+    return _buildStaticMatchScreen(context, l10n);
+  }
+
+  Widget _buildStaticMatchScreen(BuildContext context, AppLocalizations l10n) {
     if (widget.matchId == null) {
       return const Scaffold(body: Center(child: Text('Errore: Partita non inizializzata')));
     }
 
+    final activeGameNotifier = ref.read(activeGameProvider.notifier);
     final matchAsync = ref.watch(matchByIdProvider(widget.matchId!));
 
     return matchAsync.when(
@@ -282,7 +291,6 @@ class _MatchScreenState extends ConsumerState<MatchScreen> {
                                 );
                               },
                             ),
-                            // Removed Special Shots from manual mode
                           ],
                         ),
                       ),
@@ -308,7 +316,6 @@ class _MatchScreenState extends ConsumerState<MatchScreen> {
                                 );
                               },
                             ),
-                            // Removed Special Shots from manual mode
                           ],
                         ),
                       ),
@@ -349,331 +356,6 @@ class _MatchScreenState extends ConsumerState<MatchScreen> {
           ),
         );
       },
-    );
-  }
-
-  Widget _buildLiveMatchScreen(BuildContext context, GameState activeGame, GameNotifier notifier) {
-    final timerColor = activeGame.isFinished ? Colors.red : (activeGame.isRunning ? Colors.green : Colors.blue);
-    final l10n = AppLocalizations.of(context)!;
-
-    final tournamentId = activeGame.matchData?.match.tournamentId;
-    final bool isPublished = (tournamentId != null) 
-        ? (ref.watch(tournamentByIdProvider(tournamentId)).valueOrNull?.isPublished ?? false)
-        : false;
-
-    return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        title: Text(l10n.matchInProgress, style: const TextStyle(fontFamily: 'monospace')),
-        leading: IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
-        actions: [
-          if (isPublished || activeGame.isPublic)
-            IconButton(
-              icon: const Icon(Icons.share, color: Colors.orange),
-              onPressed: () async {
-                String? finalId;
-                if (activeGame.matchId == null && activeGame.isPublic) {
-                  finalId = activeGame.standaloneUuid;
-                } else if (tournamentId != null) {
-                  final t = await ref.read(tournamentByIdProvider(tournamentId).future);
-                  if (t?.cloudId != null) {
-                    finalId = '${t!.cloudId}_${activeGame.matchId}';
-                  }
-                }
-
-                if (finalId != null) {
-                  final locale = Localizations.localeOf(context).languageCode;
-                  final url = 'https://trnmnt.vercel.app/$locale/match/$finalId';
-                  await Clipboard.setData(ClipboardData(text: url));
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Row(
-                          children: [
-                            Icon(Icons.check_circle, color: Colors.white, size: 20),
-                            SizedBox(width: 12),
-                            Text('Link copiato! Condividilo sui social 🚀', style: TextStyle(fontWeight: FontWeight.bold)),
-                          ],
-                        ),
-                        backgroundColor: Colors.green,
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
-                  }
-                }
-              },
-            ),
-           TextButton(
-            onPressed: () {
-               notifier.quitGame();
-               Navigator.pop(context);
-            },
-            child: Text(l10n.quit.toUpperCase(), style: const TextStyle(color: Colors.red, fontSize: 12)),
-          ),
-        ],
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Column(
-                      children: [
-                        VintageScoreColumn(teamName: activeGame.homeTeamName, score: activeGame.homeScore, onScoreChanged: (val) => notifier.updateHomeScore(val)),
-                        if (isPublished)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 12),
-                            child: _buildSpecialShotsRow(
-                              'A', 
-                              notifier,
-                              matchId: activeGame.matchId,
-                              tournamentId: activeGame.matchData?.match.tournamentId,
-                              homeName: activeGame.homeTeamName,
-                              awayName: activeGame.awayTeamName,
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                  _buildPeriodColumn(activeGame, notifier),
-                  Expanded(
-                    child: Column(
-                      children: [
-                        VintageScoreColumn(teamName: activeGame.awayTeamName, score: activeGame.awayScore, onScoreChanged: (val) => notifier.updateAwayScore(val)),
-                        if (isPublished)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 12),
-                            child: _buildSpecialShotsRow(
-                              'B', 
-                              notifier,
-                              matchId: activeGame.matchId,
-                              tournamentId: activeGame.matchData?.match.tournamentId,
-                              homeName: activeGame.homeTeamName,
-                              awayName: activeGame.awayTeamName,
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const Divider(height: 16, thickness: 1, color: Colors.white10),
-            if (!activeGame.isRunning && activeGame.matchId == null)
-              _buildDurationSelector(activeGame, notifier),
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 24),
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade900,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: timerColor.withValues(alpha: 0.5), width: 2),
-                      ),
-                      child: Text(
-                        activeGame.formattedTime,
-                        style: TextStyle(fontSize: 64, fontWeight: FontWeight.bold, fontFamily: 'monospace', color: timerColor),
-                      ),
-                    ).animate(target: activeGame.isFinished ? 1 : 0).shake().shimmer(),
-                    const SizedBox(height: 48),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        _buildControlButton(icon: Icons.replay, onPressed: notifier.resetTimer, color: Colors.grey, size: 56),
-                        const SizedBox(width: 32),
-                        FloatingActionButton.large(
-                          backgroundColor: activeGame.isRunning ? Colors.orange : Colors.green,
-                          onPressed: notifier.toggleTimer,
-                          child: Icon(activeGame.isRunning ? Icons.pause : Icons.play_arrow, size: 48),
-                        ),
-                        const SizedBox(width: 32),
-                        _buildControlButton(
-                          icon: Icons.check, 
-                          onPressed: _isFinishing ? null : () async {
-                            setState(() => _isFinishing = true);
-                            
-                            // 1. Pop the screen immediately
-                            if (mounted) {
-                              Navigator.pop(context);
-                            }
-                            
-                            // 2. Finish the game in the background (no longer depends on this screen's lifecycle)
-                            notifier.finishGame();
-                          }, 
-                          color: Colors.blue, 
-                          size: 56
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    ),
-  );
-}
-
-  Widget _buildPeriodColumn(GameState state, GameNotifier notifier) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8.0),
-      child: Column(
-        children: [
-          const Text('PERIODO', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1, color: Colors.white70)),
-          const SizedBox(height: 4),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            decoration: BoxDecoration(color: Colors.black, border: Border.all(color: Colors.grey.shade900, width: 2), borderRadius: BorderRadius.circular(8)),
-            child: Text(state.period.toString(), style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, fontFamily: 'monospace', color: Colors.green)),
-          ),
-          Row(
-            children: [
-              IconButton(visualDensity: VisualDensity.compact, icon: const Icon(Icons.arrow_drop_down, size: 20, color: Colors.white54), onPressed: () => notifier.updatePeriod(state.period - 1)),
-              IconButton(visualDensity: VisualDensity.compact, icon: const Icon(Icons.arrow_drop_up, size: 20, color: Colors.white54), onPressed: () => notifier.updatePeriod(state.period + 1)),
-            ],
-          )
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDurationSelector(GameState state, GameNotifier notifier) {
-    final durations = [1, 5, 8, 10, 12, 15, 20];
-    final currentMinutes = state.totalSeconds ~/ 60;
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Row(
-        children: durations.map((m) => Padding(
-          padding: const EdgeInsets.only(right: 8),
-          child: ChoiceChip(label: Text('$m min'), selected: m == currentMinutes, onSelected: (_) => notifier.setDuration(m)),
-        )).toList(),
-      ),
-    );
-  }
-
-  Widget _buildControlButton({required IconData icon, VoidCallback? onPressed, required Color color, required double size}) {
-    return Container(
-      width: size, height: size,
-      decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: color, width: 2)),
-      child: IconButton(icon: Icon(icon, color: color, size: size * 0.5), onPressed: onPressed),
-    );
-  }
-
-  Widget _buildSpecialShotsRow(
-    String side, 
-    GameNotifier notifier, {
-    bool localStateOnly = false, 
-    bool isHome = true,
-    int? matchId,
-    int? tournamentId,
-    String? homeName,
-    String? awayName,
-  }) {
-    return Column(
-      children: [
-        // Three Pointer Button (BOMBA)
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.orange.shade900,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-            onPressed: () {
-               if (localStateOnly) {
-                  final newScore = (isHome ? (_homeScore ?? 0) : (_awayScore ?? 0)) + 3;
-                  setState(() {
-                    if (isHome) _homeScore = newScore;
-                    else _awayScore = newScore;
-                  });
-                  // Sync updated score to cloud
-                  if (matchId != null && tournamentId != null) {
-                    notifier.syncManualScoreWithCloud(
-                      tournamentId: tournamentId,
-                      matchId: matchId,
-                      homeScore: _homeScore ?? 0,
-                      awayScore: _awayScore ?? 0,
-                      homeName: homeName ?? 'Home',
-                      awayName: awayName ?? 'Away',
-                    );
-                  }
-               }
-               notifier.triggerSpecialShot(
-                 'three_pointer', 
-                 side,
-                 manualMatchId: matchId,
-                 manualTournamentId: tournamentId,
-               );
-            },
-            child: const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.bolt, size: 16),
-                SizedBox(width: 4),
-                Text('BOMBA +3', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, fontFamily: 'monospace')),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 8),
-        // Secondary Special Shots
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            _shortLabelButton(
-              icon: Icons.notifications_active, 
-              color: Colors.red.shade800, 
-              onTap: () => notifier.triggerSpecialShot(
-                'buzzer_beater', 
-                side,
-                manualMatchId: matchId,
-                manualTournamentId: tournamentId,
-              )
-            ),
-            _shortLabelButton(
-              icon: Icons.auto_awesome, 
-              color: Colors.purple.shade800, 
-              onTap: () => notifier.triggerSpecialShot(
-                'circus_shot', 
-                side,
-                manualMatchId: matchId,
-                manualTournamentId: tournamentId,
-              )
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _shortLabelButton({required IconData icon, required Color color, required VoidCallback onTap}) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.2),
-          border: Border.all(color: color.withValues(alpha: 0.5)),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Icon(icon, size: 20, color: color),
-      ),
     );
   }
 
@@ -772,6 +454,417 @@ class _MatchScreenState extends ConsumerState<MatchScreen> {
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+/// Isolated widget for the Live Match experience to prevent MatchScreen from broad rebuilds.
+class _LiveMatchView extends ConsumerWidget {
+  final dynamic matchId;
+  final VoidCallback onFinished;
+
+  const _LiveMatchView({
+    required this.matchId,
+    required this.onFinished,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Watch ONLY granular fields that don't change every second
+    final isPublic = ref.watch(activeGameProvider.select((s) => s.isPublic));
+    final homeTeamName = ref.watch(activeGameProvider.select((s) => s.homeTeamName));
+    final awayTeamName = ref.watch(activeGameProvider.select((s) => s.awayTeamName));
+    final homeScore = ref.watch(activeGameProvider.select((s) => s.homeScore));
+    final awayScore = ref.watch(activeGameProvider.select((s) => s.awayScore));
+    final matchId = ref.watch(activeGameProvider.select((s) => s.matchId));
+    final tournamentId = ref.watch(activeGameProvider.select((s) => s.matchData?.match.tournamentId));
+
+    final notifier = ref.read(activeGameProvider.notifier);
+    final l10n = AppLocalizations.of(context)!;
+
+    final bool isPublished = (tournamentId != null) 
+        ? (ref.watch(tournamentByIdProvider(tournamentId)).valueOrNull?.isPublished ?? false)
+        : false;
+
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        title: Text(l10n.matchInProgress, style: const TextStyle(fontFamily: 'monospace')),
+        leading: IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
+        actions: [
+          if (isPublished || isPublic)
+            // We pass a dummy state to _ShareButton or just make it watch what it needs
+            Consumer(
+              builder: (context, ref, _) {
+                final activeGame = ref.watch(activeGameProvider);
+                return _ShareButton(activeGame: activeGame, tournamentId: tournamentId);
+              }
+            ),
+          TextButton(
+            onPressed: () {
+               notifier.quitGame();
+               Navigator.pop(context);
+            },
+            child: Text(l10n.quit.toUpperCase(), style: const TextStyle(color: Colors.red, fontSize: 12)),
+          ),
+        ],
+      ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        children: [
+                          VintageScoreColumn(
+                            teamName: homeTeamName, 
+                            score: homeScore, 
+                            onScoreChanged: (val) => notifier.updateHomeScore(val)
+                          ),
+                          if (isPublished)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 12),
+                              child: _SpecialShotsRow(
+                                side: 'A', 
+                                matchId: matchId,
+                                tournamentId: tournamentId,
+                                homeName: homeTeamName,
+                                awayName: awayTeamName,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    _PeriodColumn(notifier: notifier),
+                    Expanded(
+                      child: Column(
+                        children: [
+                          VintageScoreColumn(
+                            teamName: awayTeamName, 
+                            score: awayScore, 
+                            onScoreChanged: (val) => notifier.updateAwayScore(val)
+                          ),
+                          if (isPublished)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 12),
+                              child: _SpecialShotsRow(
+                                side: 'B', 
+                                matchId: matchId,
+                                tournamentId: tournamentId,
+                                homeName: homeTeamName,
+                                awayName: awayTeamName,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 16, thickness: 1, color: Colors.white10),
+              Consumer(
+                builder: (context, ref, _) {
+                  final isRunning = ref.watch(activeGameProvider.select((s) => s.isRunning));
+                  final mid = ref.watch(activeGameProvider.select((s) => s.matchId));
+                  if (!isRunning && mid == null) {
+                    return _DurationSelector(notifier: notifier);
+                  }
+                  return const SizedBox.shrink();
+                }
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 24),
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const _LiveMatchTimer(),
+                      const SizedBox(height: 48),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          _ControlButton(icon: Icons.replay, onPressed: notifier.resetTimer, color: Colors.grey, size: 56),
+                          const SizedBox(width: 32),
+                          // Use localized selectors for the FAB to avoid rebuilds of the whole row
+                          Consumer(
+                            builder: (context, ref, _) {
+                              final isRunning = ref.watch(activeGameProvider.select((s) => s.isRunning));
+                              return FloatingActionButton.large(
+                                backgroundColor: isRunning ? Colors.orange : Colors.green,
+                                onPressed: () => notifier.toggleTimer(),
+                                child: Icon(isRunning ? Icons.pause : Icons.play_arrow, size: 48),
+                              );
+                            }
+                          ),
+                          const SizedBox(width: 32),
+                          _ControlButton(
+                            icon: Icons.check, 
+                            onPressed: () async {
+                              onFinished();
+                              Navigator.pop(context);
+                              notifier.finishGame();
+                            }, 
+                            color: Colors.blue, 
+                            size: 56
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _LiveMatchTimer extends ConsumerWidget {
+  const _LiveMatchTimer();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final formattedTime = ref.watch(activeGameProvider.select((s) => s.formattedTime));
+    final isFinished = ref.watch(activeGameProvider.select((s) => s.isFinished));
+    final isRunning = ref.watch(activeGameProvider.select((s) => s.isRunning));
+    
+    final timerColor = isFinished ? Colors.red : (isRunning ? Colors.green : Colors.blue);
+    
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade900,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: timerColor.withValues(alpha: 0.5), width: 2),
+      ),
+      child: Text(
+        formattedTime,
+        style: TextStyle(fontSize: 64, fontWeight: FontWeight.bold, fontFamily: 'monospace', color: timerColor),
+      ),
+    ).animate(target: isFinished ? 1 : 0).shake().shimmer();
+  }
+}
+
+class _ShareButton extends ConsumerWidget {
+  final GameState activeGame;
+  final int? tournamentId;
+
+  const _ShareButton({required this.activeGame, required this.tournamentId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return IconButton(
+      icon: const Icon(Icons.share, color: Colors.orange),
+      onPressed: () async {
+        String? finalId;
+        if (activeGame.matchId == null && activeGame.isPublic) {
+          finalId = activeGame.standaloneUuid;
+        } else if (tournamentId != null) {
+          final t = await ref.read(tournamentByIdProvider(tournamentId!).future);
+          if (t?.cloudId != null) {
+            finalId = '${t!.cloudId}_${activeGame.matchId}';
+          }
+        }
+
+        if (!context.mounted) return;
+        if (finalId != null) {
+          final locale = Localizations.localeOf(context).languageCode;
+          final url = 'https://trnmnt.vercel.app/$locale/match/$finalId';
+          await Clipboard.setData(ClipboardData(text: url));
+          if (!context.mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Row(
+                  children: [
+                    Icon(Icons.check_circle, color: Colors.white, size: 20),
+                    SizedBox(width: 12),
+                    Text('Link copiato! Condividilo sui social 🚀', style: TextStyle(fontWeight: FontWeight.bold)),
+                  ],
+                ),
+                backgroundColor: Colors.green,
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+        }
+      },
+    );
+  }
+}
+
+class _PeriodColumn extends ConsumerWidget {
+  final GameNotifier notifier;
+
+  const _PeriodColumn({required this.notifier});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final period = ref.watch(activeGameProvider.select((s) => s.period));
+    
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8.0),
+      child: Column(
+        children: [
+          const Text('PERIODO', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1, color: Colors.white70)),
+          const SizedBox(height: 4),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            decoration: BoxDecoration(color: Colors.black, border: Border.all(color: Colors.grey.shade900, width: 2), borderRadius: BorderRadius.circular(8)),
+            child: Text(period.toString(), style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, fontFamily: 'monospace', color: Colors.green)),
+          ),
+          Row(
+            children: [
+              IconButton(visualDensity: VisualDensity.compact, icon: const Icon(Icons.arrow_drop_down, size: 20, color: Colors.white54), onPressed: () => notifier.updatePeriod(period - 1)),
+              IconButton(visualDensity: VisualDensity.compact, icon: const Icon(Icons.arrow_drop_up, size: 20, color: Colors.white54), onPressed: () => notifier.updatePeriod(period + 1)),
+            ],
+          )
+        ],
+      ),
+    );
+  }
+}
+
+class _DurationSelector extends ConsumerWidget {
+  final GameNotifier notifier;
+
+  const _DurationSelector({required this.notifier});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final totalSeconds = ref.watch(activeGameProvider.select((s) => s.totalSeconds));
+    final durations = [1, 5, 8, 10, 12, 15, 20];
+    final currentMinutes = totalSeconds ~/ 60;
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        children: durations.map((m) => Padding(
+          padding: const EdgeInsets.only(right: 8),
+          child: ChoiceChip(label: Text('$m min'), selected: m == currentMinutes, onSelected: (_) => notifier.setDuration(m)),
+        )).toList(),
+      ),
+    );
+  }
+}
+
+class _ControlButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback? onPressed;
+  final Color color;
+  final double size;
+
+  const _ControlButton({required this.icon, this.onPressed, required this.color, required this.size});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size, height: size,
+      decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: color, width: 2)),
+      child: IconButton(icon: Icon(icon, color: color, size: size * 0.5), onPressed: onPressed),
+    );
+  }
+}
+
+class _SpecialShotsRow extends ConsumerStatefulWidget {
+  final String side;
+  final int? matchId;
+  final int? tournamentId;
+  final String? homeName;
+  final String? awayName;
+
+  const _SpecialShotsRow({
+    required this.side,
+    this.matchId,
+    this.tournamentId,
+    this.homeName,
+    this.awayName,
+  });
+
+  @override
+  ConsumerState<_SpecialShotsRow> createState() => _SpecialShotsRowState();
+}
+
+class _SpecialShotsRowState extends ConsumerState<_SpecialShotsRow> {
+  @override
+  Widget build(BuildContext context) {
+    final notifier = ref.read(activeGameProvider.notifier);
+    return Column(
+      children: [
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange.shade900,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            onPressed: () => notifier.triggerSpecialShot(
+              'three_pointer', 
+              widget.side,
+              manualMatchId: widget.matchId,
+              manualTournamentId: widget.tournamentId,
+            ),
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.bolt, size: 16),
+                SizedBox(width: 4),
+                Text('BOMBA +3', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, fontFamily: 'monospace')),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            _iconActionBtn(
+              icon: Icons.notifications_active, 
+              color: Colors.red.shade800, 
+              onTap: () => notifier.triggerSpecialShot(
+                'buzzer_beater', 
+                widget.side,
+                manualMatchId: widget.matchId,
+                manualTournamentId: widget.tournamentId,
+              )
+            ),
+            _iconActionBtn(
+              icon: Icons.auto_awesome, 
+              color: Colors.purple.shade800, 
+              onTap: () => notifier.triggerSpecialShot(
+                'circus_shot', 
+                widget.side,
+                manualMatchId: widget.matchId,
+                manualTournamentId: widget.tournamentId,
+              )
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _iconActionBtn({required IconData icon, required Color color, required VoidCallback onTap}) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.2),
+          border: Border.all(color: color.withValues(alpha: 0.5)),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Icon(icon, size: 20, color: color),
       ),
     );
   }

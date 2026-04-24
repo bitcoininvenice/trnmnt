@@ -7,6 +7,8 @@ import '../../data/tournaments_repository.dart';
 import '../../data/matches_repository.dart';
 import '../../../teams/data/teams_repository.dart';
 import '../../../sharing/data/share_repository.dart';
+import '../../../tournaments/presentation/widgets/court_picker_sheet.dart';
+import '../../../map/data/courts_repository.dart';
 
 class TournamentEditScreen extends ConsumerStatefulWidget {
   final int tournamentId;
@@ -41,6 +43,8 @@ class _TournamentEditScreenState extends ConsumerState<TournamentEditScreen> {
   bool _isInit = false;
   bool _isWebRegistrationEnabled = false;
   DateTime? _endDate;
+  int? _venueCourtId;
+  String? _selectedCourtName;
 
   @override
   void dispose() {
@@ -85,6 +89,7 @@ class _TournamentEditScreenState extends ConsumerState<TournamentEditScreen> {
         startDate: _startDate,
         isWebRegistrationEnabled: _isWebRegistrationEnabled,
         endDate: _endDate,
+        venueCourtId: _venueCourtId,
       );
 
       await repo.setTournamentTeams(widget.tournamentId, _selectedTeamIds, teamToGroup: _groupCount > 1 ? _teamToGroup : null);
@@ -148,6 +153,12 @@ class _TournamentEditScreenState extends ConsumerState<TournamentEditScreen> {
               _teamToGroup = { for (var e in teams) e.team.id : e.tournamentTeam.groupNumber };
               _isWebRegistrationEnabled = tournament.isWebRegistrationEnabled;
               _endDate = tournament.endDate;
+              _venueCourtId = tournament.venueCourtId;
+              if (_venueCourtId != null) {
+                ref.read(courtsRepositoryProvider).getCourtById(_venueCourtId!).then((c) {
+                  if (mounted && c != null) setState(() => _selectedCourtName = c.name);
+                });
+              }
               _isInit = true;
             }
 
@@ -213,6 +224,8 @@ class _TournamentEditScreenState extends ConsumerState<TournamentEditScreen> {
                     _buildDateField(isReadOnly, context),
                     const SizedBox(height: 16),
                     _buildEndDateField(isReadOnly, context),
+                    const SizedBox(height: 16),
+                    _buildCourtPicker(isReadOnly, context),
                     
                     const SizedBox(height: 32),
                     Text(
@@ -637,6 +650,72 @@ class _TournamentEditScreenState extends ConsumerState<TournamentEditScreen> {
           ],
         );
       },
+    );
+  }
+
+  Widget _buildCourtPicker(bool isReadOnly, BuildContext context) {
+    return InkWell(
+      onTap: isReadOnly ? null : () async {
+        final selection = await showModalBottomSheet<CourtSelection>(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          builder: (context) => const FractionallySizedBox(
+            heightFactor: 0.8,
+            child: CourtPickerSheet(),
+          ),
+        );
+        if (selection != null) {
+          setState(() {
+            _venueCourtId = selection.localId;
+            _selectedCourtName = selection.name;
+          });
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.white24),
+          borderRadius: BorderRadius.circular(8),
+          color: Colors.white.withOpacity(0.05),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.location_on_outlined, size: 20, color: Colors.orange),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    AppLocalizations.of(context)!.radar_court_link,
+                    style: const TextStyle(fontSize: 10, color: Colors.orange, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    _selectedCourtName != null 
+                      ? AppLocalizations.of(context)!.courtSelected(_selectedCourtName!)
+                      : '${AppLocalizations.of(context)!.selectCourt} (${AppLocalizations.of(context)!.optional})',
+                    style: TextStyle(
+                      color: _selectedCourtName != null ? Colors.white : Colors.white70,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (_selectedCourtName != null && !isReadOnly)
+              IconButton(
+                icon: const Icon(Icons.clear, size: 18, color: Colors.white54),
+                onPressed: () => setState(() {
+                  _venueCourtId = null;
+                  _selectedCourtName = null;
+                }),
+              ),
+            const Icon(Icons.chevron_right, color: Colors.white24),
+          ],
+        ),
+      ),
     );
   }
 }

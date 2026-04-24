@@ -19,8 +19,15 @@ class MadnessScreen extends ConsumerStatefulWidget {
 }
 
 class _MadnessScreenState extends ConsumerState<MadnessScreen> {
+  int? get _localId => int.tryParse(widget.tournamentId.toString());
+  bool get _isGuest => _localId == null;
+
   @override
   Widget build(BuildContext context) {
+    if (_isGuest) {
+      return _buildGuestMadness(context, ref);
+    }
+
     final teamsAsync = ref.watch(tournamentTeamsProvider(widget.tournamentId));
     final matchesAsync = ref.watch(tournamentMatchesProvider(widget.tournamentId));
 
@@ -538,6 +545,214 @@ class _MadnessScreenState extends ConsumerState<MadnessScreen> {
        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Matches generated!')));
        context.pop();
     }
+  }
+
+  Widget _buildGuestMadness(BuildContext context, WidgetRef ref) {
+    final cloudId = widget.tournamentId.toString();
+    final cloudDetail = ref.watch(cloudTournamentDetailProvider(cloudId));
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Madness Mode (Guest)'),
+        backgroundColor: Colors.blueGrey.withValues(alpha: 0.1),
+      ),
+      body: cloudDetail.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (err, _) => Center(child: Text('Errore: $err')),
+        data: (data) {
+          if (data == null) return const Center(child: Text('Torneo non trovato'));
+          final tournamentData = data['data'] as Map<String, dynamic>?;
+          if (tournamentData == null) return const Center(child: Text('Dati non disponibili'));
+
+          // 1. Extract teams and matches
+          final teamsList = tournamentData['teams'] as List? ?? [];
+          final matchesList = tournamentData['matches'] as List? ?? [];
+
+          // Map teams to local model
+          final List<TournamentTeamWithTeam> teams = teamsList.map((t) {
+             final team = Team(
+               id: t['id'], 
+               name: t['name'] ?? 'Team',
+               createdAt: DateTime.now(),
+             );
+             return TournamentTeamWithTeam(
+                tournamentTeam: TournamentTeam(
+                  tournamentId: 0, 
+                  teamId: t['id'], 
+                  groupNumber: t['groupNumber'] ?? 1,
+                ),
+                team: team,
+             );
+          }).toList();
+
+          // Map matches to local model
+          final List<MatchWithTeams> matches = matchesList.map((m) {
+             final match = TournamentMatch(
+               id: m['id'],
+               tournamentId: 0,
+               homeTeamId: m['homeTeamId'],
+               awayTeamId: m['awayTeamId'],
+               homeScore: m['homeScore'],
+               awayScore: m['awayScore'],
+               isCompleted: m['isCompleted'] ?? false,
+               phase: m['phase'] ?? 'group',
+               round: m['round'] ?? 1,
+               isBye: m['isBye'] ?? false,
+               createdAt: DateTime.now(),
+             );
+             final hTeam = teams.where((t) => t.team.id == m['homeTeamId']).firstOrNull?.team;
+             final aTeam = teams.where((t) => t.team.id == m['awayTeamId']).firstOrNull?.team;
+             return MatchWithTeams(match: match, homeTeam: hTeam, awayTeam: aTeam);
+          }).toList();
+
+          final madnessMatches = matches.where((m) => m.match.phase == 'madness' && m.match.isCompleted).toList();
+          final playoffMatches = matches.where((m) => 
+             m.match.phase == 'final' || 
+             m.match.phase == 'semifinale_spareggio'
+          ).toList();
+          
+          final finalMatch = playoffMatches.where((m) => m.match.phase == 'final' && m.match.isCompleted).firstOrNull;
+          final winner = finalMatch != null 
+              ? (finalMatch.match.homeScore! > finalMatch.match.awayScore! ? finalMatch.homeTeam : finalMatch.awayTeam)
+              : null;
+
+          final state = _calculateCurrentState(teams, madnessMatches);
+          
+          return ListView(
+            children: [
+              if (winner != null) ...[
+                Container(
+                  margin: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Colors.amber.shade400, Colors.orange.shade800],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                  child: Column(
+                    children: [
+                      const Icon(Icons.emoji_events, size: 80, color: Colors.white),
+                      const SizedBox(height: 16),
+                      Text(winner.name.toUpperCase(), style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: Colors.white)),
+                    ],
+                  ),
+                ).animate().scale().shimmer(),
+                const Divider(),
+              ],
+
+              if (playoffMatches.isNotEmpty) ...[
+                _buildSectionHeader(context, Icons.emoji_events, 'PLAYOFFS', Colors.amber),
+                ...playoffMatches.map((m) => Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  child: Card(
+                    color: Colors.amber.shade900.withOpacity(0.1),
+                    child: ListTile(
+                      title: Text('${m.homeTeam?.name ?? 'TBD'} vs ${m.awayTeam?.name ?? 'TBD'}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                      trailing: Text('${m.match.homeScore ?? 0} - ${m.match.awayScore ?? 0}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                )),
+                const Divider(),
+              ] else ... [
+                if (state.king != null && state.challenger != null)
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: _buildGuestMatchCard(state.king!, state.challenger!),
+                  ),
+                
+                _buildSectionHeader(context, Icons.people_outline, 'Next Challengers', Colors.blue),
+                SizedBox(
+                  height: 100,
+                  child: ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    scrollDirection: Axis.horizontal,
+                    itemCount: state.queue.length,
+                    itemBuilder: (context, index) {
+                      final team = state.queue[index];
+                      return Container(
+                        width: 80,
+                        margin: const EdgeInsets.only(right: 12),
+                        child: Column(
+                          children: [
+                            CircleAvatar(radius: 20, child: Text('${index + 1}')),
+                            const SizedBox(height: 4),
+                            Text(team.team.name, textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 10)),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+
+              const Divider(),
+              _buildSectionHeader(context, Icons.leaderboard, 'Live Standings', Colors.purple),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Card(
+                  child: Column(
+                    children: [
+                      ..._calculateStandings(teams, madnessMatches).asMap().entries.map((entry) {
+                        final i = entry.key;
+                        final s = entry.value;
+                        return ListTile(
+                          dense: true,
+                          leading: Text('${i + 1}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                          title: Text(s.team.name),
+                          trailing: Text('${s.points}', style: const TextStyle(fontWeight: FontWeight.w900)),
+                        );
+                      }),
+                    ],
+                  ),
+                ),
+              ),
+
+              const Divider(),
+              _buildSectionHeader(context, Icons.history, 'Recent Matches', Colors.orange),
+              ...madnessMatches.reversed.map((m) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  child: Card(
+                    child: ListTile(
+                      dense: true,
+                      title: Text('${m.homeTeam?.name} ${m.match.homeScore} - ${m.match.awayScore} ${m.awayTeam?.name}'),
+                    ),
+                  ),
+                );
+              }),
+              const SizedBox(height: 32),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildGuestMatchCard(TournamentTeamWithTeam king, TournamentTeamWithTeam challenger) {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(24),
+          gradient: LinearGradient(
+            colors: [Colors.blue.shade800, Colors.deepPurple.shade800],
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            _buildTeamSlot(king, 'KING', Colors.amber),
+            const Text('VS', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white54)),
+            _buildTeamSlot(challenger, 'CHALLENGER', Colors.white70),
+          ],
+        ),
+      ),
+    );
   }
 }
 

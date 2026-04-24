@@ -28,6 +28,10 @@ class CourtsRepository {
     return await _db.select(_db.courts).get();
   }
 
+  Future<Court?> getCourtById(int id) async {
+    return await (_db.select(_db.courts)..where((c) => c.id.equals(id))).getSingleOrNull();
+  }
+
   Stream<List<Court>> watchAllCourts() {
     return _db.select(_db.courts).watch();
   }
@@ -35,8 +39,8 @@ class CourtsRepository {
   Future<int> insertCourt(CourtsCompanion court) async {
     final id = await _db.into(_db.courts).insert(court);
     
-    // Background sync to Supabase (Published Courts)
-    _syncToSupabase(id, court);
+    // Sync to Supabase (Published Courts)
+    await _syncToSupabase(id, court);
     
     return id;
   }
@@ -64,9 +68,60 @@ class CourtsRepository {
     return await (_db.delete(_db.courts)..where((c) => c.id.equals(id))).go();
   }
 
+  Future<List<Court>> fetchCloudCourts() async {
+    try {
+      final supabase = Supabase.instance.client;
+      final List<dynamic> data = await supabase.from('published_courts').select();
+      
+      return data.map((json) => Court(
+        id: -1, // Dummy ID for cloud-only courts
+        name: json['name'] ?? 'Campetto',
+        latitude: (json['latitude'] as num).toDouble(),
+        longitude: (json['longitude'] as num).toDouble(),
+        description: json['description'],
+        hoops: json['hoops'] ?? 2,
+        hasLights: json['has_lights'] ?? true,
+        netsStatus: json['nets_status'] ?? 'stoffa',
+        courtStatus: json['court_status'] ?? 'giocabile',
+        linesStatus: json['lines_status'] ?? 'visibili',
+        stars: json['stars'] ?? 3,
+        cloudId: json['id'].toString(),
+        source: json['source'] ?? 'trnmnt',
+        sourceId: json['source_id']?.toString(),
+        createdAt: DateTime.tryParse(json['created_at'] ?? '') ?? DateTime.now(),
+      )).toList();
+    } catch (e) {
+      return [];
+    }
+  }
+
+  Future<void> syncPendingCourts() async {
+    final pending = await (_db.select(_db.courts)..where((c) => c.cloudId.isNull())).get();
+    if (pending.isEmpty) return;
+    
+    for (final court in pending) {
+      await _syncToSupabase(court.id, CourtsCompanion.insert(
+        name: court.name,
+        latitude: court.latitude,
+        longitude: court.longitude,
+        description: Value(court.description),
+        hoops: Value(court.hoops),
+        hasLights: Value(court.hasLights),
+        netsStatus: Value(court.netsStatus),
+        courtStatus: Value(court.courtStatus),
+        linesStatus: Value(court.linesStatus),
+        stars: Value(court.stars),
+        source: Value(court.source),
+        sourceId: Value(court.sourceId),
+      ));
+    }
+  }
+
   Future<void> _syncToSupabase(int localId, CourtsCompanion court) async {
     try {
       final supabase = Supabase.instance.client;
+      
+      // Get current user if any, or active community
       final activeComm = await _communityRepo.getActiveCommunity(null);
       
       final data = {
@@ -82,10 +137,10 @@ class CourtsRepository {
         'stars': court.stars.value,
         'community_id': activeComm?.id,
         'source': court.source.value,
-        'osm_id': court.osmId.value,
+        'source_id': court.sourceId.value,
       };
 
-      // Upsert based on coordinates to avoid duplicates
+      // Upsert based on coordinates to avoid duplicate published records
       final response = await supabase.from('published_courts').upsert(
         data, 
         onConflict: 'latitude,longitude' 
@@ -98,8 +153,92 @@ class CourtsRepository {
         CourtsCompanion(cloudId: Value(cloudId)),
       );
     } catch (e) {
-      // Silent error: we don't want to break local save if sync fails
-      debugPrint('Supabase Court Sync Error: $e');
     }
   }
+  Future<int> ensureCloudCourtLocally(Court cloudCourt) async {
+    // Check if we already have it by cloudId
+    if (cloudCourt.cloudId != null) {
+      final existing = await (_db.select(_db.courts)..where((c) => c.cloudId.equals(cloudCourt.cloudId!))).getSingleOrNull();
+      if (existing != null) return existing.id;
+    }
+
+    // Check if we already have it by sourceId
+    if (cloudCourt.sourceId != null) {
+      final existing = await (_db.select(_db.courts)..where((c) => c.sourceId.equals(cloudCourt.sourceId!))).getSingleOrNull();
+      if (existing != null) return existing.id;
+    }
+
+    // Not found locally, insert it via repository method to trigger sync
+    return await insertCourt(CourtsCompanion.insert(
+      name: cloudCourt.name,
+      description: Value(cloudCourt.description),
+      latitude: cloudCourt.latitude,
+      longitude: cloudCourt.longitude,
+      hoops: Value(cloudCourt.hoops),
+      netsStatus: Value(cloudCourt.netsStatus),
+      courtStatus: Value(cloudCourt.courtStatus),
+      linesStatus: Value(cloudCourt.linesStatus),
+      hasLights: Value(cloudCourt.hasLights),
+      stars: Value(cloudCourt.stars),
+      cloudId: Value(cloudCourt.cloudId),
+      source: Value(cloudCourt.source),
+      sourceId: Value(cloudCourt.sourceId),
+    ));
+  }
 }
+
+// Provider for fetching a single court by local ID
+final courtByIdProvider = FutureProvider.family<Court?, int>((ref, id) async {
+  return ref.watch(courtsRepositoryProvider).getCourtById(id);
+});
+
+// New provider for merged data
+final cloudCourtsProvider = FutureProvider<List<Court>>((ref) {
+  return ref.watch(courtsRepositoryProvider).fetchCloudCourts();
+});
+
+final mergedCourtsProvider = Provider<AsyncValue<List<Court>>>((ref) {
+  final localAsync = ref.watch(courtsProvider);
+  final cloudAsync = ref.watch(cloudCourtsProvider);
+
+  return localAsync.when(
+    data: (localList) {
+      return cloudAsync.when(
+        data: (cloudList) {
+          // Merge logic
+          final Map<String, Court> merged = {};
+
+          // 1. Process cloud courts first (Source of Truth)
+          for (final c in cloudList) {
+            final key = "${c.latitude.toStringAsFixed(5)},${c.longitude.toStringAsFixed(5)}";
+            merged[key] = c;
+          }
+
+          // 2. Add local courts that are not in cloud or don't match proximity
+          for (final l in localList) {
+            final key = "${l.latitude.toStringAsFixed(5)},${l.longitude.toStringAsFixed(5)}";
+            
+            // Check by cloudId if it exists
+            bool existsInCloud = false;
+            if (l.cloudId != null) {
+              existsInCloud = cloudList.any((c) => c.cloudId == l.cloudId);
+            } else {
+              // Proximity match
+              existsInCloud = merged.containsKey(key);
+            }
+
+            if (!existsInCloud) {
+              merged[key] = l;
+            }
+          }
+
+          return AsyncValue.data(merged.values.toList());
+        },
+        loading: () => AsyncValue.data(localList), // Fallback to local while loading cloud
+        error: (e, st) => AsyncValue.data(localList),
+      );
+    },
+    loading: () => const AsyncValue.loading(),
+    error: (e, st) => AsyncValue.error(e, st),
+  );
+});

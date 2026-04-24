@@ -135,7 +135,7 @@ class Courts extends Table {
   IntColumn get stars => integer().withDefault(const Constant(3))();
   TextColumn get cloudId => text().nullable()(); 
   TextColumn get source => text().withDefault(const Constant('trnmnt'))(); // 'trnmnt' or 'osm'
-  TextColumn get osmId => text().nullable()(); // Added for OSM tracking
+  TextColumn get sourceId => text().named('source_id').nullable()(); // Added for multi-source tracking (was osmId)
   
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 }
@@ -217,7 +217,7 @@ class AppDatabase extends _$AppDatabase {
           await m.addColumn(this.tournaments, this.tournaments.venueCourtId);
           await m.addColumn(this.courts, this.courts.cloudId);
           await m.addColumn(this.courts, this.courts.source);
-          await m.addColumn(this.courts, this.courts.osmId);
+          await m.addColumn(this.courts, this.courts.sourceId);
         }
         if (from < 20) {
           // Rescue migration just in case v19 failed
@@ -229,7 +229,7 @@ class AppDatabase extends _$AppDatabase {
             }
           }
           await addColumnSafely(courts, courts.source);
-          await addColumnSafely(courts, courts.osmId);
+          await addColumnSafely(courts, courts.sourceId);
           await addColumnSafely(courts, courts.cloudId);
           await addColumnSafely(tournaments, tournaments.venueCourtId);
         }

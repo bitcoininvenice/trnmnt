@@ -163,41 +163,45 @@ class _BracketScreenState extends ConsumerState<BracketScreen> {
             ),
             const SizedBox(height: 32),
             
-            // SPAREGGI TOGGLE
-            Card(
-              color: Colors.white.withValues(alpha: 0.05),
-              child: SwitchListTile(
-                title: const Text('Gioca Spareggi', style: TextStyle(fontWeight: FontWeight.bold)),
-                subtitle: const Text('2ª vs 3ª dei gironi (Qualifica 3 per girone)'),
-                value: playSpareggi,
-                onChanged: (val) => ref.read(playSpareggiProvider(widget.tournamentId).notifier).state = val,
-                secondary: Icon(Icons.compare_arrows, color: playSpareggi ? Colors.amber : Colors.grey),
+            if (!_isGuest) ...[
+              // SPAREGGI TOGGLE
+              Card(
+                color: Colors.white.withValues(alpha: 0.05),
+                child: SwitchListTile(
+                  title: const Text('Gioca Spareggi', style: TextStyle(fontWeight: FontWeight.bold)),
+                  subtitle: const Text('2ª vs 3ª dei gironi (Qualifica 3 per girone)'),
+                  value: playSpareggi,
+                  onChanged: (val) => ref.read(playSpareggiProvider(widget.tournamentId).notifier).state = val,
+                  secondary: Icon(Icons.compare_arrows, color: playSpareggi ? Colors.amber : Colors.grey),
+                ),
               ),
-            ),
+              
+              const SizedBox(height: 24),
+            ],
             
-            const SizedBox(height: 24),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                ElevatedButton.icon(
-                  onPressed: () => _generateFromStandings(context, ref),
-                  icon: const Icon(Icons.auto_fix_high),
-                  label: const Text('Da Classifica'),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            if (!_isGuest)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: () => _generateFromStandings(context, ref),
+                    icon: const Icon(Icons.auto_fix_high),
+                    label: const Text('Da Classifica'),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                OutlinedButton.icon(
-                  onPressed: () => _generateRandom(context, ref),
-                  icon: const Icon(Icons.shuffle),
-                  label: const Text('Casuale'),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  const SizedBox(width: 12),
+                  OutlinedButton.icon(
+                    onPressed: () => _generateRandom(context, ref),
+                    icon: const Icon(Icons.shuffle),
+                    label: const Text('Casuale'),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    ),
                   ),
-                ),
-              ],
-            ),
+                ],
+              ),
             const SizedBox(height: 32),
           ],
         ),
@@ -601,7 +605,7 @@ class _BracketScreenState extends ConsumerState<BracketScreen> {
 
   Widget _buildTeamRow(BuildContext context, String? teamName, int? score, bool isWinner, int? matchId, bool isHome) {
     return InkWell(
-      onLongPress: matchId == null ? null : () => _showTeamPicker(context, matchId, isHome),
+      onLongPress: (matchId == null || _isGuest) ? null : () => _showTeamPicker(context, matchId, isHome),
       borderRadius: BorderRadius.circular(4),
       child: SizedBox(
         height: 24,

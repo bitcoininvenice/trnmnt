@@ -4,6 +4,97 @@ import '../../../../core/database/app_database.dart';
 import '../../../../core/providers/database_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+/// Provider for Radar Map - fetches tournaments with location/court link
+final radarTournamentsProvider = StreamProvider<List<Map<String, dynamic>>>((ref) {
+  final supabase = Supabase.instance.client;
+  return supabase.from('published_tournaments')
+      .stream(primaryKey: ['id'])
+      .map((data) => data.where((item) {
+        try {
+          final tournamentData = item['data'] as Map<String, dynamic>?;
+          if (tournamentData == null) return false;
+
+          final tourney = (tournamentData['tournament'] ?? tournamentData) as Map<String, dynamic>?;
+          if (tourney == null) return false;
+
+          // Same logic as Web
+          final winnerId = tourney['winner_team_id'] ?? tourney['winnerTeamId'];
+          final isCompleted = tourney['isCompleted'] == true || tourney['is_completed'] == true;
+          final status = tourney['status']?.toString().toLowerCase();
+          
+          if (winnerId != null && winnerId.toString().trim().isNotEmpty) return false;
+          if (isCompleted == true) return false;
+          if (status == 'concluded' || status == 'completed' || status == 'finished') return false;
+
+          final startDateVal = tourney['startDate'];
+          if (startDateVal != null) {
+              final now = DateTime.now();
+              DateTime? startDate;
+              if (startDateVal is String) {
+                startDate = DateTime.tryParse(startDateVal);
+                if (startDate == null) {
+                  // Robust parsing for DD/MM/YYYY
+                  final parts = startDateVal.split('/');
+                  if (parts.length == 3) {
+                    final day = int.tryParse(parts[0]);
+                    final month = int.tryParse(parts[1]);
+                    final year = int.tryParse(parts[2].split(' ')[0]);
+                    if (day != null && month != null && year != null) {
+                      startDate = DateTime(year, month, day);
+                    }
+                  }
+                }
+              } else if (startDateVal is int) {
+                startDate = DateTime.fromMillisecondsSinceEpoch(startDateVal);
+              }
+
+              if (startDate != null) {
+                final endDateVal = tourney['endDate'];
+                DateTime endDate;
+                if (endDateVal is String) {
+                  endDate = DateTime.tryParse(endDateVal) ?? startDate.add(const Duration(hours: 8));
+                } else if (endDateVal is int) {
+                  endDate = DateTime.fromMillisecondsSinceEpoch(endDateVal);
+                } else {
+                  endDate = startDate.add(const Duration(hours: 8));
+                }
+
+                if (now.isAfter(endDate.add(const Duration(hours: 2)))) return false;
+              }
+            }
+
+          return true;
+        } catch (_) {
+          return false;
+        }
+      }).toList());
+});
+
+/// Provider for Live Matches - fetches active matches for real-time status on Radar
+final liveMatchesProvider = StreamProvider<List<Map<String, dynamic>>>((ref) {
+  final supabase = Supabase.instance.client;
+  return supabase.from('live_matches')
+      .stream(primaryKey: ['id'])
+      .map((data) => data.map((item) => Map<String, dynamic>.from(item)).toList());
+});
+
+/// Provider for dynamic sponsor ticker text from Supabase
+final sponsorTickerProvider = StreamProvider<String>((ref) {
+  final supabase = Supabase.instance.client;
+  const defaultTicker = "TRNMNT • SPAZIO PARTNERSHIP DISPONIBILE • CONTATTACI PER MAGGIORI INFO";
+  
+  return supabase.from('sponsor_ticker')
+      .stream(primaryKey: ['id'])
+      .limit(1)
+      .map((data) {
+        if (data.isEmpty) return defaultTicker;
+        return data.first['text'] as String? ?? defaultTicker;
+      })
+      .handleError((e) {
+        return defaultTicker;
+      });
+});
+
 /// Provider for all tournaments
 final tournamentsProvider = StreamProvider<List<Tournament>>((ref) async* {
   final db = ref.watch(dbProvider);
@@ -14,7 +105,40 @@ final tournamentsProvider = StreamProvider<List<Tournament>>((ref) async* {
 
 enum CloudFilter { past, inProgress, future }
 
-final cloudFilterProvider = StateProvider<Set<CloudFilter>>((ref) => {CloudFilter.inProgress});
+final cloudFilterProvider = StateProvider<Set<CloudFilter>>((ref) => {CloudFilter.inProgress, CloudFilter.future});
+
+/// Provider for the HUB - returns ALL tournaments without pre-filtering
+final hubTournamentsProvider = StreamProvider<List<Map<String, dynamic>>>((ref) {
+  final supabase = Supabase.instance.client;
+  
+  return supabase.from('published_tournaments')
+    .stream(primaryKey: ['id'])
+    .order('last_updated', ascending: false)
+    .map((data) {
+      final List<Map<String, dynamic>> allTournaments = [];
+      for (final item in data) {
+        try {
+          final tournamentData = item['data'] as Map<String, dynamic>?;
+          if (tournamentData != null) {
+            tournamentData['id'] = item['id'];
+            tournamentData['community_slug'] = item['community_slug'];
+            tournamentData['community_id'] = item['community_id'];
+            tournamentData['venue_court_id'] = item['venue_court_id'];
+            allTournaments.add(tournamentData);
+          }
+        } catch (_) {}
+      }
+
+      allTournaments.sort((a, b) {
+        final tA = a['tournament'] as Map<String, dynamic>?;
+        final tB = b['tournament'] as Map<String, dynamic>?;
+        DateTime parse(dynamic v) => (v is String) ? (DateTime.tryParse(v) ?? DateTime(1970)) : (v is int ? DateTime.fromMillisecondsSinceEpoch(v) : DateTime(1970));
+        return parse(tB?['startDate']).compareTo(parse(tA?['startDate']));
+      });
+
+      return allTournaments;
+    });
+});
 
 /// Provider for global/cloud published tournaments from Supabase
 final cloudTournamentsProvider = StreamProvider<List<Map<String, dynamic>>>((ref) {
@@ -36,6 +160,7 @@ final cloudTournamentsProvider = StreamProvider<List<Map<String, dynamic>>>((ref
             tournamentData['id'] = item['id'];
             tournamentData['community_slug'] = item['community_slug'];
             tournamentData['community_id'] = item['community_id'];
+            tournamentData['venue_court_id'] = item['venue_court_id'];
             
             allTournaments.add(tournamentData);
           }
@@ -84,7 +209,7 @@ final cloudTournamentsProvider = StreamProvider<List<Map<String, dynamic>>>((ref
             // Silently handle format errors
           }
           return false;
-        }).take(5).toList();
+        }).take(50).toList();
       }
 
       // 1. Try with user selected filters
@@ -103,9 +228,9 @@ final cloudTournamentsProvider = StreamProvider<List<Map<String, dynamic>>>((ref
       final pastFallback = filterData({CloudFilter.past});
       if (pastFallback.isNotEmpty) return pastFallback;
 
-      // 5. If REALLY empty, but cloud has data, return the first 3 regardless of filtering
+      // 5. If REALLY empty, but cloud has data, return the first 50 regardless of filtering
       if (allTournaments.isNotEmpty) {
-        return allTournaments.take(5).toList();
+        return allTournaments.take(50).toList();
       }
 
       return [];
@@ -270,6 +395,7 @@ class TournamentsRepository {
     int? courtCount,
     int? lunchDuration,
     DateTime? endDate,
+    int? venueCourtId,
   }) async {
     return await (_db.update(_db.tournaments)..where((t) => t.id.equals(id))).write(
       TournamentsCompanion(
@@ -295,6 +421,7 @@ class TournamentsRepository {
         courtCount: courtCount != null ? Value(courtCount) : const Value.absent(),
         lunchDuration: lunchDuration != null ? Value(lunchDuration) : const Value.absent(),
         endDate: endDate != null ? Value(endDate) : const Value.absent(),
+        venueCourtId: venueCourtId != null ? Value(venueCourtId) : const Value.absent(),
       ),
     ) > 0;
   }

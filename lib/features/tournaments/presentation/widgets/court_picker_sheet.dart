@@ -5,16 +5,19 @@ import 'package:trnmnt/features/map/data/courts_repository.dart';
 import 'package:trnmnt/features/map/data/osm_repository.dart';
 import 'package:trnmnt/core/providers/osm_settings_provider.dart';
 import 'package:trnmnt/core/services/geocoding_service.dart';
+import 'package:trnmnt/core/database/app_database.dart';
+import 'package:drift/drift.dart' as drift;
 import 'dart:async';
 
 class CourtSelection {
   final String name;
   final int? localId;
   final String? osmId;
+  final String? cloudId;
   final double? lat;
   final double? lon;
 
-  CourtSelection({required this.name, this.localId, this.osmId, this.lat, this.lon});
+  CourtSelection({required this.name, this.localId, this.osmId, this.cloudId, this.lat, this.lon});
 }
 
 class CourtPickerSheet extends ConsumerStatefulWidget {
@@ -69,7 +72,7 @@ class _CourtPickerSheetState extends ConsumerState<CourtPickerSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final courtsAsync = ref.watch(courtsProvider);
+    final courtsAsync = ref.watch(mergedCourtsProvider);
     final osmEnabled = ref.watch(osmSettingsProvider);
 
     return Container(
@@ -91,14 +94,14 @@ class _CourtPickerSheetState extends ConsumerState<CourtPickerSheet> {
               unselectedLabelColor: Colors.grey,
               indicatorColor: Colors.orange,
               tabs: [
-                const Tab(icon: Icon(Icons.person_pin), text: 'I MIEI'),
+                const Tab(icon: Icon(Icons.sports_basketball), text: 'TRNMNT'),
                 if (osmEnabled) const Tab(icon: Icon(Icons.public), text: 'OSM (Cerca)'),
               ],
             ),
             Expanded(
               child: TabBarView(
                 children: [
-                  // Tab 1: Local Courts
+                  // Tab 1: TRNMNT Courts (Merged Local & Cloud)
                   courtsAsync.when(
                     data: (courts) {
                       if (courts.isEmpty) {
@@ -108,16 +111,40 @@ class _CourtPickerSheetState extends ConsumerState<CourtPickerSheet> {
                         itemCount: courts.length,
                         itemBuilder: (context, index) {
                           final court = courts[index];
+                          final isCloud = court.cloudId != null;
+                          
                           return ListTile(
-                            leading: const CircleAvatar(backgroundColor: Colors.orange, child: Icon(Icons.sports_basketball, size: 16, color: Colors.white)),
+                            leading: CircleAvatar(
+                              backgroundColor: isCloud ? Colors.deepOrange : Colors.orange, 
+                              child: Icon(isCloud ? Icons.verified : Icons.sports_basketball, size: 16, color: Colors.white)
+                            ),
                             title: Text(court.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                            subtitle: Text('Valutazione: ${"⭐" * court.stars}', style: const TextStyle(fontSize: 12)),
-                            onTap: () => Navigator.pop(context, CourtSelection(
-                              name: court.name,
-                              localId: court.id,
-                              lat: court.latitude,
-                              lon: court.longitude,
-                            )),
+                            subtitle: Row(
+                              children: [
+                                Text('Valutazione: ${"⭐" * court.stars}', style: const TextStyle(fontSize: 12)),
+                                if (isCloud) ...[
+                                  const SizedBox(width: 8),
+                                  const Text('• Verified', style: TextStyle(fontSize: 10, color: Colors.blue, fontWeight: FontWeight.bold)),
+                                ],
+                              ],
+                            ),
+                            onTap: () async {
+                              int? finalId = court.id;
+                              if (court.id == -1) {
+                                // Cloud court, save it locally first to get a real ID
+                                finalId = await ref.read(courtsRepositoryProvider).ensureCloudCourtLocally(court);
+                              }
+                              
+                              if (mounted) {
+                                Navigator.pop(context, CourtSelection(
+                                  name: court.name,
+                                  localId: finalId,
+                                  cloudId: court.cloudId,
+                                  lat: court.latitude,
+                                  lon: court.longitude,
+                                ));
+                              }
+                            },
                           );
                         },
                       );
@@ -158,12 +185,42 @@ class _CourtPickerSheetState extends ConsumerState<CourtPickerSheet> {
                                       leading: const CircleAvatar(backgroundColor: Colors.blue, child: Icon(Icons.stars, size: 16, color: Colors.white)),
                                       title: Text(court.name, style: const TextStyle(fontWeight: FontWeight.bold)),
                                       subtitle: Text(court.address ?? 'Campetto Pubblico'),
-                                      onTap: () => Navigator.pop(context, CourtSelection(
-                                        name: court.name,
-                                        osmId: court.id,
-                                        lat: court.lat,
-                                        lon: court.lon,
-                                      )),
+                                      onTap: () async {
+                                        // 1. Create a Court object from OsmCourt to save it locally
+                                        final courtObj = Court(
+                                          id: -1,
+                                          name: court.name,
+                                          latitude: court.lat,
+                                          longitude: court.lon,
+                                          hoops: int.tryParse(court.hoops ?? '2') ?? 2,
+                                          hasLights: court.lit == 'yes',
+                                          source: 'osm',
+                                          sourceId: court.id,
+                                          description: court.address,
+                                          stars: 3,
+                                          netsStatus: 'stoffa',
+                                          courtStatus: 'giocabile',
+                                          linesStatus: 'visibili',
+                                          createdAt: DateTime.now(),
+                                          tournamentId: null,
+                                        );
+
+                                        final localId = await ref.read(courtsRepositoryProvider).ensureCloudCourtLocally(courtObj);
+
+                                          if (mounted) {
+                                            // Fetch updated court to get cloudId if it was just synced
+                                            final updatedCourt = await ref.read(courtsRepositoryProvider).getCourtById(localId);
+                                            
+                                            Navigator.pop(context, CourtSelection(
+                                              name: court.name,
+                                              osmId: court.id,
+                                              localId: localId,
+                                              cloudId: updatedCourt?.cloudId,
+                                              lat: court.lat,
+                                              lon: court.lon,
+                                            ));
+                                          }
+                                      },
                                     );
                                   },
                                 ),

@@ -131,7 +131,6 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                       await ref.read(shareRepositoryProvider).publishToSupabase(localId);
                     }
                   } catch (e) {
-                    debugPrint('Error generating calendar: $e');
                   } finally {
                     if (mounted) {
                       setState(() => _isProcessing = false);
@@ -184,7 +183,6 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                     await ref.read(shareRepositoryProvider).publishToSupabase(localId);
                   }
                 } catch (e) {
-                  debugPrint('Error deleting matches: $e');
                 } finally {
                   if (mounted) {
                     setState(() => _isProcessing = false);
@@ -374,42 +372,43 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
             ),
           ),
           const SizedBox(height: 24),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              ElevatedButton.icon(
-                onPressed: () async {
-                  final result = await showDialog<bool>(
-                    context: context,
-                    builder: (context) => AddMatchDialog(tournamentId: widget.tournamentId),
-                  );
-                  if (result == true) {
+          if (!_isGuest)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                ElevatedButton.icon(
+                  onPressed: () async {
+                    final result = await showDialog<bool>(
+                      context: context,
+                      builder: (context) => AddMatchDialog(tournamentId: widget.tournamentId),
+                    );
+                    if (result == true) {
+                      if (!mounted) return;
+                      // ignore: unused_result
+                      ref.refresh(groupMatchesProvider(widget.tournamentId));
+                    }
+                  },
+                  icon: const Icon(Icons.add),
+                  label: const Text('Aggiungi'),
+                ),
+                const SizedBox(width: 16),
+                ElevatedButton.icon(
+                  onPressed: () async {
+                    setState(() => _isProcessing = true);
+                    await ref.read(matchesRepositoryProvider).generateGroupCalendar(widget.tournamentId);
+                    if (tournament?.isPublished == true) {
+                      await ref.read(shareRepositoryProvider).publishToSupabase(widget.tournamentId);
+                    }
                     if (!mounted) return;
+                    setState(() => _isProcessing = false);
                     // ignore: unused_result
                     ref.refresh(groupMatchesProvider(widget.tournamentId));
-                  }
-                },
-                icon: const Icon(Icons.add),
-                label: const Text('Aggiungi'),
-              ),
-              const SizedBox(width: 16),
-              ElevatedButton.icon(
-                onPressed: () async {
-                  setState(() => _isProcessing = true);
-                  await ref.read(matchesRepositoryProvider).generateGroupCalendar(widget.tournamentId);
-                  if (tournament?.isPublished == true) {
-                    await ref.read(shareRepositoryProvider).publishToSupabase(widget.tournamentId);
-                  }
-                  if (!mounted) return;
-                  setState(() => _isProcessing = false);
-                  // ignore: unused_result
-                  ref.refresh(groupMatchesProvider(widget.tournamentId));
-                },
-                icon: const Icon(Icons.shuffle),
-                label: const Text('Genera automatico'),
-              ),
-            ],
-          ),
+                  },
+                  icon: const Icon(Icons.shuffle),
+                  label: const Text('Genera automatico'),
+                ),
+              ],
+            ),
         ],
       ),
     );
@@ -419,8 +418,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     final match = matchWithTeams.match;
     final homeTeam = matchWithTeams.homeTeam;
     final awayTeam = matchWithTeams.awayTeam;
-    final activeGame = ref.watch(activeGameProvider);
-    final isLive = activeGame.matchId == match.id;
+    // Removed ref.watch here to avoid defunct element errors
 
     final isBye = match.isBye;
     final isCompleted = match.isCompleted;
@@ -430,11 +428,11 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
       margin: const EdgeInsets.only(bottom: 8),
       color: isSelected 
           ? Colors.orange.withValues(alpha: 0.1) 
-          : (isLive ? Colors.orange.withValues(alpha: 0.05) : null),
+          : null,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(
-          color: isSelected ? Colors.orange : (isLive ? Colors.orange : Colors.transparent),
+          color: isSelected ? Colors.orange : Colors.transparent,
           width: 2,
         ),
       ),
@@ -481,11 +479,9 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                 margin: const EdgeInsets.symmetric(horizontal: 16),
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
-                  color: isLive 
-                      ? Colors.orange.withValues(alpha: 0.2)
-                      : (isCompleted 
+                  color: isCompleted 
                           ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.2)
-                          : Colors.grey.withValues(alpha: 0.2)),
+                          : Colors.grey.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: isBye 
@@ -530,21 +526,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                               ),
                             ],
                           )
-                        : isLive
-                            ? Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Text('LIVE', style: TextStyle(color: Colors.orange, fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 1.2)),
-                                  Text(
-                                    activeGame.formattedTime,
-                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, fontFamily: 'monospace'),
-                                  ),
-                                ],
-                              ).animate(onPlay: (c) => c.repeat()).shimmer(duration: 2.seconds)
-                            : const Text(
-                                'vs',
-                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                              ),
+                        : _LiveMatchBadge(matchId: match.id),
               ),
               
               // Away team
@@ -803,6 +785,35 @@ class _AddMatchDialogState extends ConsumerState<AddMatchDialog> {
         ),
       ],
     );
+  }
+}
+
+class _LiveMatchBadge extends ConsumerWidget {
+  final int matchId;
+  const _LiveMatchBadge({required this.matchId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final activeGame = ref.watch(activeGameProvider);
+    final isLive = activeGame.matchId == matchId;
+
+    if (!isLive) {
+      return const Text(
+        'vs',
+        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+      );
+    }
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Text('LIVE', style: TextStyle(color: Colors.orange, fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 1.2)),
+        Text(
+          activeGame.formattedTime,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, fontFamily: 'monospace'),
+        ),
+      ],
+    ).animate(onPlay: (c) => c.repeat()).shimmer(duration: 2.seconds);
   }
 }
 

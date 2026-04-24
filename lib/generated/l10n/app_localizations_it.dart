@@ -24,7 +24,7 @@ class AppLocalizationsIt extends AppLocalizations {
   String get newTournament => 'Nuovo Torneo';
 
   @override
-  String get map => 'Mappa';
+  String get radar => 'Radar';
 
   @override
   String get settings => 'Impostazioni';
@@ -165,7 +165,7 @@ class AppLocalizationsIt extends AppLocalizations {
   String get startNow => 'Inizia subito';
 
   @override
-  String get courtsMap => 'La mappa dei campetti';
+  String get radarSubtitle => 'Radar';
 
   @override
   String get appOptions => 'Opzioni app';
@@ -667,7 +667,10 @@ class AppLocalizationsIt extends AppLocalizations {
   String get groupNameHint => 'Nome Girone (es. A, B...)';
 
   @override
-  String get upcoming => 'Prossimamente';
+  String get all => 'Tutti';
+
+  @override
+  String get upcoming => 'In programma';
 
   @override
   String get concluded => 'Concluso';
@@ -717,7 +720,7 @@ class AppLocalizationsIt extends AppLocalizations {
   String get manageYourBrand => 'Gestisci il tuo Brand';
 
   @override
-  String get liveHighlights => 'WEB LIVE HIGHLIGHTS';
+  String get liveHighlights => 'IN EVIDENZA';
 
   @override
   String get statsOverview => 'STATISTICHE APP';
@@ -729,7 +732,7 @@ class AppLocalizationsIt extends AppLocalizations {
   String get activeTournamentMatch => 'PARTITA TORNEO LIVE';
 
   @override
-  String get future => 'Futuri';
+  String get future => 'In programma';
 
   @override
   String get past => 'Passati';
@@ -1013,7 +1016,7 @@ class AppLocalizationsIt extends AppLocalizations {
   String get liveMatches => 'Partite Live';
 
   @override
-  String get exploreHub => 'Esplora i tornei e le partite live dal cloud';
+  String get exploreHub => 'Esplora tornei e partite live';
 
   @override
   String get noLiveMatches => 'Nessuna partita live in corso';
@@ -1034,7 +1037,7 @@ class AppLocalizationsIt extends AppLocalizations {
   String get hub => 'HUB';
 
   @override
-  String get mapSettings => 'Impostazioni Mappa';
+  String get radarSettings => 'Impostazioni Radar';
 
   @override
   String get enableOsmData => 'Abilita dati OpenStreetMap';
@@ -1043,10 +1046,10 @@ class AppLocalizationsIt extends AppLocalizations {
   String get osmDataDesc => 'Mostra i campetti pubblici censiti su OSM.';
 
   @override
-  String get mapDataSourceOsm => 'Fonte OpenStreetMap';
+  String get radarDataSourceOsm => 'Fonte OpenStreetMap';
 
   @override
-  String get mapDataSourceLocal => 'TRNMNT app';
+  String get radarDataSourceLocal => 'TRNMNT';
 
   @override
   String get syncOsm => 'Sincronizzazione OSM...';
@@ -1113,4 +1116,18 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get osmResultsTitle => 'RISULTATI OPENSTREETMAP';
+
+  @override
+  String get selectCourt => 'Seleziona Campetto';
+
+  @override
+  String courtSelected(String name) {
+    return 'Campetto: $name';
+  }
+
+  @override
+  String get optional => 'Opzionale';
+
+  @override
+  String get radar_court_link => 'COLLEGAMENTO RADAR';
 }

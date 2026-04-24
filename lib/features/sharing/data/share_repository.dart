@@ -91,8 +91,12 @@ class ShareRepository {
     final tournamentMap = tournament.toJson();
     if (tournament.venueCourtId != null) {
       final court = await (_db.select(_db.courts)..where((c) => c.id.equals(tournament.venueCourtId!))).getSingleOrNull();
-      if (court != null && court.cloudId != null) {
-         tournamentMap['venue_court_id'] = court.cloudId;
+      if (court != null) {
+        if (court.cloudId != null) {
+          tournamentMap['venue_court_id'] = court.cloudId;
+        } else if (court.source == 'osm' && court.sourceId != null) {
+          tournamentMap['venue_court_id'] = court.sourceId;
+        }
       }
     }
 
@@ -251,6 +255,7 @@ class ShareRepository {
     String? twitchUsername,
     String? matchTitle,
     String? standaloneCustomId,
+    String? venueCourtId,
   }) async {
     try {
       final supabase = Supabase.instance.client;
@@ -277,9 +282,9 @@ class ShareRepository {
         'twitch_username': twitchUsername,
         'last_update': DateTime.now().toUtc().toIso8601String(),
         'tournament_id': cloudId == 'standalone' ? null : cloudId,
+        'venue_court_id': venueCourtId,
       });
-    } catch (_) {
-      // Silent error for production
+    } catch (e) {
     }
   }
 
@@ -292,6 +297,7 @@ class ShareRepository {
     String? twitchUsername,
     int? period,
     String? timer,
+    String? venueCourtId,
   }) async {
     try {
       final supabase = Supabase.instance.client;
@@ -305,6 +311,7 @@ class ShareRepository {
         'period': period,
         'timer': timer,
         'last_update': DateTime.now().toUtc().toIso8601String(),
+        'venue_court_id': venueCourtId,
       });
     } catch (e) {
       // Silent error
@@ -474,7 +481,6 @@ class ShareRepository {
         'session_id': sessionId,
       });
     } catch (e) {
-      debugPrint('Analytics error: $e');
     }
   }
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:trnmnt/features/tournaments/presentation/widgets/tournament_status_badge.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import '../../data/tournaments_repository.dart';
@@ -10,6 +11,7 @@ import '../../../sharing/data/share_repository.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:supabase/supabase.dart';
 import 'package:flutter/foundation.dart';
+import '../../../map/data/courts_repository.dart';
 
 class CloudTournamentDetailScreen extends ConsumerStatefulWidget {
   final String cloudId;
@@ -26,10 +28,12 @@ class _CloudTournamentDetailScreenState extends ConsumerState<CloudTournamentDet
   String? _currentDbId;
   String? _sessionKey;
   bool _hasRecordedHit = false;
+  late ShareRepository _shareRepo;
 
   @override
   void initState() {
     super.initState();
+    _shareRepo = ref.read(shareRepositoryProvider);
   }
 
   void _setupPresence(String dbId) {
@@ -50,16 +54,23 @@ class _CloudTournamentDetailScreenState extends ConsumerState<CloudTournamentDet
 
     void updateCount() {
       if (!mounted) return;
-      final state = _presenceChannel!.presenceState();
-      
-      int total = 0;
-      for (final item in state) {
-        total += item.presences.length;
-      }
+      final channel = _presenceChannel;
+      if (channel == null) return;
 
-      setState(() {
-        _spectatorCount = total;
-      });
+      try {
+        final state = channel.presenceState();
+        int total = 0;
+        for (final item in state) {
+          total += item.presences.length;
+        }
+
+        if (mounted) {
+          setState(() {
+            _spectatorCount = total;
+          });
+        }
+      } catch (e) {
+      }
     }
 
     _presenceChannel!
@@ -108,15 +119,31 @@ class _CloudTournamentDetailScreenState extends ConsumerState<CloudTournamentDet
   @override
   void dispose() {
     if (_sessionKey != null) {
-      ref.read(shareRepositoryProvider).endTournamentHit(_sessionKey!);
+      _shareRepo.endTournamentHit(_sessionKey!);
     }
     _presenceChannel?.unsubscribe();
     _globalChannel?.unsubscribe();
+    _presenceChannel = null;
+    _globalChannel = null;
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    // Use ref.listen to handle presence setup when data arrives/changes
+    ref.listen(cloudTournamentDetailProvider(widget.cloudId), (previous, next) {
+      if (next.hasValue && next.value != null) {
+        final data = next.value!['data'] as Map<String, dynamic>?;
+        if (data != null) {
+          final dbId = data['id']?.toString() ?? widget.cloudId;
+          if (dbId != _currentDbId) {
+            _currentDbId = dbId;
+            _setupPresence(dbId);
+          }
+        }
+      }
+    });
+
     final tournamentAsync = ref.watch(cloudTournamentDetailProvider(widget.cloudId));
     final l10n = AppLocalizations.of(context)!;
 
@@ -128,27 +155,53 @@ class _CloudTournamentDetailScreenState extends ConsumerState<CloudTournamentDet
           return Scaffold(backgroundColor: Color(0xFF020617), body: Center(child: Text(l10n.notFound, style: const TextStyle(color: Colors.white))));
         }
 
-        final views = (rawData['views'] as num? ?? 0).toInt();
-        final spectators = _spectatorCount > 0 ? _spectatorCount : (rawData['spectators'] as num? ?? 0).toInt();
-
         final data = rawData['data'] as Map<String, dynamic>?;
         if (data == null) return const Scaffold(body: Center(child: Text('Invalid Data')));
+
+        final views = (rawData['views'] as num? ?? 0).toInt();
+        final spectators = _spectatorCount > 0 ? _spectatorCount : (rawData['spectators'] as num? ?? 0).toInt();
+        final dbId = data['id']?.toString() ?? widget.cloudId;
 
         final tournament = data['tournament'] as Map<String, dynamic>? ?? {};
         final teams = data['teams'] as List? ?? [];
         final matches = data['matches'] as List? ?? [];
 
-        // Setup presence using the actual DB ID if not already done for this ID
-        final dbId = rawData['id']?.toString() ?? widget.cloudId;
-        if (dbId != _currentDbId) {
-          _currentDbId = dbId;
-          _setupPresence(dbId);
-        }
-
         final twitchChannel = tournament['twitchChannel']?.toString();
         final youtubeVideoId = tournament['youtubeVideoId']?.toString();
         final hasVideo = (twitchChannel != null && twitchChannel.isNotEmpty) || 
                          (youtubeVideoId != null && youtubeVideoId.isNotEmpty);
+
+        // 1. Resolve Location Name
+        String locationText = tournament['location']?.toString() ?? '';
+        
+        // Check both levels for venue_court_id
+        final venueCourtId = data['venue_court_id']?.toString() ?? 
+                             tournament['venue_court_id']?.toString() ?? 
+                             tournament['venueCourtId']?.toString();
+        
+        if (venueCourtId != null && venueCourtId.isNotEmpty) {
+          final courtsAsync = ref.watch(mergedCourtsProvider);
+          final resolvedName = courtsAsync.when(
+            data: (courts) {
+              final match = courts.where((c) {
+                final courtCloudId = c.cloudId?.toString();
+                final courtSourceId = c.sourceId?.toString();
+                return courtCloudId == venueCourtId || courtSourceId == venueCourtId;
+              }).firstOrNull;
+              return match?.name;
+            },
+            loading: () => '...',
+            error: (_, __) => null,
+          );
+          if (resolvedName != null) {
+            locationText = resolvedName;
+          }
+        }
+
+        if (locationText.isEmpty) {
+          locationText = l10n.noTournamentsAtMoment; // Or any generic fallback
+          if (locationText.contains('moment')) locationText = 'Posizione non specificata';
+        }
 
         return Scaffold(
           backgroundColor: const Color(0xFF020617),
@@ -218,7 +271,7 @@ class _CloudTournamentDetailScreenState extends ConsumerState<CloudTournamentDet
                             child: _buildHeaderBadge(
                               context, 
                               icon: Icons.stadium, 
-                              label: tournament['location']?.toString() ?? '', 
+                              label: locationText, 
                               color: Colors.orange
                             ),
                           ),
@@ -275,7 +328,7 @@ class _CloudTournamentDetailScreenState extends ConsumerState<CloudTournamentDet
                              Text('ID: ${dbId?.substring(0, 5)}...', style: const TextStyle(color: Colors.white24, fontSize: 8)),
                            ],
                            const Spacer(),
-                           _buildStatusChip(context, "WATCH ONLY", Colors.grey),
+                           TournamentStatusBadge(data: data),
                         ],
                       ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.1),
 
@@ -426,7 +479,7 @@ class _CloudTournamentDetailScreenState extends ConsumerState<CloudTournamentDet
           color: Colors.green,
           onTap: () => context.push('/tournaments/${widget.cloudId}/standings'),
         ),
-        if (mode != 'group_only')
+        if (mode != 'group_only' && mode != 'madness')
           _buildActionCard(
             context,
             icon: Icons.account_tree,
@@ -434,6 +487,15 @@ class _CloudTournamentDetailScreenState extends ConsumerState<CloudTournamentDet
             subtitle: l10n.playoffBracket,
             color: Colors.orange,
             onTap: () => context.push('/tournaments/${widget.cloudId}/bracket'),
+          ),
+        if (mode == 'madness')
+          _buildActionCard(
+            context,
+            icon: Icons.flash_on,
+            title: l10n.madness,
+            subtitle: l10n.madnessSubtitle,
+            color: Colors.deepPurple,
+            onTap: () => context.push('/tournaments/${widget.cloudId}/madness'),
           ),
       ],
     );
@@ -507,16 +569,17 @@ class _LivestreamSection extends StatefulWidget {
 
 class _LivestreamSectionState extends State<_LivestreamSection> {
   late final WebViewController _controller;
-  bool _isExpanded = true;
+  bool _isExpanded = false;
+  bool _hasError = false;
 
   @override
   void initState() {
     super.initState();
     String url = '';
     if (widget.youtubeVideoId != null && widget.youtubeVideoId!.isNotEmpty) {
-      url = 'https://www.youtube.com/embed/${widget.youtubeVideoId}?autoplay=1&mute=1&playsinline=1';
+      url = 'https://www.youtube.com/embed/${widget.youtubeVideoId}?autoplay=0&mute=1&playsinline=1';
     } else if (widget.twitchChannel != null && widget.twitchChannel!.isNotEmpty) {
-      url = 'https://player.twitch.tv/?channel=${widget.twitchChannel}&parent=trnmnt.vercel.app&autoplay=true&muted=true';
+      url = 'https://player.twitch.tv/?channel=${widget.twitchChannel}&parent=trnmnt.vercel.app&autoplay=false&muted=true';
     }
 
     _controller = WebViewController()
@@ -526,7 +589,10 @@ class _LivestreamSectionState extends State<_LivestreamSection> {
       ..setNavigationDelegate(
         NavigationDelegate(
           onWebResourceError: (WebResourceError error) {
-            debugPrint('WebView Error: ${error.description}');
+            // Only show error UI if it's the main frame failing
+            if ((error.isForMainFrame ?? true) && mounted) {
+              setState(() => _hasError = true);
+            }
           },
         ),
       )
@@ -603,7 +669,34 @@ class _LivestreamSectionState extends State<_LivestreamSection> {
           if (_isExpanded)
             AspectRatio(
               aspectRatio: 16 / 9,
-              child: WebViewWidget(controller: _controller),
+              child: _hasError 
+                ? Container(
+                    color: Colors.black45,
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.signal_wifi_off, color: Colors.white24, size: 40),
+                          const SizedBox(height: 8),
+                          const Text('STREAM NON DISPONIBILE', style: TextStyle(color: Colors.white24, fontSize: 10, fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 12),
+                          TextButton.icon(
+                            onPressed: () {
+                              if (mounted) {
+                                setState(() {
+                                  _hasError = false;
+                                });
+                                _controller.reload();
+                              }
+                            },
+                            icon: const Icon(Icons.refresh, size: 14, color: Colors.orange),
+                            label: const Text('RIPROVA', style: TextStyle(color: Colors.orange, fontSize: 10)),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                : WebViewWidget(controller: _controller),
             ),
         ],
       ),
