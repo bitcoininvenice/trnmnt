@@ -171,36 +171,72 @@ class _CloudTournamentDetailScreenState extends ConsumerState<CloudTournamentDet
         final hasVideo = (twitchChannel != null && twitchChannel.isNotEmpty) || 
                          (youtubeVideoId != null && youtubeVideoId.isNotEmpty);
 
-        // 1. Resolve Location Name
+        // 1. Resolve Location and Coordinates
         String locationText = tournament['location']?.toString() ?? '';
+        double? lat = (tournament['latitude'] as num?)?.toDouble();
+        double? lon = (tournament['longitude'] as num?)?.toDouble();
         
-        // Check both levels for venue_court_id
         final venueCourtId = data['venue_court_id']?.toString() ?? 
                              tournament['venue_court_id']?.toString() ?? 
                              tournament['venueCourtId']?.toString();
         
         if (venueCourtId != null && venueCourtId.isNotEmpty) {
           final courtsAsync = ref.watch(mergedCourtsProvider);
-          final resolvedName = courtsAsync.when(
-            data: (courts) {
-              final match = courts.where((c) {
-                final courtCloudId = c.cloudId?.toString();
-                final courtSourceId = c.sourceId?.toString();
-                return courtCloudId == venueCourtId || courtSourceId == venueCourtId;
-              }).firstOrNull;
-              return match?.name;
-            },
-            loading: () => '...',
+          final match = courtsAsync.when(
+            data: (courts) => courts.where((c) {
+              final courtCloudId = c.cloudId?.toString();
+              final courtSourceId = c.sourceId?.toString();
+              return courtCloudId == venueCourtId || courtSourceId == venueCourtId;
+            }).firstOrNull,
+            loading: () => null,
             error: (_, __) => null,
           );
-          if (resolvedName != null) {
-            locationText = resolvedName;
+          
+          if (match != null) {
+            locationText = match.name;
+            lat = match.latitude;
+            lon = match.longitude;
           }
         }
 
         if (locationText.isEmpty) {
-          locationText = l10n.noTournamentsAtMoment; // Or any generic fallback
+          locationText = l10n.noTournamentsAtMoment;
           if (locationText.contains('moment')) locationText = 'Posizione non specificata';
+        }
+
+        void openMap() {
+          Uri uri;
+          if (lat != null && lon != null) {
+            uri = Uri.parse('https://www.google.com/maps/search/?api=1&query=$lat,$lon');
+          } else if (locationText.isNotEmpty && locationText != 'Posizione non specificata') {
+            uri = Uri.parse('https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(locationText)}');
+          } else {
+            return;
+          }
+          launchUrl(uri, mode: LaunchMode.externalApplication);
+        }
+
+        void addToCalendar() {
+          final startDateVal = tournament['startDate'];
+          DateTime? startDt;
+          if (startDateVal is String) startDt = DateTime.tryParse(startDateVal);
+          else if (startDateVal is int) startDt = DateTime.fromMillisecondsSinceEpoch(startDateVal);
+
+          if (startDt == null) return;
+
+          final endDt = startDt.add(const Duration(hours: 4)); // Default 4h duration
+          
+          String formatGDate(DateTime dt) {
+            final u = dt.toUtc();
+            return '${u.year}${u.month.toString().padLeft(2, '0')}${u.day.toString().padLeft(2, '0')}T${u.hour.toString().padLeft(2, '0')}${u.minute.toString().padLeft(2, '0')}${u.second.toString().padLeft(2, '0')}Z';
+          }
+
+          final title = Uri.encodeComponent(tournament['name']?.toString() ?? 'Torneo Basket');
+          final location = Uri.encodeComponent(locationText);
+          final dates = '${formatGDate(startDt)}/${formatGDate(endDt)}';
+          
+          final url = 'https://www.google.com/calendar/render?action=TEMPLATE&text=$title&location=$location&dates=$dates';
+          launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
         }
 
         return Scaffold(
@@ -272,7 +308,8 @@ class _CloudTournamentDetailScreenState extends ConsumerState<CloudTournamentDet
                               context, 
                               icon: Icons.stadium, 
                               label: locationText, 
-                              color: Colors.orange
+                              color: Colors.orange,
+                              onTap: openMap,
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -280,12 +317,21 @@ class _CloudTournamentDetailScreenState extends ConsumerState<CloudTournamentDet
                             context, 
                             icon: Icons.calendar_today, 
                             label: _formatDate(tournament['startDate']),
-                            color: Colors.blue
+                            color: Colors.blue,
+                            onTap: addToCalendar,
                           ),
                         ],
                       ),
-                      
                       const SizedBox(height: 16),
+
+                      if (tournament['description'] != null && tournament['description'].toString().isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 16),
+                          child: Text(
+                            tournament['description'].toString(),
+                            style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 13, height: 1.5),
+                          ),
+                        ),
                       
                       // Community Branding
                       if (tournament['communityName'] != null || rawData['community_slug'] != null)
@@ -382,28 +428,42 @@ class _CloudTournamentDetailScreenState extends ConsumerState<CloudTournamentDet
     );
   }
 
-  Widget _buildHeaderBadge(BuildContext context, {required IconData icon, required String label, required Color color}) {
+  Widget _buildHeaderBadge(BuildContext context, {required IconData icon, required String label, required Color color, VoidCallback? onTap}) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: color.withOpacity(0.2)),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 14, color: color),
-          const SizedBox(width: 8),
-          Flexible(
-            child: Text(
-              label, 
-              style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.bold),
-              overflow: TextOverflow.ellipsis,
-              maxLines: 1,
-            ),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 14, color: color),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  label, 
+                  style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.bold),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                ),
+              ),
+              if (onTap != null) ...[
+                const SizedBox(width: 4),
+                Icon(
+                  icon == Icons.stadium ? Icons.directions : Icons.event_available, 
+                  size: 12, 
+                  color: color.withOpacity(0.5)
+                ),
+              ],
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

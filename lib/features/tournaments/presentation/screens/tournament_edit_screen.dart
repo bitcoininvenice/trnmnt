@@ -23,6 +23,7 @@ class _TournamentEditScreenState extends ConsumerState<TournamentEditScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _locationController = TextEditingController();
+  final _descriptionController = TextEditingController();
   final _searchController = TextEditingController();
 
   DateTime _startDate = DateTime.now();
@@ -50,6 +51,7 @@ class _TournamentEditScreenState extends ConsumerState<TournamentEditScreen> {
   void dispose() {
     _nameController.dispose();
     _locationController.dispose();
+    _descriptionController.dispose();
     _searchController.dispose();
     _winPointsController.dispose();
     _drawPointsController.dispose();
@@ -90,6 +92,7 @@ class _TournamentEditScreenState extends ConsumerState<TournamentEditScreen> {
         isWebRegistrationEnabled: _isWebRegistrationEnabled,
         endDate: _endDate,
         venueCourtId: _venueCourtId,
+        description: _descriptionController.text.trim(),
       );
 
       await repo.setTournamentTeams(widget.tournamentId, _selectedTeamIds, teamToGroup: _groupCount > 1 ? _teamToGroup : null);
@@ -139,6 +142,7 @@ class _TournamentEditScreenState extends ConsumerState<TournamentEditScreen> {
             if (!_isInit) {
               _nameController.text = tournament.name;
               _locationController.text = tournament.location;
+              _descriptionController.text = tournament.description ?? '';
               _startDate = tournament.startDate ?? DateTime.now();
               _mode = tournament.mode;
               _scoringSystem = tournament.scoringSystem ?? 'standard';
@@ -219,6 +223,16 @@ class _TournamentEditScreenState extends ConsumerState<TournamentEditScreen> {
                         prefixIcon: const Icon(Icons.location_on),
                       ),
                       validator: (value) => (value == null || value.trim().isEmpty) ? AppLocalizations.of(context)!.enterTournamentLocation : null,
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _descriptionController,
+                      enabled: !isReadOnly,
+                      maxLines: 3,
+                      decoration: const InputDecoration(
+                        labelText: 'Descrizione',
+                        prefixIcon: Icon(Icons.description),
+                      ),
                     ),
                     const SizedBox(height: 16),
                     _buildDateField(isReadOnly, context),

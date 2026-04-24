@@ -462,5 +462,6 @@
     }
   },
   "optional": "Opzionale",
-  "radar_court_link": "COLLEGAMENTO RADAR"
+  "radar_court_link": "COLLEGAMENTO RADAR",
+  "description": "Descrizione"
 }

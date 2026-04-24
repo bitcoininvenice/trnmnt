@@ -2219,6 +2219,12 @@ abstract class AppLocalizations {
   /// In it, this message translates to:
   /// **'COLLEGAMENTO RADAR'**
   String get radar_court_link;
+
+  /// No description provided for @description.
+  ///
+  /// In it, this message translates to:
+  /// **'Descrizione'**
+  String get description;
 }
 
 class _AppLocalizationsDelegate

@@ -448,5 +448,7 @@
   "courtSaved": "¡Cancha guardada!",
   "searchingOsmNearby": "BUSCANDO CANCHAS OSM CERCANAS...",
   "noOsmCourtsFound": "NO SE ENCONTRARON CANCHAS OSM EN ESTA ZONA",
-  "osmResultsTitle": "RESULTADOS OPENSTREETMAP"
+  "osmResultsTitle": "RESULTADOS OPENSTREETMAP",
+  "radar_court_link": "ENLACE RADAR",
+  "description": "Descripción"
 }

@@ -1126,4 +1126,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get radar_court_link => 'RADAR LINK';
+
+  @override
+  String get description => 'Description';
 }

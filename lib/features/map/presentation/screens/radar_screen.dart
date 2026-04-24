@@ -197,37 +197,96 @@ class _RadarScreenState extends ConsumerState<RadarScreen> {
   }
 
   void _showCourtDetails(Court court) {
+    // Find associated tournaments and live matches
+    final tournaments = ref.read(radarTournamentsProvider).value ?? [];
+    final liveMatches = ref.read(liveMatchesProvider).value ?? [];
+    
+    final List<Map<String, dynamic>> associatedItems = [];
+    
+    // 1. Find Tournaments
+    for (final t in tournaments) {
+      try {
+        final data = t['data'] as Map<String, dynamic>?;
+        final tourney = (data?['tournament'] ?? data) as Map<String, dynamic>?;
+        if (tourney == null) continue;
+
+        final vcid = t['venue_court_id'] ?? t['venueCourtId'] ?? tourney['venue_court_id'] ?? tourney['venueCourtId'];
+        bool matches = false;
+        if (vcid != null) {
+          matches = vcid.toString() == court.cloudId || 
+                    vcid.toString() == court.sourceId || 
+                    vcid.toString() == court.id.toString();
+        }
+        
+        if (matches) {
+          associatedItems.add({
+            ...t,
+            'type': 'tournament',
+            'courtName': court.name,
+          });
+        }
+      } catch (_) {}
+    }
+
+    // 2. Find Standalone Live Matches
+    for (final lm in liveMatches) {
+      try {
+        final vcid = lm['venue_court_id'] ?? lm['venueCourtId'];
+        if (vcid != null && (vcid.toString() == court.cloudId || vcid.toString() == court.sourceId || vcid.toString() == court.id.toString())) {
+          associatedItems.add({
+            ...lm,
+            'type': 'match',
+            'courtName': court.name,
+          });
+        }
+      } catch (_) {}
+    }
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
+      isScrollControlled: true,
       builder: (context) => _DetailsSheet(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(child: Text(court.name.toUpperCase(), style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900))),
-                if (court.cloudId != null) 
-                  const Tooltip(message: 'Verified Court', child: Icon(Icons.verified, color: Colors.blue, size: 20)),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(child: Text(court.name.toUpperCase(), style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900))),
+                  if (court.cloudId != null) 
+                    const Tooltip(message: 'Verified Court', child: Icon(Icons.verified, color: Colors.blue, size: 20)),
+                ],
+              ),
+              const SizedBox(height: 8),
+              if (court.description != null && court.description!.isNotEmpty)
+                Text(court.description!, style: const TextStyle(fontSize: 14, color: Colors.grey)),
+              const SizedBox(height: 16),
+              _DetailGrid(
+                items: [
+                  _DetailItem(icon: Icons.sports_basketball, label: AppLocalizations.of(context)!.hoops, value: court.hoops.toString(), color: Colors.orange),
+                  _DetailItem(icon: Icons.grid_on, label: AppLocalizations.of(context)!.netsLabel, value: _translateNets(context, court.netsStatus ?? 'N/D'), color: Colors.blue),
+                  _DetailItem(icon: Icons.lightbulb, label: AppLocalizations.of(context)!.litLabel, value: court.hasLights == true ? AppLocalizations.of(context)!.yes : AppLocalizations.of(context)!.no, color: Colors.yellow),
+                  _DetailItem(icon: Icons.star, label: AppLocalizations.of(context)!.rating, value: "${court.stars}/5", color: Colors.amber),
+                  _DetailItem(icon: Icons.square_foot, label: AppLocalizations.of(context)!.courtTitle, value: (court.courtStatus ?? 'giocabile').toUpperCase(), color: Colors.green),
+                  _DetailItem(icon: Icons.linear_scale, label: AppLocalizations.of(context)!.linesTitle, value: (court.linesStatus ?? 'visibili').toUpperCase(), color: Colors.white70),
+                ],
+              ),
+              if (associatedItems.isNotEmpty) ...[
+                const SizedBox(height: 24),
+                const Divider(color: Colors.white10),
+                const SizedBox(height: 16),
+                Text(
+                  '${associatedItems.length} EVENTI IN CORSO O PROGRAMMATI',
+                  style: const TextStyle(color: Colors.orange, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.2),
+                ),
+                const SizedBox(height: 16),
+                _RadarCourtEventsList(items: associatedItems, liveMatches: liveMatches),
               ],
-            ),
-            const SizedBox(height: 8),
-            if (court.description != null && court.description!.isNotEmpty)
-              Text(court.description!, style: const TextStyle(fontSize: 14, color: Colors.grey)),
-            const SizedBox(height: 16),
-            _DetailGrid(
-              items: [
-                _DetailItem(icon: Icons.sports_basketball, label: AppLocalizations.of(context)!.hoops, value: court.hoops.toString(), color: Colors.orange),
-                _DetailItem(icon: Icons.grid_on, label: AppLocalizations.of(context)!.netsLabel, value: _translateNets(context, court.netsStatus ?? 'N/D'), color: Colors.blue),
-                _DetailItem(icon: Icons.lightbulb, label: AppLocalizations.of(context)!.litLabel, value: court.hasLights == true ? AppLocalizations.of(context)!.yes : AppLocalizations.of(context)!.no, color: Colors.yellow),
-                _DetailItem(icon: Icons.star, label: AppLocalizations.of(context)!.rating, value: "${court.stars}/5", color: Colors.amber),
-                _DetailItem(icon: Icons.square_foot, label: AppLocalizations.of(context)!.courtTitle, value: (court.courtStatus ?? 'giocabile').toUpperCase(), color: Colors.green),
-                _DetailItem(icon: Icons.linear_scale, label: AppLocalizations.of(context)!.linesTitle, value: (court.linesStatus ?? 'visibili').toUpperCase(), color: Colors.white70),
-              ],
-            ),
-            const SizedBox(height: 24),
-          ],
+              const SizedBox(height: 24),
+            ],
+          ),
         ),
       ),
     );
@@ -688,8 +747,7 @@ class _RadarScreenState extends ConsumerState<RadarScreen> {
                   
                   if (visibleItems.isEmpty) return false;
                   
-                  // Live check
-                  for (final item in visibleItems) {
+                  for (final item in items) {
                     if (item['type'] == 'match') return true;
                     final data = item['data'] as Map<String, dynamic>?;
                     final tourney = (data?['tournament'] ?? data) as Map<String, dynamic>?;
@@ -701,10 +759,11 @@ class _RadarScreenState extends ConsumerState<RadarScreen> {
                     DateTime? endDate = endDateVal is String ? DateTime.tryParse(endDateVal) : (endDateVal is int ? DateTime.fromMillisecondsSinceEpoch(endDateVal) : null);
                     final now = DateTime.now();
                     
-                    if (startDate != null && now.isAfter(startDate)) {
-                      bool isConcluded = endDate != null ? now.isAfter(endDate) : now.isAfter(startDate.add(const Duration(hours: 24)));
-                      if (!isConcluded) return true;
-                    }
+                    if (startDate == null) return true;
+                    final isFuture = now.isBefore(startDate);
+                    final isPast = endDate != null ? now.isAfter(endDate) : now.isAfter(startDate.add(const Duration(hours: 24)));
+                    
+                    if (isFuture || !isPast) return true;
                   }
                   return false;
                 }).toList();
@@ -1037,6 +1096,74 @@ class _DetailItem extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _RadarCourtEventsList extends StatelessWidget {
+  final List<Map<String, dynamic>> items;
+  final List<dynamic> liveMatches;
+
+  const _RadarCourtEventsList({required this.items, required this.liveMatches});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: items.length,
+      itemBuilder: (context, index) {
+        final item = items[index];
+        final isTournament = item['type'] == 'tournament';
+        final data = item['data'] as Map<String, dynamic>?;
+        final tourney = (data?['tournament'] ?? data) as Map<String, dynamic>?;
+        
+        final String title = isTournament 
+            ? (tourney?['name'] ?? 'Tournament') 
+            : 'Match';
+        final String subtitle = isTournament 
+            ? '${(data?['teams'] as List?)?.length ?? 0} SQUADRE • ${tourney?['mode']?.toString().toUpperCase() ?? ''}'
+            : 'Partita Singola';
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.05),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.white.withOpacity(0.1)),
+          ),
+          child: ListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            leading: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: isTournament ? Colors.orange.withOpacity(0.2) : Colors.blue.withOpacity(0.2),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                isTournament ? Icons.emoji_events : Icons.sports_basketball,
+                color: isTournament ? Colors.orange : Colors.blue,
+                size: 20,
+              ),
+            ),
+            title: Text(
+              title.toUpperCase(),
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900),
+            ),
+            subtitle: Text(
+              subtitle,
+              style: TextStyle(fontSize: 10, color: Colors.white.withOpacity(0.5), fontWeight: FontWeight.bold),
+            ),
+            trailing: const Icon(Icons.chevron_right, color: Colors.white24),
+            onTap: () {
+              if (isTournament) {
+                final id = item['id']?.toString();
+                if (id != null) context.push('/cloud/tournaments/$id');
+              }
+            },
+          ),
+        );
+      },
     );
   }
 }

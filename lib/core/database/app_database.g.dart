@@ -110,6 +110,17 @@ class $CommunitiesTable extends Communities
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _creatorIdMeta = const VerificationMeta(
+    'creatorId',
+  );
+  @override
+  late final GeneratedColumn<String> creatorId = GeneratedColumn<String>(
+    'creator_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _isOwnerMeta = const VerificationMeta(
     'isOwner',
   );
@@ -148,6 +159,7 @@ class $CommunitiesTable extends Communities
     location,
     instagramUrl,
     tiktokUrl,
+    creatorId,
     isOwner,
     createdAt,
   ];
@@ -229,6 +241,12 @@ class $CommunitiesTable extends Communities
         tiktokUrl.isAcceptableOrUnknown(data['tiktok_url']!, _tiktokUrlMeta),
       );
     }
+    if (data.containsKey('creator_id')) {
+      context.handle(
+        _creatorIdMeta,
+        creatorId.isAcceptableOrUnknown(data['creator_id']!, _creatorIdMeta),
+      );
+    }
     if (data.containsKey('is_owner')) {
       context.handle(
         _isOwnerMeta,
@@ -286,6 +304,10 @@ class $CommunitiesTable extends Communities
         DriftSqlType.string,
         data['${effectivePrefix}tiktok_url'],
       ),
+      creatorId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}creator_id'],
+      ),
       isOwner: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}is_owner'],
@@ -313,6 +335,7 @@ class Community extends DataClass implements Insertable<Community> {
   final String? location;
   final String? instagramUrl;
   final String? tiktokUrl;
+  final String? creatorId;
   final bool isOwner;
   final DateTime createdAt;
   const Community({
@@ -325,6 +348,7 @@ class Community extends DataClass implements Insertable<Community> {
     this.location,
     this.instagramUrl,
     this.tiktokUrl,
+    this.creatorId,
     required this.isOwner,
     required this.createdAt,
   });
@@ -351,6 +375,9 @@ class Community extends DataClass implements Insertable<Community> {
     }
     if (!nullToAbsent || tiktokUrl != null) {
       map['tiktok_url'] = Variable<String>(tiktokUrl);
+    }
+    if (!nullToAbsent || creatorId != null) {
+      map['creator_id'] = Variable<String>(creatorId);
     }
     map['is_owner'] = Variable<bool>(isOwner);
     map['created_at'] = Variable<DateTime>(createdAt);
@@ -380,6 +407,9 @@ class Community extends DataClass implements Insertable<Community> {
       tiktokUrl: tiktokUrl == null && nullToAbsent
           ? const Value.absent()
           : Value(tiktokUrl),
+      creatorId: creatorId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(creatorId),
       isOwner: Value(isOwner),
       createdAt: Value(createdAt),
     );
@@ -402,6 +432,7 @@ class Community extends DataClass implements Insertable<Community> {
       location: serializer.fromJson<String?>(json['location']),
       instagramUrl: serializer.fromJson<String?>(json['instagramUrl']),
       tiktokUrl: serializer.fromJson<String?>(json['tiktokUrl']),
+      creatorId: serializer.fromJson<String?>(json['creatorId']),
       isOwner: serializer.fromJson<bool>(json['isOwner']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
     );
@@ -421,6 +452,7 @@ class Community extends DataClass implements Insertable<Community> {
       'location': serializer.toJson<String?>(location),
       'instagramUrl': serializer.toJson<String?>(instagramUrl),
       'tiktokUrl': serializer.toJson<String?>(tiktokUrl),
+      'creatorId': serializer.toJson<String?>(creatorId),
       'isOwner': serializer.toJson<bool>(isOwner),
       'createdAt': serializer.toJson<DateTime>(createdAt),
     };
@@ -436,6 +468,7 @@ class Community extends DataClass implements Insertable<Community> {
     Value<String?> location = const Value.absent(),
     Value<String?> instagramUrl = const Value.absent(),
     Value<String?> tiktokUrl = const Value.absent(),
+    Value<String?> creatorId = const Value.absent(),
     bool? isOwner,
     DateTime? createdAt,
   }) => Community(
@@ -450,6 +483,7 @@ class Community extends DataClass implements Insertable<Community> {
     location: location.present ? location.value : this.location,
     instagramUrl: instagramUrl.present ? instagramUrl.value : this.instagramUrl,
     tiktokUrl: tiktokUrl.present ? tiktokUrl.value : this.tiktokUrl,
+    creatorId: creatorId.present ? creatorId.value : this.creatorId,
     isOwner: isOwner ?? this.isOwner,
     createdAt: createdAt ?? this.createdAt,
   );
@@ -470,6 +504,7 @@ class Community extends DataClass implements Insertable<Community> {
           ? data.instagramUrl.value
           : this.instagramUrl,
       tiktokUrl: data.tiktokUrl.present ? data.tiktokUrl.value : this.tiktokUrl,
+      creatorId: data.creatorId.present ? data.creatorId.value : this.creatorId,
       isOwner: data.isOwner.present ? data.isOwner.value : this.isOwner,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
     );
@@ -487,6 +522,7 @@ class Community extends DataClass implements Insertable<Community> {
           ..write('location: $location, ')
           ..write('instagramUrl: $instagramUrl, ')
           ..write('tiktokUrl: $tiktokUrl, ')
+          ..write('creatorId: $creatorId, ')
           ..write('isOwner: $isOwner, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
@@ -504,6 +540,7 @@ class Community extends DataClass implements Insertable<Community> {
     location,
     instagramUrl,
     tiktokUrl,
+    creatorId,
     isOwner,
     createdAt,
   );
@@ -520,6 +557,7 @@ class Community extends DataClass implements Insertable<Community> {
           other.location == this.location &&
           other.instagramUrl == this.instagramUrl &&
           other.tiktokUrl == this.tiktokUrl &&
+          other.creatorId == this.creatorId &&
           other.isOwner == this.isOwner &&
           other.createdAt == this.createdAt);
 }
@@ -534,6 +572,7 @@ class CommunitiesCompanion extends UpdateCompanion<Community> {
   final Value<String?> location;
   final Value<String?> instagramUrl;
   final Value<String?> tiktokUrl;
+  final Value<String?> creatorId;
   final Value<bool> isOwner;
   final Value<DateTime> createdAt;
   final Value<int> rowid;
@@ -547,6 +586,7 @@ class CommunitiesCompanion extends UpdateCompanion<Community> {
     this.location = const Value.absent(),
     this.instagramUrl = const Value.absent(),
     this.tiktokUrl = const Value.absent(),
+    this.creatorId = const Value.absent(),
     this.isOwner = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -561,6 +601,7 @@ class CommunitiesCompanion extends UpdateCompanion<Community> {
     this.location = const Value.absent(),
     this.instagramUrl = const Value.absent(),
     this.tiktokUrl = const Value.absent(),
+    this.creatorId = const Value.absent(),
     this.isOwner = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -577,6 +618,7 @@ class CommunitiesCompanion extends UpdateCompanion<Community> {
     Expression<String>? location,
     Expression<String>? instagramUrl,
     Expression<String>? tiktokUrl,
+    Expression<String>? creatorId,
     Expression<bool>? isOwner,
     Expression<DateTime>? createdAt,
     Expression<int>? rowid,
@@ -592,6 +634,7 @@ class CommunitiesCompanion extends UpdateCompanion<Community> {
       if (location != null) 'location': location,
       if (instagramUrl != null) 'instagram_url': instagramUrl,
       if (tiktokUrl != null) 'tiktok_url': tiktokUrl,
+      if (creatorId != null) 'creator_id': creatorId,
       if (isOwner != null) 'is_owner': isOwner,
       if (createdAt != null) 'created_at': createdAt,
       if (rowid != null) 'rowid': rowid,
@@ -608,6 +651,7 @@ class CommunitiesCompanion extends UpdateCompanion<Community> {
     Value<String?>? location,
     Value<String?>? instagramUrl,
     Value<String?>? tiktokUrl,
+    Value<String?>? creatorId,
     Value<bool>? isOwner,
     Value<DateTime>? createdAt,
     Value<int>? rowid,
@@ -622,6 +666,7 @@ class CommunitiesCompanion extends UpdateCompanion<Community> {
       location: location ?? this.location,
       instagramUrl: instagramUrl ?? this.instagramUrl,
       tiktokUrl: tiktokUrl ?? this.tiktokUrl,
+      creatorId: creatorId ?? this.creatorId,
       isOwner: isOwner ?? this.isOwner,
       createdAt: createdAt ?? this.createdAt,
       rowid: rowid ?? this.rowid,
@@ -660,6 +705,9 @@ class CommunitiesCompanion extends UpdateCompanion<Community> {
     if (tiktokUrl.present) {
       map['tiktok_url'] = Variable<String>(tiktokUrl.value);
     }
+    if (creatorId.present) {
+      map['creator_id'] = Variable<String>(creatorId.value);
+    }
     if (isOwner.present) {
       map['is_owner'] = Variable<bool>(isOwner.value);
     }
@@ -684,6 +732,7 @@ class CommunitiesCompanion extends UpdateCompanion<Community> {
           ..write('location: $location, ')
           ..write('instagramUrl: $instagramUrl, ')
           ..write('tiktokUrl: $tiktokUrl, ')
+          ..write('creatorId: $creatorId, ')
           ..write('isOwner: $isOwner, ')
           ..write('createdAt: $createdAt, ')
           ..write('rowid: $rowid')
@@ -1454,6 +1503,17 @@ class $TournamentsTable extends Tournaments
     type: DriftSqlType.int,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _descriptionMeta = const VerificationMeta(
+    'description',
+  );
+  @override
+  late final GeneratedColumn<String> description = GeneratedColumn<String>(
+    'description',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -1500,6 +1560,7 @@ class $TournamentsTable extends Tournaments
     lunchDuration,
     endDate,
     venueCourtId,
+    description,
     createdAt,
   ];
   @override
@@ -1755,6 +1816,15 @@ class $TournamentsTable extends Tournaments
         ),
       );
     }
+    if (data.containsKey('description')) {
+      context.handle(
+        _descriptionMeta,
+        description.isAcceptableOrUnknown(
+          data['description']!,
+          _descriptionMeta,
+        ),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -1898,6 +1968,10 @@ class $TournamentsTable extends Tournaments
         DriftSqlType.int,
         data['${effectivePrefix}venue_court_id'],
       ),
+      description: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}description'],
+      ),
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -1946,6 +2020,7 @@ class Tournament extends DataClass implements Insertable<Tournament> {
   final int lunchDuration;
   final DateTime? endDate;
   final int? venueCourtId;
+  final String? description;
   final DateTime createdAt;
   const Tournament({
     required this.id,
@@ -1980,6 +2055,7 @@ class Tournament extends DataClass implements Insertable<Tournament> {
     required this.lunchDuration,
     this.endDate,
     this.venueCourtId,
+    this.description,
     required this.createdAt,
   });
   @override
@@ -2047,6 +2123,9 @@ class Tournament extends DataClass implements Insertable<Tournament> {
     if (!nullToAbsent || venueCourtId != null) {
       map['venue_court_id'] = Variable<int>(venueCourtId);
     }
+    if (!nullToAbsent || description != null) {
+      map['description'] = Variable<String>(description);
+    }
     map['created_at'] = Variable<DateTime>(createdAt);
     return map;
   }
@@ -2111,6 +2190,9 @@ class Tournament extends DataClass implements Insertable<Tournament> {
       venueCourtId: venueCourtId == null && nullToAbsent
           ? const Value.absent()
           : Value(venueCourtId),
+      description: description == null && nullToAbsent
+          ? const Value.absent()
+          : Value(description),
       createdAt: Value(createdAt),
     );
   }
@@ -2157,6 +2239,7 @@ class Tournament extends DataClass implements Insertable<Tournament> {
       lunchDuration: serializer.fromJson<int>(json['lunchDuration']),
       endDate: serializer.fromJson<DateTime?>(json['endDate']),
       venueCourtId: serializer.fromJson<int?>(json['venueCourtId']),
+      description: serializer.fromJson<String?>(json['description']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
     );
   }
@@ -2200,6 +2283,7 @@ class Tournament extends DataClass implements Insertable<Tournament> {
       'lunchDuration': serializer.toJson<int>(lunchDuration),
       'endDate': serializer.toJson<DateTime?>(endDate),
       'venueCourtId': serializer.toJson<int?>(venueCourtId),
+      'description': serializer.toJson<String?>(description),
       'createdAt': serializer.toJson<DateTime>(createdAt),
     };
   }
@@ -2237,6 +2321,7 @@ class Tournament extends DataClass implements Insertable<Tournament> {
     int? lunchDuration,
     Value<DateTime?> endDate = const Value.absent(),
     Value<int?> venueCourtId = const Value.absent(),
+    Value<String?> description = const Value.absent(),
     DateTime? createdAt,
   }) => Tournament(
     id: id ?? this.id,
@@ -2279,6 +2364,7 @@ class Tournament extends DataClass implements Insertable<Tournament> {
     lunchDuration: lunchDuration ?? this.lunchDuration,
     endDate: endDate.present ? endDate.value : this.endDate,
     venueCourtId: venueCourtId.present ? venueCourtId.value : this.venueCourtId,
+    description: description.present ? description.value : this.description,
     createdAt: createdAt ?? this.createdAt,
   );
   Tournament copyWithCompanion(TournamentsCompanion data) {
@@ -2357,6 +2443,9 @@ class Tournament extends DataClass implements Insertable<Tournament> {
       venueCourtId: data.venueCourtId.present
           ? data.venueCourtId.value
           : this.venueCourtId,
+      description: data.description.present
+          ? data.description.value
+          : this.description,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
     );
   }
@@ -2396,6 +2485,7 @@ class Tournament extends DataClass implements Insertable<Tournament> {
           ..write('lunchDuration: $lunchDuration, ')
           ..write('endDate: $endDate, ')
           ..write('venueCourtId: $venueCourtId, ')
+          ..write('description: $description, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
@@ -2435,6 +2525,7 @@ class Tournament extends DataClass implements Insertable<Tournament> {
     lunchDuration,
     endDate,
     venueCourtId,
+    description,
     createdAt,
   ]);
   @override
@@ -2473,6 +2564,7 @@ class Tournament extends DataClass implements Insertable<Tournament> {
           other.lunchDuration == this.lunchDuration &&
           other.endDate == this.endDate &&
           other.venueCourtId == this.venueCourtId &&
+          other.description == this.description &&
           other.createdAt == this.createdAt);
 }
 
@@ -2509,6 +2601,7 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
   final Value<int> lunchDuration;
   final Value<DateTime?> endDate;
   final Value<int?> venueCourtId;
+  final Value<String?> description;
   final Value<DateTime> createdAt;
   const TournamentsCompanion({
     this.id = const Value.absent(),
@@ -2543,6 +2636,7 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
     this.lunchDuration = const Value.absent(),
     this.endDate = const Value.absent(),
     this.venueCourtId = const Value.absent(),
+    this.description = const Value.absent(),
     this.createdAt = const Value.absent(),
   });
   TournamentsCompanion.insert({
@@ -2578,6 +2672,7 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
     this.lunchDuration = const Value.absent(),
     this.endDate = const Value.absent(),
     this.venueCourtId = const Value.absent(),
+    this.description = const Value.absent(),
     this.createdAt = const Value.absent(),
   }) : name = Value(name),
        location = Value(location);
@@ -2614,6 +2709,7 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
     Expression<int>? lunchDuration,
     Expression<DateTime>? endDate,
     Expression<int>? venueCourtId,
+    Expression<String>? description,
     Expression<DateTime>? createdAt,
   }) {
     return RawValuesInsertable({
@@ -2652,6 +2748,7 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
       if (lunchDuration != null) 'lunch_duration': lunchDuration,
       if (endDate != null) 'end_date': endDate,
       if (venueCourtId != null) 'venue_court_id': venueCourtId,
+      if (description != null) 'description': description,
       if (createdAt != null) 'created_at': createdAt,
     });
   }
@@ -2689,6 +2786,7 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
     Value<int>? lunchDuration,
     Value<DateTime?>? endDate,
     Value<int?>? venueCourtId,
+    Value<String?>? description,
     Value<DateTime>? createdAt,
   }) {
     return TournamentsCompanion(
@@ -2726,6 +2824,7 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
       lunchDuration: lunchDuration ?? this.lunchDuration,
       endDate: endDate ?? this.endDate,
       venueCourtId: venueCourtId ?? this.venueCourtId,
+      description: description ?? this.description,
       createdAt: createdAt ?? this.createdAt,
     );
   }
@@ -2833,6 +2932,9 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
     if (venueCourtId.present) {
       map['venue_court_id'] = Variable<int>(venueCourtId.value);
     }
+    if (description.present) {
+      map['description'] = Variable<String>(description.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -2874,6 +2976,7 @@ class TournamentsCompanion extends UpdateCompanion<Tournament> {
           ..write('lunchDuration: $lunchDuration, ')
           ..write('endDate: $endDate, ')
           ..write('venueCourtId: $venueCourtId, ')
+          ..write('description: $description, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
@@ -4929,6 +5032,7 @@ typedef $$CommunitiesTableCreateCompanionBuilder =
       Value<String?> location,
       Value<String?> instagramUrl,
       Value<String?> tiktokUrl,
+      Value<String?> creatorId,
       Value<bool> isOwner,
       Value<DateTime> createdAt,
       Value<int> rowid,
@@ -4944,6 +5048,7 @@ typedef $$CommunitiesTableUpdateCompanionBuilder =
       Value<String?> location,
       Value<String?> instagramUrl,
       Value<String?> tiktokUrl,
+      Value<String?> creatorId,
       Value<bool> isOwner,
       Value<DateTime> createdAt,
       Value<int> rowid,
@@ -5045,6 +5150,11 @@ class $$CommunitiesTableFilterComposer
 
   ColumnFilters<String> get tiktokUrl => $composableBuilder(
     column: $table.tiktokUrl,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get creatorId => $composableBuilder(
+    column: $table.creatorId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5163,6 +5273,11 @@ class $$CommunitiesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get creatorId => $composableBuilder(
+    column: $table.creatorId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get isOwner => $composableBuilder(
     column: $table.isOwner,
     builder: (column) => ColumnOrderings(column),
@@ -5215,6 +5330,9 @@ class $$CommunitiesTableAnnotationComposer
 
   GeneratedColumn<String> get tiktokUrl =>
       $composableBuilder(column: $table.tiktokUrl, builder: (column) => column);
+
+  GeneratedColumn<String> get creatorId =>
+      $composableBuilder(column: $table.creatorId, builder: (column) => column);
 
   GeneratedColumn<bool> get isOwner =>
       $composableBuilder(column: $table.isOwner, builder: (column) => column);
@@ -5310,6 +5428,7 @@ class $$CommunitiesTableTableManager
                 Value<String?> location = const Value.absent(),
                 Value<String?> instagramUrl = const Value.absent(),
                 Value<String?> tiktokUrl = const Value.absent(),
+                Value<String?> creatorId = const Value.absent(),
                 Value<bool> isOwner = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -5323,6 +5442,7 @@ class $$CommunitiesTableTableManager
                 location: location,
                 instagramUrl: instagramUrl,
                 tiktokUrl: tiktokUrl,
+                creatorId: creatorId,
                 isOwner: isOwner,
                 createdAt: createdAt,
                 rowid: rowid,
@@ -5338,6 +5458,7 @@ class $$CommunitiesTableTableManager
                 Value<String?> location = const Value.absent(),
                 Value<String?> instagramUrl = const Value.absent(),
                 Value<String?> tiktokUrl = const Value.absent(),
+                Value<String?> creatorId = const Value.absent(),
                 Value<bool> isOwner = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -5351,6 +5472,7 @@ class $$CommunitiesTableTableManager
                 location: location,
                 instagramUrl: instagramUrl,
                 tiktokUrl: tiktokUrl,
+                creatorId: creatorId,
                 isOwner: isOwner,
                 createdAt: createdAt,
                 rowid: rowid,
@@ -6157,6 +6279,7 @@ typedef $$TournamentsTableCreateCompanionBuilder =
       Value<int> lunchDuration,
       Value<DateTime?> endDate,
       Value<int?> venueCourtId,
+      Value<String?> description,
       Value<DateTime> createdAt,
     });
 typedef $$TournamentsTableUpdateCompanionBuilder =
@@ -6193,6 +6316,7 @@ typedef $$TournamentsTableUpdateCompanionBuilder =
       Value<int> lunchDuration,
       Value<DateTime?> endDate,
       Value<int?> venueCourtId,
+      Value<String?> description,
       Value<DateTime> createdAt,
     });
 
@@ -6455,6 +6579,11 @@ class $$TournamentsTableFilterComposer
 
   ColumnFilters<int> get venueCourtId => $composableBuilder(
     column: $table.venueCourtId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get description => $composableBuilder(
+    column: $table.description,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -6744,6 +6873,11 @@ class $$TournamentsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -6930,6 +7064,11 @@ class $$TournamentsTableAnnotationComposer
 
   GeneratedColumn<int> get venueCourtId => $composableBuilder(
     column: $table.venueCourtId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get description => $composableBuilder(
+    column: $table.description,
     builder: (column) => column,
   );
 
@@ -7124,6 +7263,7 @@ class $$TournamentsTableTableManager
                 Value<int> lunchDuration = const Value.absent(),
                 Value<DateTime?> endDate = const Value.absent(),
                 Value<int?> venueCourtId = const Value.absent(),
+                Value<String?> description = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => TournamentsCompanion(
                 id: id,
@@ -7158,6 +7298,7 @@ class $$TournamentsTableTableManager
                 lunchDuration: lunchDuration,
                 endDate: endDate,
                 venueCourtId: venueCourtId,
+                description: description,
                 createdAt: createdAt,
               ),
           createCompanionCallback:
@@ -7194,6 +7335,7 @@ class $$TournamentsTableTableManager
                 Value<int> lunchDuration = const Value.absent(),
                 Value<DateTime?> endDate = const Value.absent(),
                 Value<int?> venueCourtId = const Value.absent(),
+                Value<String?> description = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => TournamentsCompanion.insert(
                 id: id,
@@ -7228,6 +7370,7 @@ class $$TournamentsTableTableManager
                 lunchDuration: lunchDuration,
                 endDate: endDate,
                 venueCourtId: venueCourtId,
+                description: description,
                 createdAt: createdAt,
               ),
           withReferenceMapper: (p0) => p0

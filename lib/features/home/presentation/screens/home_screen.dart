@@ -731,6 +731,28 @@ class _CloudTournamentsSlider extends ConsumerWidget {
           }
         }).toList();
 
+        // Sort: Closest to now first
+        tournaments.sort((a, b) {
+          final tA = Map<String, dynamic>.from(a['tournament'] ?? {});
+          final tB = Map<String, dynamic>.from(b['tournament'] ?? {});
+          
+          DateTime? dateA;
+          final valA = tA['startDate'];
+          if (valA is String) dateA = DateTime.tryParse(valA);
+          if (valA is int) dateA = DateTime.fromMillisecondsSinceEpoch(valA);
+          
+          DateTime? dateB;
+          final valB = tB['startDate'];
+          if (valB is String) dateB = DateTime.tryParse(valB);
+          if (valB is int) dateB = DateTime.fromMillisecondsSinceEpoch(valB);
+          
+          if (dateA == null && dateB == null) return 0;
+          if (dateA == null) return 1;
+          if (dateB == null) return -1;
+          
+          return dateA.compareTo(dateB);
+        });
+
         final isVisible = tournaments.isNotEmpty;
 
         return AnimatedCrossFade(

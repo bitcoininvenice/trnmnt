@@ -76,6 +76,7 @@ class CommunityRepository {
         name: Value(data['name']),
         slug: Value(data['slug']),
         logoUrl: Value(data['logo_url']),
+        creatorId: Value(data['creator_id']),
         isOwner: Value(isOwner),
         inviteToken: Value(data['invite_token']),
         inviteTokenExpiresAt: data['invite_token_expires_at'] != null 
@@ -113,6 +114,8 @@ class CommunityRepository {
         final res = await _supabase.from('communities').update(data).eq('id', existing['id']).select().single();
         finalCommunity = res;
       } else {
+        // New community: set creator_id
+        data['creator_id'] = ownerId;
         final res = await _supabase.from('communities').insert(data).select().single();
         finalCommunity = res;
       }

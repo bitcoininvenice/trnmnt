@@ -448,5 +448,7 @@
   "courtSaved": "Terrain enregistré !",
   "searchingOsmNearby": "RECHERCHE DE TERRAINS OSM À PROXIMITÉ...",
   "noOsmCourtsFound": "AUCUN TERRAIN OSM TROUVÉ DANS CETTE ZONE",
-  "osmResultsTitle": "RÉSULTATS OPENSTREETMAP"
+  "osmResultsTitle": "RÉSULTATS OPENSTREETMAP",
+  "radar_court_link": "LIEN RADAR",
+  "description": "Description"
 }

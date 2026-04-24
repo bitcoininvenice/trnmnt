@@ -26,6 +26,7 @@ class _TournamentSetupScreenState extends ConsumerState<TournamentSetupScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _locationController = TextEditingController();
+  final _descriptionController = TextEditingController();
   final _searchController = TextEditingController(); 
   
   DateTime _startDate = DateTime.now();
@@ -71,6 +72,7 @@ class _TournamentSetupScreenState extends ConsumerState<TournamentSetupScreen> {
   void dispose() {
     _nameController.dispose();
     _locationController.dispose();
+    _descriptionController.dispose();
     _searchController.dispose(); // Dispose
     super.dispose();
   }
@@ -109,6 +111,7 @@ class _TournamentSetupScreenState extends ConsumerState<TournamentSetupScreen> {
         lunchDuration: _lunchDuration,
         endDate: _endDate,
         venueCourtId: _selectedVenueCourtId,
+        description: _descriptionController.text.trim(),
       );
 
       await repo.setTournamentTeams(tournamentId, _selectedTeamIds, teamToGroup: _isMultiGroup ? _teamToGroup : null);
@@ -399,6 +402,16 @@ class _TournamentSetupScreenState extends ConsumerState<TournamentSetupScreen> {
               }
               return null;
             },
+          ),
+          const SizedBox(height: 16),
+          TextFormField(
+            controller: _descriptionController,
+            maxLines: 3,
+            decoration: InputDecoration(
+              labelText: AppLocalizations.of(context)!.descLabel,
+              hintText: 'Inserisci dettagli sul torneo...',
+              prefixIcon: const Icon(Icons.description),
+            ),
           ),
           const SizedBox(height: 16),
           _buildEnhancedLocationField(),

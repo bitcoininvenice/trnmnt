@@ -1130,4 +1130,7 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get radar_court_link => 'COLLEGAMENTO RADAR';
+
+  @override
+  String get description => 'Descrizione';
 }

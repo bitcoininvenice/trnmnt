@@ -97,7 +97,19 @@ class CloudTournamentCard extends ConsumerWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     TournamentStatusBadge(data: data), // Pass full data to check all levels
-                    const Icon(Icons.chevron_right, color: Colors.white38, size: 18),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (!_isConcluded(tournament) && 
+                            ((tournament['twitchChannel']?.toString().isNotEmpty ?? false) || 
+                             (tournament['youtubeVideoId']?.toString().isNotEmpty ?? false)))
+                          const Padding(
+                            padding: EdgeInsets.only(right: 8),
+                            child: Icon(Icons.live_tv, color: Colors.red, size: 14),
+                          ),
+                        const Icon(Icons.chevron_right, color: Colors.white38, size: 18),
+                      ],
+                    ),
                   ],
                 ),
                 const Spacer(),
@@ -177,7 +189,14 @@ class CloudTournamentCard extends ConsumerWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   TournamentStatusBadge(data: data),
-                  const SizedBox(width: 8),
+                  const Spacer(),
+                  if (!_isConcluded(tournament) && 
+                      ((tournament['twitchChannel']?.toString().isNotEmpty ?? false) || 
+                       (tournament['youtubeVideoId']?.toString().isNotEmpty ?? false)))
+                    const Padding(
+                      padding: EdgeInsets.only(right: 8),
+                      child: Icon(Icons.live_tv, color: Colors.red, size: 16),
+                    ),
                   const Icon(Icons.chevron_right, color: Colors.grey),
                 ],
               ),
@@ -220,6 +239,34 @@ class CloudTournamentCard extends ConsumerWidget {
   void _handleOnTap(BuildContext context, String? id) {
     if (id != null) {
       context.push('/hub/tournament/$id');
+    }
+  }
+
+  bool _isConcluded(Map<String, dynamic> tournament) {
+    final dateVal = tournament['startDate'] ?? tournament['start_date'];
+    DateTime? startDate;
+    if (dateVal is String) {
+      startDate = DateTime.tryParse(dateVal);
+    } else if (dateVal is int) {
+      startDate = DateTime.fromMillisecondsSinceEpoch(dateVal);
+    }
+
+    final endDateVal = tournament['endDate'] ?? tournament['end_date'];
+    DateTime? endDate;
+    if (endDateVal is String) {
+      endDate = DateTime.tryParse(endDateVal);
+    } else if (endDateVal is int) {
+      endDate = DateTime.fromMillisecondsSinceEpoch(endDateVal);
+    }
+
+    if (startDate == null) return false;
+    final now = DateTime.now();
+
+    if (endDate != null) {
+      return now.isAfter(endDate);
+    } else {
+      final twentyFourHoursAfterStart = startDate.add(const Duration(hours: 24));
+      return now.isAfter(twentyFourHoursAfterStart);
     }
   }
 

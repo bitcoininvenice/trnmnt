@@ -328,8 +328,18 @@ class _TournamentDetailScreenState extends ConsumerState<TournamentDetailScreen>
                           ],
                         ],
                       ),
+                      const SizedBox(height: 24),
 
-                      const SizedBox(height: 32),
+                      if (tournament.description != null && tournament.description!.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 24),
+                          child: Text(
+                            tournament.description!,
+                            style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 13, height: 1.5),
+                          ),
+                        ),
+
+                      const SizedBox(height: 8),
                       
                       if (tournament.cloudId != null && tournament.isWebRegistrationEnabled) ...[
                         Consumer(

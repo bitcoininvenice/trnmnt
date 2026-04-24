@@ -21,6 +21,7 @@ class Communities extends Table {
   TextColumn get location => text().nullable()();
   TextColumn get instagramUrl => text().nullable()();
   TextColumn get tiktokUrl => text().nullable()();
+  TextColumn get creatorId => text().nullable()(); // Cloud Creator UUID
   BoolColumn get isOwner => boolean().withDefault(const Constant(true))();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 
@@ -82,6 +83,7 @@ class Tournaments extends Table {
   DateTimeColumn get endDate => dateTime().nullable()();
   @ReferenceName('venueCourt')
   IntColumn get venueCourtId => integer().nullable()();
+  TextColumn get description => text().nullable()();
 
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 }
@@ -149,7 +151,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 21;
+  int get schemaVersion => 25;
 
   @override
   MigrationStrategy get migration {
@@ -237,8 +239,30 @@ class AppDatabase extends _$AppDatabase {
           await addColumnSafely(courts, courts.cloudId);
           await addColumnSafely(tournaments, tournaments.venueCourtId);
         }
+        if (from < 22) {
+          await m.addColumn(this.communities, this.communities.creatorId);
+        }
+        if (from < 25) {
+          // Rescue migration: ensure description column exists
+          try {
+            await m.addColumn(this.tournaments, this.tournaments.description);
+          } catch (e) {
+            // Column might already exist, ignore error
+          }
+        }
+      },
+      beforeOpen: (details) async {
+        if (details.wasCreated || details.hadUpgrade) {
+          // Additional safety check for description column
+          try {
+            await customStatement('ALTER TABLE tournaments ADD COLUMN description TEXT;');
+          } catch (e) {
+            // Column probably already exists
+          }
+        }
       },
     );
+
   }
 }
 

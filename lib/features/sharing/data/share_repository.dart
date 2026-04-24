@@ -19,6 +19,95 @@ class ShareRepository {
     try {
       final supabase = Supabase.instance.client;
       
+      // 1. Fetch tournament data
+      final response = await supabase
+          .from('published_tournaments')
+          .select('data')
+          .eq('id', cloudId)
+          .single();
+      
+      return response['data'] as Map<String, dynamic>?;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// Synchronizes local tournament data with cloud data (Download from Cloud)
+  Future<bool> syncFromCloud(int tournamentId) async {
+    final tournament = await (_db.select(_db.tournaments)..where((t) => t.id.equals(tournamentId))).getSingleOrNull();
+    if (tournament == null || tournament.cloudId == null || tournament.cloudId!.isEmpty) return false;
+
+    final cloudData = await fetchTournamentByCloudId(tournament.cloudId!);
+    if (cloudData == null) return false;
+
+    final supabase = Supabase.instance.client;
+
+    try {
+      // 1. Update Tournament Basic Info
+      final remoteTourney = cloudData['tournament'] as Map<String, dynamic>?;
+      if (remoteTourney != null) {
+        await (_db.update(_db.tournaments)..where((t) => t.id.equals(tournamentId))).write(
+          TournamentsCompanion(
+            name: Value(remoteTourney['name'] ?? tournament.name),
+            location: Value(remoteTourney['location'] ?? tournament.location),
+            description: Value(remoteTourney['description'] ?? tournament.description),
+          ),
+        );
+      }
+
+      // 2. Sync Matches
+      final remoteMatches = cloudData['matches'] as List<dynamic>?;
+      if (remoteMatches != null) {
+        // Fetch all local matches for this tournament
+        final localMatchesList = await (_db.select(_db.matches)..where((m) => m.tournamentId.equals(tournamentId))).get();
+        
+        // Fetch teams to resolve names for matching
+        final teams = await (_db.select(_db.teams)..where((t) => t.id.isIn(localMatchesList.map((m) => [m.homeTeamId, m.awayTeamId]).expand((e) => e).whereType<int>().toList()))).get();
+        final teamNames = { for (var t in teams) t.id : t.name };
+
+        for (final rm in remoteMatches) {
+          final remoteMatch = Map<String, dynamic>.from(rm);
+          
+          // Try to find the matching local match
+          final localMatch = localMatchesList.firstWhere((lm) {
+            final localHomeName = teamNames[lm.homeTeamId] ?? '';
+            final localAwayName = teamNames[lm.awayTeamId] ?? '';
+            
+            return lm.phase == remoteMatch['phase'] &&
+                   lm.round == remoteMatch['round'] &&
+                   localHomeName == remoteMatch['homeTeamName'] &&
+                   localAwayName == remoteMatch['awayTeamName'];
+          }, orElse: () => null as dynamic);
+
+          if (localMatch != null) {
+            // Update score if remote has a score or is completed
+            final bool remoteCompleted = remoteMatch['isCompleted'] == true;
+            final int? remoteHomeScore = remoteMatch['homeScore'];
+            final int? remoteAwayScore = remoteMatch['awayScore'];
+
+            if (remoteCompleted || remoteHomeScore != null || remoteAwayScore != null) {
+               await (_db.update(_db.matches)..where((m) => m.id.equals(localMatch.id))).write(
+                MatchesCompanion(
+                  homeScore: Value(remoteHomeScore),
+                  awayScore: Value(remoteAwayScore),
+                  isCompleted: Value(remoteCompleted),
+                ),
+              );
+            }
+          }
+        }
+      }
+
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Future<Map<String, dynamic>?> fetchTournamentByCloudIdOld(String cloudId) async {
+    try {
+      final supabase = Supabase.instance.client;
+      
       // 1. Fetch tournament data and community ID
       final response = await supabase
           .from('published_tournaments')
@@ -189,6 +278,7 @@ class ShareRepository {
           'community_id': communityId,
           'community_slug': slug,
           'venue_court_id': (export['tournament'] as Map?)?['venue_court_id'],
+          'description': tournament.description,
           'last_updated': DateTime.now().toIso8601String(),
         }).select('id').single();
         
@@ -208,6 +298,7 @@ class ShareRepository {
           'community_id': communityId,
           'community_slug': slug,
           'venue_court_id': (export['tournament'] as Map?)?['venue_court_id'],
+          'description': tournament.description,
           'last_updated': DateTime.now().toIso8601String(),
         }).eq('id', cloudId);
       }
@@ -301,7 +392,7 @@ class ShareRepository {
   }) async {
     try {
       final supabase = Supabase.instance.client;
-      await supabase.from('standalone_history').insert({
+      await supabase.from('published_single_matches').insert({
         'home_team_name': homeName,
         'away_team_name': awayName,
         'home_score': homeScore,

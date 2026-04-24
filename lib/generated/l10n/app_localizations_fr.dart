@@ -1132,5 +1132,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get optional => 'Opzionale';
 
   @override
-  String get radar_court_link => 'COLLEGAMENTO RADAR';
+  String get radar_court_link => 'LIEN RADAR';
+
+  @override
+  String get description => 'Description';
 }

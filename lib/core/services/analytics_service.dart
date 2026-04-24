@@ -71,6 +71,8 @@ class AnalyticsService {
       osVersion = 'iOS ${iosInfo.systemVersion}';
     }
 
+    final supabaseId = Supabase.instance.client.auth.currentUser?.id;
+
     try {
       await _callSecureRpc({
         'id': userId,
@@ -78,6 +80,7 @@ class AnalyticsService {
         'os_version': osVersion,
         'app_version': packageInfo.version,
         'platform': platform,
+        if (supabaseId != null) 'supabase_id': supabaseId,
       });
     } catch (e) {
       // Ignore
@@ -93,6 +96,7 @@ class AnalyticsService {
       if (userId == null) return;
 
       final packageInfo = await PackageInfo.fromPlatform();
+      final supabaseId = Supabase.instance.client.auth.currentUser?.id;
       _sessionStartTime = DateTime.now();
 
       final response = await _callSecureRpc({
@@ -101,6 +105,7 @@ class AnalyticsService {
         'app_version': packageInfo.version,
         'platform': Platform.isIOS ? 'ios' : 'android',
         'session_type': 'foreground',
+        if (supabaseId != null) 'supabase_id': supabaseId,
       });
 
       if (response != null && response['id'] != null) {

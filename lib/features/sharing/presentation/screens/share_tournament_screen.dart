@@ -8,6 +8,7 @@ import 'package:trnmnt/generated/l10n/app_localizations.dart';
 import 'package:trnmnt/core/providers/api_config_provider.dart';
 import '../../data/share_repository.dart';
 import 'package:trnmnt/features/tournaments/data/tournaments_repository.dart';
+import 'package:trnmnt/features/tournaments/data/matches_repository.dart';
 
 enum ShareType { web, manage }
 
@@ -113,6 +114,44 @@ class _ShareTournamentScreenState extends ConsumerState<ShareTournamentScreen> {
         if (mounted) {
            ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(l10n.syncSuccess), backgroundColor: Colors.blue),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${l10n.error}: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isPublishing = false);
+    }
+  }
+
+  Future<void> _syncFromCloud() async {
+    final l10n = AppLocalizations.of(context)!;
+    setState(() => _isPublishing = true);
+    try {
+      final repo = ref.read(shareRepositoryProvider);
+      
+      final success = await repo.syncFromCloud(widget.tournamentId);
+      
+      if (!mounted) return;
+
+      if (success) {
+        // Invalidate providers to refresh UI
+        ref.invalidate(tournamentByIdProvider(widget.tournamentId));
+        ref.invalidate(tournamentMatchesProvider(widget.tournamentId));
+        
+        if (mounted) {
+           ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(l10n.syncSuccess), backgroundColor: Colors.green),
+          );
+        }
+      } else {
+        if (mounted) {
+           ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(l10n.error), backgroundColor: Colors.red),
           );
         }
       }
@@ -379,6 +418,7 @@ class _ShareTournamentScreenState extends ConsumerState<ShareTournamentScreen> {
                 spacing: 12,
                 runSpacing: 12,
                 alignment: WrapAlignment.center,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   IconButton.filledTonal(
                     onPressed: () {
@@ -413,7 +453,20 @@ class _ShareTournamentScreenState extends ConsumerState<ShareTournamentScreen> {
                       side: BorderSide(color: Colors.blueAccent.withValues(alpha: 0.5)),
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  ElevatedButton.icon(
+                    onPressed: _isPublishing ? null : _syncFromCloud,
+                    icon: _isPublishing 
+                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.greenAccent))
+                      : Icon(Icons.cloud_download, color: _isPublishing ? Colors.grey : Colors.greenAccent),
+                    label: Text(
+                      _isPublishing ? l10n.syncing : "SINCRONIZZA DA CLOUD",
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      side: BorderSide(color: Colors.greenAccent.withValues(alpha: 0.5)),
+                    ),
+                  ),
                   if (isCloudActive)
                     TextButton.icon(
                       onPressed: _isTesting ? null : () => _runLiveTest(cloudId!),

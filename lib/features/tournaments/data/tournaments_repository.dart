@@ -130,10 +130,33 @@ final hubTournamentsProvider = StreamProvider<List<Map<String, dynamic>>>((ref) 
       }
 
       allTournaments.sort((a, b) {
-        final tA = a['tournament'] as Map<String, dynamic>?;
-        final tB = b['tournament'] as Map<String, dynamic>?;
+        final tA = a['tournament'] as Map<String, dynamic>? ?? a;
+        final tB = b['tournament'] as Map<String, dynamic>? ?? b;
         DateTime parse(dynamic v) => (v is String) ? (DateTime.tryParse(v) ?? DateTime(1970)) : (v is int ? DateTime.fromMillisecondsSinceEpoch(v) : DateTime(1970));
-        return parse(tB?['startDate']).compareTo(parse(tA?['startDate']));
+        
+        final dateA = parse(tA['startDate']);
+        final dateB = parse(tB['startDate']);
+        final now = DateTime.now();
+
+        final isActiveA = tA['isActive'] == true;
+        final isActiveB = tB['isActive'] == true;
+
+        // 1. Active first
+        if (isActiveA && !isActiveB) return -1;
+        if (!isActiveA && isActiveB) return 1;
+
+        final isFutureA = dateA.isAfter(now);
+        final isFutureB = dateB.isAfter(now);
+
+        // 2. Future vs Past
+        if (isFutureA && !isFutureB) return -1;
+        if (!isFutureA && isFutureB) return 1;
+
+        // 3. Both Future: ASCENDING (soonest first)
+        if (isFutureA && isFutureB) return dateA.compareTo(dateB);
+
+        // 4. Both Past: DESCENDING (latest first)
+        return dateB.compareTo(dateA);
       });
 
       return allTournaments;
@@ -169,10 +192,10 @@ final cloudTournamentsProvider = StreamProvider<List<Map<String, dynamic>>>((ref
         }
       }
 
-      // Sort ALL tournaments by startDate (Newest first)
+      // Sort ALL tournaments: Active > Future (Soonest First) > Past (Newest First)
       allTournaments.sort((a, b) {
-        final tA = a['tournament'] as Map<String, dynamic>?;
-        final tB = b['tournament'] as Map<String, dynamic>?;
+        final tA = a['tournament'] as Map<String, dynamic>? ?? a;
+        final tB = b['tournament'] as Map<String, dynamic>? ?? b;
         
         DateTime parseDate(dynamic val) {
           if (val is String) return DateTime.tryParse(val) ?? DateTime(1970);
@@ -180,9 +203,29 @@ final cloudTournamentsProvider = StreamProvider<List<Map<String, dynamic>>>((ref
           return DateTime(1970);
         }
 
-        final dateA = parseDate(tA?['startDate']);
-        final dateB = parseDate(tB?['startDate']);
-        return dateB.compareTo(dateA); // Descending (Newer first)
+        final dateA = parseDate(tA['startDate']);
+        final dateB = parseDate(tB['startDate']);
+        final now = DateTime.now();
+        
+        final isActiveA = tA['isActive'] == true;
+        final isActiveB = tB['isActive'] == true;
+
+        // 1. Active first
+        if (isActiveA && !isActiveB) return -1;
+        if (!isActiveA && isActiveB) return 1;
+
+        final isFutureA = dateA.isAfter(now);
+        final isFutureB = dateB.isAfter(now);
+
+        // 2. Future vs Past
+        if (isFutureA && !isFutureB) return -1;
+        if (!isFutureA && isFutureB) return 1;
+
+        // 3. Both Future: ASCENDING (soonest first)
+        if (isFutureA && isFutureB) return dateA.compareTo(dateB);
+
+        // 4. Both Past: DESCENDING (latest first)
+        return dateB.compareTo(dateA);
       });
 
       List<Map<String, dynamic>> filterData(Set<CloudFilter> filters) {
@@ -342,6 +385,7 @@ class TournamentsRepository {
     int lunchDuration = 0,
     DateTime? endDate,
     int? venueCourtId,
+    String? description,
   }) async {
     return await _db.into(_db.tournaments).insert(
       TournamentsCompanion.insert(
@@ -367,6 +411,7 @@ class TournamentsRepository {
         lunchDuration: Value(lunchDuration),
         endDate: Value(endDate),
         venueCourtId: Value(venueCourtId),
+        description: Value(description),
       ),
     );
   }
@@ -396,6 +441,7 @@ class TournamentsRepository {
     int? lunchDuration,
     DateTime? endDate,
     int? venueCourtId,
+    String? description,
   }) async {
     return await (_db.update(_db.tournaments)..where((t) => t.id.equals(id))).write(
       TournamentsCompanion(
@@ -422,6 +468,7 @@ class TournamentsRepository {
         lunchDuration: lunchDuration != null ? Value(lunchDuration) : const Value.absent(),
         endDate: endDate != null ? Value(endDate) : const Value.absent(),
         venueCourtId: venueCourtId != null ? Value(venueCourtId) : const Value.absent(),
+        description: description != null ? Value(description) : const Value.absent(),
       ),
     ) > 0;
   }
