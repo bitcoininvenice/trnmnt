@@ -80,7 +80,8 @@ class Tournaments extends Table {
   IntColumn get courtCount => integer().withDefault(const Constant(1))();
   IntColumn get lunchDuration => integer().withDefault(const Constant(0))();
   DateTimeColumn get endDate => dateTime().nullable()();
-  IntColumn get venueCourtId => integer().nullable().references(Courts, #id, onDelete: KeyAction.setNull)();
+  @ReferenceName('venueCourt')
+  IntColumn get venueCourtId => integer().nullable()();
 
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 }
@@ -102,7 +103,9 @@ class TournamentTeams extends Table {
 class Matches extends Table {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get tournamentId => integer().references(Tournaments, #id)();
+  @ReferenceName('homeMatches')
   IntColumn get homeTeamId => integer().nullable().references(Teams, #id)();
+  @ReferenceName('awayMatches')
   IntColumn get awayTeamId => integer().nullable().references(Teams, #id)();
   IntColumn get homeScore => integer().nullable()();
   IntColumn get awayScore => integer().nullable()();
@@ -122,6 +125,7 @@ class Matches extends Table {
 @DataClassName('Court')
 class Courts extends Table {
   IntColumn get id => integer().autoIncrement()();
+  @ReferenceName('tournamentCourts')
   IntColumn get tournamentId => integer().nullable().references(Tournaments, #id, onDelete: KeyAction.cascade)();
   TextColumn get name => text().withLength(min: 1, max: 100)();
   TextColumn get description => text().nullable()();

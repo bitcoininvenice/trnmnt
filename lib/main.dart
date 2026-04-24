@@ -11,6 +11,7 @@ import 'core/providers/theme_provider.dart';
 import 'core/providers/locale_provider.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:trnmnt/generated/l10n/app_localizations.dart';
+import 'package:trnmnt/core/services/analytics_service.dart';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -27,6 +28,7 @@ void main() async {
     anonKey: dotenv.env['SUPA_KEY']!,
   );
   
+  
   // Setup Anonymous Auth (Device-as-Account)
   try {
     final session = Supabase.instance.client.auth.currentSession;
@@ -35,6 +37,9 @@ void main() async {
     }
   } catch (e) {
   }
+
+  // Initialize Analytics AFTER Auth
+  await AnalyticsService.init();
   
   // Lock to portrait mode
   await SystemChrome.setPreferredOrientations([
@@ -54,9 +59,45 @@ void main() async {
 
   runApp(
     const ProviderScope(
-      child: TrnmntApp(),
+      child: AppLifecycleObserver(
+        child: TrnmntApp(),
+      ),
     ),
   );
+}
+
+class AppLifecycleObserver extends StatefulWidget {
+  final Widget child;
+  const AppLifecycleObserver({super.key, required this.child});
+
+  @override
+  State<AppLifecycleObserver> createState() => _AppLifecycleObserverState();
+}
+
+class _AppLifecycleObserverState extends State<AppLifecycleObserver> with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.detached) {
+      AnalyticsService.endSession();
+    } else if (state == AppLifecycleState.resumed) {
+      AnalyticsService.startSession();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }
 
 class TrnmntApp extends ConsumerWidget {
