@@ -11,6 +11,7 @@ import 'package:trnmnt/features/stats/data/stats_repository.dart';
 import 'package:trnmnt/features/tournaments/data/tournaments_repository.dart';
 import 'package:trnmnt/features/community/data/community_repository.dart';
 import 'package:trnmnt/features/tournaments/presentation/widgets/cloud_tournament_card.dart';
+import 'package:trnmnt/features/tournaments/presentation/widgets/tournament_status_badge.dart';
 import 'dart:io';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../game/providers/game_provider.dart';
@@ -42,25 +43,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   String _getTranslatedMode(BuildContext context, String? mode) {
-    final l10n = AppLocalizations.of(context)!;
-    String label;
-    switch (mode) {
-      case 'group_only':
-        label = l10n.groupOnly;
-        break;
-      case 'elimination_only':
-        label = l10n.eliminationOnly;
-        break;
-      case 'group_and_elimination':
-        label = l10n.groupAndElimination;
-        break;
-      case 'madness':
-        label = l10n.madness;
-        break;
-      default:
-        label = mode?.replaceAll('_', ' ') ?? l10n.groupOnly;
-    }
-    return label.toUpperCase();
+    return TournamentModeBadge.getTranslatedMode(context, mode ?? 'group_only').toUpperCase();
   }
 
   @override

@@ -145,7 +145,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 20;
+  int get schemaVersion => 21;
 
   @override
   MigrationStrategy get migration {
@@ -219,8 +219,8 @@ class AppDatabase extends _$AppDatabase {
           await m.addColumn(this.courts, this.courts.source);
           await m.addColumn(this.courts, this.courts.sourceId);
         }
-        if (from < 20) {
-          // Rescue migration just in case v19 failed
+        if (from < 21) {
+          // Extra rescue migration for Courts table columns
           Future<void> addColumnSafely(TableInfo table, GeneratedColumn column) async {
             try {
               await m.addColumn(table, column);
