@@ -463,5 +463,15 @@
   },
   "optional": "Opzionale",
   "radar_court_link": "COLLEGAMENTO RADAR",
-  "description": "Descrizione"
+  "description": "Descrizione",
+  "leaveCommunityTitle": "Abbandona Community",
+  "removeCommunityTitle": "Rimuovi dal Dispositivo",
+  "leaveCommunityOwnerDesc": "La community rimarrà sul server senza proprietario.\nPotrai rivendicarla in seguito tramite il pannello admin.\n\n⚠️ Tutti i tornei e i team locali collegati verranno eliminati dal dispositivo.",
+  "leaveCommunityMemberDesc": "Questa community e tutti i tornei locali collegati verranno rimossi dal dispositivo.\n\nI dati sul server restano invariati.",
+  "leaveCommunityAction": "Abbandona community dal dispositivo",
+  "removeCommunityAction": "Rimuovi community dal dispositivo",
+  "leaveAction": "Abbandona",
+  "removeAction": "Rimuovi",
+  "rlsViolationError": "Errore di sicurezza: hai già una community attiva sul cloud o i permessi sono insufficienti. Controlla le policy RLS.",
+  "sessionError": "Sessione scaduta o non valida. Effettua nuovamente l'accesso."
 }

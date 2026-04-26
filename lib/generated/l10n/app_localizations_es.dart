@@ -1120,19 +1120,53 @@ class AppLocalizationsEs extends AppLocalizations {
   String get osmResultsTitle => 'RESULTADOS OPENSTREETMAP';
 
   @override
-  String get selectCourt => 'Seleziona Campetto';
+  String get selectCourt => 'Seleccionar Cancha';
 
   @override
   String courtSelected(String name) {
-    return 'Campetto: $name';
+    return 'Cancha: $name';
   }
 
   @override
-  String get optional => 'Opzionale';
+  String get optional => 'Opcional';
 
   @override
   String get radar_court_link => 'ENLACE RADAR';
 
   @override
   String get description => 'Descripción';
+
+  @override
+  String get leaveCommunityTitle => 'Abandonar Comunidad';
+
+  @override
+  String get removeCommunityTitle => 'Eliminar del Dispositivo';
+
+  @override
+  String get leaveCommunityOwnerDesc =>
+      'La comunidad permanecerá en el servidor sin propietario.\nPodrás reclamarla más tarde desde el panel de administración.\n\n⚠️ Todos los torneos y equipos locales vinculados serán eliminados de este dispositivo.';
+
+  @override
+  String get leaveCommunityMemberDesc =>
+      'Esta comunidad y todos los torneos locales vinculados serán eliminados de este dispositivo.\n\nLos datos del servidor permanecen sin cambios.';
+
+  @override
+  String get leaveCommunityAction => 'Abandonar comunidad del dispositivo';
+
+  @override
+  String get removeCommunityAction => 'Eliminar comunidad del dispositivo';
+
+  @override
+  String get leaveAction => 'Abandonar';
+
+  @override
+  String get removeAction => 'Eliminar';
+
+  @override
+  String get rlsViolationError =>
+      'Error de seguridad: ya tienes una comunidad activa en la nube o los permisos son insuficientes. Revisa las políticas RLS.';
+
+  @override
+  String get sessionError =>
+      'Sesión caducada o no válida. Por favor, inicia sesión de nuevo.';
 }

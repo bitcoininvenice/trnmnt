@@ -14,18 +14,17 @@ import 'package:trnmnt/generated/l10n/app_localizations.dart';
 import 'package:trnmnt/core/services/analytics_service.dart';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'core/env/env.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Load .env
-  await dotenv.load(fileName: '.env');
+  // Environment variables are now handled by Envied (obfuscated)
 
   // Initialize Supabase
   await Supabase.initialize(
-    url: dotenv.env['SUPABASE_URL']!,
-    anonKey: dotenv.env['SUPA_KEY']!,
+    url: Env.supabaseUrl,
+    anonKey: Env.supaKey,
   );
   
   

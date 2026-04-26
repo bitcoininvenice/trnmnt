@@ -49,6 +49,15 @@ class CommunityRepository {
 
     // Fallback to first if selected not found or not provided
     comm ??= await (_db.select(_db.communities)..limit(1)).getSingleOrNull();
+
+    // AUTO-SYNC: If still null but we are logged in, try to fetch from cloud
+    if (comm == null && currentOwnerId != null) {
+      final cloudData = await getMyCommunityFromCloud();
+      if (cloudData != null) {
+        await saveCommunityLocally(cloudData, true);
+        comm = await (_db.select(_db.communities)..limit(1)).getSingleOrNull();
+      }
+    }
     
     return comm;
   }
@@ -64,6 +73,21 @@ class CommunityRepository {
           .eq('owner_id', ownerId)
           .maybeSingle();
       return response;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// Looks up a community by its local UUID directly on the cloud.
+  /// More reliable than owner_id lookup when the user has an existing local community.
+  Future<Map<String, dynamic>?> getCommunityByIdFromCloud(String id) async {
+    if (id.startsWith('legacy')) return null;
+    try {
+      return await _supabase
+          .from('communities')
+          .select()
+          .eq('id', id)
+          .maybeSingle();
     } catch (e) {
       return null;
     }
@@ -101,7 +125,17 @@ class CommunityRepository {
     if (ownerId == null) return 'no-session';
     
     try {
-      final existing = await getMyCommunityFromCloud();
+      // Priority 1: look up by local community ID (avoids creating duplicates
+      // when owner_id is stale or not yet set on an existing record).
+      final currentLocal = await (_db.select(_db.communities)
+        ..where((c) => c.isOwner.equals(true))
+        ..limit(1)).getSingleOrNull();
+
+      Map<String, dynamic>? existing;
+      if (currentLocal != null) {
+        existing = await getCommunityByIdFromCloud(currentLocal.id);
+      }
+
       final data = {
         'owner_id': ownerId,
         'name': name,
@@ -113,42 +147,116 @@ class CommunityRepository {
       };
 
       Map<String, dynamic> finalCommunity;
-      if (existing != null) {
-        final res = await _supabase.from('communities').update(data).eq('id', existing['id']).select().single();
-        finalCommunity = res;
-      } else {
-        // New community: set creator_id
-        data['creator_id'] = ownerId;
-        final res = await _supabase.from('communities').insert(data).select().single();
-        finalCommunity = res;
+      try {
+        if (existing != null) {
+          // Always UPDATE existing record
+          final res = await _supabase
+              .from('communities')
+              .update(data)
+              .eq('id', existing['id'])
+              .select()
+              .single();
+          finalCommunity = res;
+        } else {
+          // Truly new community: creator_id is set once
+          data['creator_id'] = ownerId;
+          final res = await _supabase
+              .from('communities')
+              .insert(data)
+              .select()
+              .single();
+          finalCommunity = res;
+        }
+      } on PostgrestException catch (e) {
+        if (e.code == '42501') return 'rls-violation';
+        if (e.code == '23505') return 'slug-exists';
+        rethrow;
       }
 
-      // Save locally as OWNER
       final String newId = finalCommunity['id'];
       
-      // DATABASE MIGRATION: Check if we have a legacy community and migrate its contents
-      final legacyCommunities = await (_db.select(_db.communities)..where((t) => t.id.equals('legacy-id') | t.id.like('legacy-%'))).get();
+      // Migrate legacy local communities to the real ID
+      final legacyCommunities = await (_db.select(_db.communities)
+        ..where((t) => t.id.equals('legacy-id') | t.id.like('legacy-%'))).get();
       
       for (final legacy in legacyCommunities) {
         if (legacy.id == newId) continue; 
-        
         await (_db.update(_db.tournaments)..where((t) => t.communityId.equals(legacy.id)))
             .write(TournamentsCompanion(communityId: Value(newId)));
-            
         await (_db.update(_db.teams)..where((t) => t.communityId.equals(legacy.id)))
             .write(TeamsCompanion(communityId: Value(newId)));
-            
         await (_db.delete(_db.communities)..where((t) => t.id.equals(legacy.id))).go();
       }
 
       await saveCommunityLocally(finalCommunity, true);
-      return null; // Success
+      return null;
     } on PostgrestException catch (e) {
       if (e.code == '23505') return 'slug-exists';
       return 'error';
     } catch (e) {
       return 'error';
     }
+  }
+
+  /// Removes a community from this device.
+  ///
+  /// - Always deletes local tournaments and teams linked to this community.
+  /// - If [isOwner]: also sets owner_id = null on Supabase (community becomes
+  ///   "orphaned" — visible to admin, creator_id preserved, can be reassigned).
+  /// - If member: cloud is untouched.
+  Future<void> leaveCommunity(String communityId, {required bool isOwner}) async {
+    // 1. Owner only: disassociate on cloud FIRST
+    if (isOwner && !communityId.startsWith('legacy')) {
+      try {
+        await _supabase
+            .from('communities')
+            .update({'owner_id': null})
+            .eq('id', communityId);
+      } catch (e) {
+        print('Cloud disassociation failed: $e');
+      }
+    }
+
+    // 2. Perform local deletion in correct hierarchical order using a transaction
+    await _db.transaction(() async {
+      // Find all tournaments for this community
+      final tournamentIds = (await (_db.select(_db.tournaments)
+            ..where((t) => t.communityId.equals(communityId)))
+          .get())
+          .map((t) => t.id)
+          .toList();
+
+      if (tournamentIds.isNotEmpty) {
+        // A. Delete matches
+        await (_db.delete(_db.matches)
+              ..where((m) => m.tournamentId.isIn(tournamentIds)))
+            .go();
+
+        // B. Delete tournament-team links
+        await (_db.delete(_db.tournamentTeams)
+              ..where((tt) => tt.tournamentId.isIn(tournamentIds)))
+            .go();
+
+        // C. Delete courts
+        await (_db.delete(_db.courts)
+              ..where((c) => c.tournamentId.isIn(tournamentIds)))
+            .go();
+
+        // D. Delete tournaments
+        await (_db.delete(_db.tournaments)
+              ..where((t) => t.id.isIn(tournamentIds)))
+            .go();
+      }
+
+      // 3. Delete all local teams linked to this community
+      await (_db.delete(_db.teams)
+            ..where((t) => t.communityId.equals(communityId)))
+          .go();
+
+      // 4. Delete the community from local DB
+      await (_db.delete(_db.communities)
+            ..where((c) => c.id.equals(communityId))).go();
+    });
   }
 
   /// Generates a new secure invite token (UUID) valid for 24 hours

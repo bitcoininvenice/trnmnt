@@ -158,7 +158,7 @@ class _CloudTournamentDetailScreenState extends ConsumerState<CloudTournamentDet
         final data = rawData['data'] as Map<String, dynamic>?;
         if (data == null) return const Scaffold(body: Center(child: Text('Invalid Data')));
 
-        final views = (rawData['views'] as num? ?? 0).toInt();
+        final views = ((rawData['app_views'] as num? ?? 0) + (rawData['web_views'] as num? ?? 0)).toInt();
         final spectators = _spectatorCount > 0 ? _spectatorCount : (rawData['spectators'] as num? ?? 0).toInt();
         final dbId = data['id']?.toString() ?? widget.cloudId;
 

@@ -2225,6 +2225,66 @@ abstract class AppLocalizations {
   /// In it, this message translates to:
   /// **'Descrizione'**
   String get description;
+
+  /// No description provided for @leaveCommunityTitle.
+  ///
+  /// In it, this message translates to:
+  /// **'Abbandona Community'**
+  String get leaveCommunityTitle;
+
+  /// No description provided for @removeCommunityTitle.
+  ///
+  /// In it, this message translates to:
+  /// **'Rimuovi dal Dispositivo'**
+  String get removeCommunityTitle;
+
+  /// No description provided for @leaveCommunityOwnerDesc.
+  ///
+  /// In it, this message translates to:
+  /// **'La community rimarrà sul server senza proprietario.\nPotrai rivendicarla in seguito tramite il pannello admin.\n\n⚠️ Tutti i tornei e i team locali collegati verranno eliminati dal dispositivo.'**
+  String get leaveCommunityOwnerDesc;
+
+  /// No description provided for @leaveCommunityMemberDesc.
+  ///
+  /// In it, this message translates to:
+  /// **'Questa community e tutti i tornei locali collegati verranno rimossi dal dispositivo.\n\nI dati sul server restano invariati.'**
+  String get leaveCommunityMemberDesc;
+
+  /// No description provided for @leaveCommunityAction.
+  ///
+  /// In it, this message translates to:
+  /// **'Abbandona community dal dispositivo'**
+  String get leaveCommunityAction;
+
+  /// No description provided for @removeCommunityAction.
+  ///
+  /// In it, this message translates to:
+  /// **'Rimuovi community dal dispositivo'**
+  String get removeCommunityAction;
+
+  /// No description provided for @leaveAction.
+  ///
+  /// In it, this message translates to:
+  /// **'Abbandona'**
+  String get leaveAction;
+
+  /// No description provided for @removeAction.
+  ///
+  /// In it, this message translates to:
+  /// **'Rimuovi'**
+  String get removeAction;
+
+  /// No description provided for @rlsViolationError.
+  ///
+  /// In it, this message translates to:
+  /// **'Errore di sicurezza: hai già una community attiva sul cloud o i permessi sono insufficienti. Controlla le policy RLS.'**
+  String get rlsViolationError;
+
+  /// No description provided for @sessionError.
+  ///
+  /// In it, this message translates to:
+  /// **'Sessione scaduta o non valida. Effettua nuovamente l\'accesso.'**
+  String get sessionError;
 }
 
 class _AppLocalizationsDelegate

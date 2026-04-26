@@ -1121,19 +1121,53 @@ class AppLocalizationsFr extends AppLocalizations {
   String get osmResultsTitle => 'RÉSULTATS OPENSTREETMAP';
 
   @override
-  String get selectCourt => 'Seleziona Campetto';
+  String get selectCourt => 'Sélectionner Terrain';
 
   @override
   String courtSelected(String name) {
-    return 'Campetto: $name';
+    return 'Terrain : $name';
   }
 
   @override
-  String get optional => 'Opzionale';
+  String get optional => 'Optionnel';
 
   @override
   String get radar_court_link => 'LIEN RADAR';
 
   @override
   String get description => 'Description';
+
+  @override
+  String get leaveCommunityTitle => 'Quitter la Communauté';
+
+  @override
+  String get removeCommunityTitle => 'Supprimer de l\'Appareil';
+
+  @override
+  String get leaveCommunityOwnerDesc =>
+      'La communauté restera sur le serveur sans propriétaire.\nVous pourrez la réclamer plus tard depuis le panneau d\'administration.\n\n⚠️ Tous les tournois et équipes locaux liés seront supprimés de cet appareil.';
+
+  @override
+  String get leaveCommunityMemberDesc =>
+      'Cette communauté et tous les tournois locaux liés seront supprimés de cet appareil.\n\nLes données sur le serveur restent inchangées.';
+
+  @override
+  String get leaveCommunityAction => 'Quitter la communauté de l\'appareil';
+
+  @override
+  String get removeCommunityAction => 'Supprimer la communauté de l\'appareil';
+
+  @override
+  String get leaveAction => 'Quitter';
+
+  @override
+  String get removeAction => 'Supprimer';
+
+  @override
+  String get rlsViolationError =>
+      'Erreur de sécurité : vous avez déjà une communauté active sur le cloud ou les permissions sont insuffisantes. Vérifiez les politiques RLS.';
+
+  @override
+  String get sessionError =>
+      'Session expirée ou invalide. Veuillez vous reconnecter.';
 }

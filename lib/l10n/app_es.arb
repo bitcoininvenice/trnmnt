@@ -450,5 +450,23 @@
   "noOsmCourtsFound": "NO SE ENCONTRARON CANCHAS OSM EN ESTA ZONA",
   "osmResultsTitle": "RESULTADOS OPENSTREETMAP",
   "radar_court_link": "ENLACE RADAR",
-  "description": "Descripción"
+  "description": "Descripción",
+  "leaveCommunityTitle": "Abandonar Comunidad",
+  "removeCommunityTitle": "Eliminar del Dispositivo",
+  "leaveCommunityOwnerDesc": "La comunidad permanecerá en el servidor sin propietario.\nPodrás reclamarla más tarde desde el panel de administración.\n\n⚠️ Todos los torneos y equipos locales vinculados serán eliminados de este dispositivo.",
+  "leaveCommunityMemberDesc": "Esta comunidad y todos los torneos locales vinculados serán eliminados de este dispositivo.\n\nLos datos del servidor permanecen sin cambios.",
+  "leaveCommunityAction": "Abandonar comunidad del dispositivo",
+  "removeCommunityAction": "Eliminar comunidad del dispositivo",
+  "leaveAction": "Abandonar",
+  "removeAction": "Eliminar",
+  "selectCourt": "Seleccionar Cancha",
+  "courtSelected": "Cancha: {name}",
+  "@courtSelected": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "optional": "Opcional",
+  "rlsViolationError": "Error de seguridad: ya tienes una comunidad activa en la nube o los permisos son insuficientes. Revisa las políticas RLS.",
+  "sessionError": "Sesión caducada o no válida. Por favor, inicia sesión de nuevo."
 }

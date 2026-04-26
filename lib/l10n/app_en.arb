@@ -463,5 +463,15 @@
   },
   "optional": "Optional",
   "radar_court_link": "RADAR LINK",
-  "description": "Description"
+  "description": "Description",
+  "leaveCommunityTitle": "Leave Community",
+  "removeCommunityTitle": "Remove from Device",
+  "leaveCommunityOwnerDesc": "The community will remain on the server without an owner.\nYou can reclaim it later from the admin panel.\n\n⚠️ All locally linked tournaments and teams will be deleted from this device.",
+  "leaveCommunityMemberDesc": "This community and all locally linked tournaments will be removed from this device.\n\nServer data remains unchanged.",
+  "leaveCommunityAction": "Leave community from device",
+  "removeCommunityAction": "Remove community from device",
+  "leaveAction": "Leave",
+  "removeAction": "Remove",
+  "rlsViolationError": "Security error: you already have an active community on the cloud or permissions are insufficient. Check RLS policies.",
+  "sessionError": "Session expired or invalid. Please sign in again."
 }

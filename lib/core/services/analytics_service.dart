@@ -5,12 +5,12 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import '../env/env.dart';
 import 'package:uuid/uuid.dart';
 
 class AnalyticsService {
   static const String _userIdKey = 'anonymous_user_id';
-  static String get _hmacSecret => dotenv.env['HMAC_SECRET'] ?? 'fallback_secret';
+  static String get _hmacSecret => Env.hmacSecret;
   static String? _currentSessionId;
   static DateTime? _sessionStartTime;
 

@@ -251,6 +251,57 @@ class _CommunityDashboardScreenState extends ConsumerState<CommunityDashboardScr
     }
   }
 
+  Future<void> _leaveCommunity(Community community) async {
+    final isOwner = community.isOwner;
+    final l10n = AppLocalizations.of(context)!;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: const Color(0xFF1a1a2e),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          isOwner ? l10n.leaveCommunityTitle : l10n.removeCommunityTitle,
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        content: Text(
+          isOwner
+            ? l10n.leaveCommunityOwnerDesc
+            : l10n.leaveCommunityMemberDesc,
+          style: const TextStyle(color: Colors.white70, height: 1.5),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(l10n.cancel, style: const TextStyle(color: Colors.white54)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(
+              isOwner ? l10n.leaveAction : l10n.removeAction,
+              style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _isLoading = true);
+    try {
+      final repo = ref.read(communityRepositoryProvider);
+      await repo.leaveCommunity(community.id, isOwner: isOwner);
+      
+      if (!mounted) return;
+
+      ref.invalidate(currentCommunityProvider);
+      ref.read(selectedCommunityIdProvider.notifier).setSelected(null);
+      
+      context.pop();
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     // Listen for community changes to update controllers
@@ -436,6 +487,15 @@ class _CommunityDashboardScreenState extends ConsumerState<CommunityDashboardScr
                               foregroundColor: Colors.orange,
                             ),
                           ),
+                          const SizedBox(height: 24),
+                          TextButton.icon(
+                            onPressed: _isLoading ? null : () => _leaveCommunity(community),
+                            icon: const Icon(Icons.logout, color: Color(0xFFef9a9a), size: 16),
+                            label: Text(
+                              l10n.leaveCommunityAction,
+                              style: const TextStyle(color: Color(0xFFef9a9a), fontSize: 12),
+                            ),
+                          ),
                         ] else ... [
                           const SizedBox(height: 32),
                           OutlinedButton.icon(
@@ -449,7 +509,16 @@ class _CommunityDashboardScreenState extends ConsumerState<CommunityDashboardScr
                             ),
                           ),
                           const SizedBox(height: 16),
-                          Center(child: Text(l10n.onlyAdminCanEdit, style: const TextStyle(color: Colors.white24, fontSize: 12, fontStyle: FontStyle.italic)))
+                          Center(child: Text(l10n.onlyAdminCanEdit, style: const TextStyle(color: Colors.white24, fontSize: 12, fontStyle: FontStyle.italic))),
+                          const SizedBox(height: 24),
+                          TextButton.icon(
+                            onPressed: _isLoading ? null : () => _leaveCommunity(community),
+                            icon: const Icon(Icons.remove_circle_outline, color: Color(0xFFef9a9a), size: 16),
+                            label: Text(
+                              l10n.removeCommunityAction,
+                              style: const TextStyle(color: Color(0xFFef9a9a), fontSize: 12),
+                            ),
+                          ),
                         ]
                       ],
                     ),

@@ -1129,4 +1129,38 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get description => 'Description';
+
+  @override
+  String get leaveCommunityTitle => 'Leave Community';
+
+  @override
+  String get removeCommunityTitle => 'Remove from Device';
+
+  @override
+  String get leaveCommunityOwnerDesc =>
+      'The community will remain on the server without an owner.\nYou can reclaim it later from the admin panel.\n\n⚠️ All locally linked tournaments and teams will be deleted from this device.';
+
+  @override
+  String get leaveCommunityMemberDesc =>
+      'This community and all locally linked tournaments will be removed from this device.\n\nServer data remains unchanged.';
+
+  @override
+  String get leaveCommunityAction => 'Leave community from device';
+
+  @override
+  String get removeCommunityAction => 'Remove community from device';
+
+  @override
+  String get leaveAction => 'Leave';
+
+  @override
+  String get removeAction => 'Remove';
+
+  @override
+  String get rlsViolationError =>
+      'Security error: you already have an active community on the cloud or permissions are insufficient. Check RLS policies.';
+
+  @override
+  String get sessionError =>
+      'Session expired or invalid. Please sign in again.';
 }
