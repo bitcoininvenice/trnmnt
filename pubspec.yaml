@@ -1,7 +1,7 @@
 name: trnmnt
 description: "Basketball Tournament Manager - Gestione tornei di basket"
 publish_to: 'none'
-version: 4.5.3+453
+version: 4.5.4+454
 
 environment:
   sdk: ^3.8.1

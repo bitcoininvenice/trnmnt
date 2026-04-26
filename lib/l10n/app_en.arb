@@ -14,7 +14,7 @@
   "manageBrandsLogos": "Manage brands, logos and teams",
   "joinCommunity": "Join a Community",
   "scanQrInvitation": "Scan QR Invitation",
-  "createNewGroup": "CREATE NEW COMMUNITY",
+  "createNewCommunity": "CREATE NEW COMMUNITY",
   "adminStatus": "You are the admin of this community.",
   "collaboratorStatus": "You are a collaborator of this community.",
   "shareInvitation": "Share Invitation",

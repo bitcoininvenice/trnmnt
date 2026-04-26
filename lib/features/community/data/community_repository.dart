@@ -78,6 +78,9 @@ class CommunityRepository {
         logoUrl: Value(data['logo_url']),
         creatorId: Value(data['creator_id']),
         isOwner: Value(isOwner),
+        location: Value(data['location']),
+        instagramUrl: Value(data['instagram_url']),
+        tiktokUrl: Value(data['tiktok_url']),
         inviteToken: Value(data['invite_token']),
         inviteTokenExpiresAt: data['invite_token_expires_at'] != null 
             ? Value(DateTime.parse(data['invite_token_expires_at'])) 
@@ -213,6 +216,26 @@ class CommunityRepository {
       
       await saveCommunityLocally(response, false);
       return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// Checks if a slug is available (not taken by another community)
+  Future<bool> isSlugAvailable(String slug, {String? excludeId}) async {
+    if (slug.isEmpty) return false;
+    try {
+      var query = _supabase
+          .from('communities')
+          .select('id')
+          .eq('slug', slug);
+      
+      if (excludeId != null) {
+        query = query.neq('id', excludeId);
+      }
+      
+      final res = await query.maybeSingle();
+      return res == null;
     } catch (e) {
       return false;
     }

@@ -51,7 +51,7 @@ class AppLocalizationsIt extends AppLocalizations {
   String get scanQrInvitation => 'Scansiona QR Invito';
 
   @override
-  String get createNewGroup => 'CREA NUOVA COMMUNITY';
+  String get createNewCommunity => 'CREA NUOVA COMMUNITY';
 
   @override
   String get adminStatus => 'Sei l\'amministratore di questa community.';

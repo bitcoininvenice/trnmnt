@@ -51,6 +51,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final activeGame = ref.watch(activeGameProvider);
     final customIconPath = ref.watch(customIconProvider);
     final l10n = AppLocalizations.of(context)!;
+    final currentCommunity = ref.watch(currentCommunityProvider).valueOrNull;
 
     return NestedScrollView(
       headerSliverBuilder: (context, innerBoxIsScrolled) {
@@ -145,7 +146,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                 clipBehavior: Clip.antiAlias,
                                 child: customIconPath != null
                                   ? Image.file(File(customIconPath), fit: BoxFit.cover)
-                                  : Image.asset('assets/icon/logo.png', fit: BoxFit.cover, errorBuilder: (c, e, s) => const Icon(Icons.apps, color: Colors.orange)),
+                                  : (_currentPage == 1 && currentCommunity?.logoUrl != null)
+                                    ? Image.network(
+                                        currentCommunity!.logoUrl!, 
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (c, e, s) => Image.asset('assets/icon/logo.png', fit: BoxFit.cover),
+                                      )
+                                    : Image.asset('assets/icon/logo.png', fit: BoxFit.cover, errorBuilder: (c, e, s) => const Icon(Icons.apps, color: Colors.orange)),
                               ),
                               const SizedBox(width: 16),
                               Column(

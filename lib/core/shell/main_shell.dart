@@ -60,15 +60,13 @@ class MainShell extends ConsumerWidget {
                     clipBehavior: Clip.antiAlias,
                     child: customIconPath != null
                         ? Image.file(File(customIconPath), fit: BoxFit.cover)
-                        : Image.asset(
-                            'assets/icon/logo.png',
-                            fit: BoxFit.cover,
-                            errorBuilder: (c, e, s) => const Icon(
-                              Icons.sports_basketball,
-                              size: 32,
-                              color: Colors.orange,
-                            ),
-                          ),
+                        : currentCommunity?.logoUrl != null
+                            ? Image.network(
+                                currentCommunity!.logoUrl!,
+                                fit: BoxFit.cover,
+                                errorBuilder: (c, e, s) => _buildDefaultLogo(),
+                              )
+                            : _buildDefaultLogo(),
                   ),
                   const SizedBox(height: 12),
                   Text(
@@ -253,6 +251,18 @@ class MainShell extends ConsumerWidget {
             label: l10n.navTimer,
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildDefaultLogo() {
+    return Image.asset(
+      'assets/icon/logo.png',
+      fit: BoxFit.cover,
+      errorBuilder: (c, e, s) => const Icon(
+        Icons.sports_basketball,
+        size: 32,
+        color: Colors.orange,
       ),
     );
   }

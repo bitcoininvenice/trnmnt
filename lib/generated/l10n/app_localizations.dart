@@ -186,11 +186,11 @@ abstract class AppLocalizations {
   /// **'Scansiona QR Invito'**
   String get scanQrInvitation;
 
-  /// No description provided for @createNewGroup.
+  /// No description provided for @createNewCommunity.
   ///
   /// In it, this message translates to:
   /// **'CREA NUOVA COMMUNITY'**
-  String get createNewGroup;
+  String get createNewCommunity;
 
   /// No description provided for @adminStatus.
   ///
