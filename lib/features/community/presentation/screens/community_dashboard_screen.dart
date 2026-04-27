@@ -124,10 +124,10 @@ class _CommunityDashboardScreenState extends ConsumerState<CommunityDashboardScr
   Future<void> _searchSocialLogo(String slug) async {
     setState(() {
       _isSearchingLogo = true;
-      _currentSocialSource = 'tiktok';
+      _currentSocialSource = 'facebook';
     });
 
-    await _fetchLogoWithMeta(slug, 'tiktok');
+    await _fetchLogoWithMeta(slug, 'facebook');
   }
 
   Future<void> _fetchLogoWithMeta(String slug, String source) async {
@@ -172,7 +172,19 @@ class _CommunityDashboardScreenState extends ConsumerState<CommunityDashboardScr
   }
 
   void _tryNextSocialSource() async {
-    if (_currentSocialSource == 'tiktok') {
+    if (_currentSocialSource == 'facebook') {
+      setState(() {
+        _currentSocialSource = 'youtube';
+        _isSearchingLogo = true;
+      });
+      await _fetchLogoWithMeta(_slugController.text.trim(), 'youtube');
+    } else if (_currentSocialSource == 'youtube') {
+      setState(() {
+        _currentSocialSource = 'tiktok';
+        _isSearchingLogo = true;
+      });
+      await _fetchLogoWithMeta(_slugController.text.trim(), 'tiktok');
+    } else if (_currentSocialSource == 'tiktok') {
       setState(() {
         _currentSocialSource = 'twitch';
         _isSearchingLogo = true;

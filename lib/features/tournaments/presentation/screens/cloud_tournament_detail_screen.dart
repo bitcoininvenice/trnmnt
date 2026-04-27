@@ -423,6 +423,7 @@ class _CloudTournamentDetailScreenState extends ConsumerState<CloudTournamentDet
                     ),
                     const SizedBox(height: 12),
                     Container(
+                      width: double.infinity,
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
                         color: const Color(0xFF1E293B),

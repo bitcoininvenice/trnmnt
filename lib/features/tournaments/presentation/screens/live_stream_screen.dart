@@ -274,6 +274,15 @@ class _LivestreamSectionState extends State<_LivestreamSection> {
     _initController();
   }
 
+  @override
+  void didUpdateWidget(_LivestreamSection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.twitchChannel != widget.twitchChannel || 
+        oldWidget.youtubeVideoId != widget.youtubeVideoId) {
+      _initController();
+    }
+  }
+
   void _initController() {
     String url = '';
     if (widget.youtubeVideoId != null && widget.youtubeVideoId!.isNotEmpty) {
