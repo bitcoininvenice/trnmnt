@@ -473,5 +473,8 @@
   "leaveAction": "Abbandona",
   "removeAction": "Rimuovi",
   "rlsViolationError": "Errore di sicurezza: hai già una community attiva sul cloud o i permessi sono insufficienti. Controlla le policy RLS.",
-  "sessionError": "Sessione scaduta o non valida. Effettua nuovamente l'accesso."
+  "sessionError": "Sessione scaduta o non valida. Effettua nuovamente l'accesso.",
+  "liveStream": "LIVE STREAM",
+  "watchTournamentLive": "Guarda il torneo live",
+  "retry": "RIPROVA"
 }

@@ -2285,6 +2285,24 @@ abstract class AppLocalizations {
   /// In it, this message translates to:
   /// **'Sessione scaduta o non valida. Effettua nuovamente l\'accesso.'**
   String get sessionError;
+
+  /// No description provided for @liveStream.
+  ///
+  /// In it, this message translates to:
+  /// **'LIVE STREAM'**
+  String get liveStream;
+
+  /// No description provided for @watchTournamentLive.
+  ///
+  /// In it, this message translates to:
+  /// **'Guarda il torneo live'**
+  String get watchTournamentLive;
+
+  /// No description provided for @retry.
+  ///
+  /// In it, this message translates to:
+  /// **'RIPROVA'**
+  String get retry;
 }
 
 class _AppLocalizationsDelegate

@@ -29,11 +29,23 @@ class _CloudTournamentDetailScreenState extends ConsumerState<CloudTournamentDet
   String? _sessionKey;
   bool _hasRecordedHit = false;
   late ShareRepository _shareRepo;
+  
+  // STATO PERSISTENTE: Facciamo il merge qui per evitare scatti
+  Map<String, dynamic>? _mergedData;
 
   @override
   void initState() {
     super.initState();
     _shareRepo = ref.read(shareRepositoryProvider);
+    
+    // Record visit immediately when screen is opened
+    _sessionKey = 'app-${DateTime.now().millisecondsSinceEpoch}-${widget.cloudId}';
+    _shareRepo.recordTournamentHit(
+      widget.cloudId,
+      liveCount: 1,
+      sessionId: _sessionKey,
+    );
+    _hasRecordedHit = true;
   }
 
   void _setupPresence(String dbId) {
@@ -85,21 +97,6 @@ class _CloudTournamentDetailScreenState extends ConsumerState<CloudTournamentDet
             'session_id': _sessionKey,
           });
           updateCount();
-          
-          // Record hit ONLY ONCE after successful subscription to capture real count
-          if (!_hasRecordedHit) {
-             _hasRecordedHit = true;
-             // Use a short delay to let sync complete
-             Future.delayed(const Duration(milliseconds: 500), () {
-               if (mounted) {
-                 ref.read(shareRepositoryProvider).recordTournamentHit(
-                   widget.cloudId, 
-                   liveCount: _spectatorCount > 0 ? _spectatorCount : 1,
-                   sessionId: _sessionKey,
-                 );
-               }
-             });
-          }
         }
       });
 
@@ -130,301 +127,417 @@ class _CloudTournamentDetailScreenState extends ConsumerState<CloudTournamentDet
 
   @override
   Widget build(BuildContext context) {
-    // Use ref.listen to handle presence setup when data arrives/changes
-    ref.listen(cloudTournamentDetailProvider(widget.cloudId), (previous, next) {
-      if (next.hasValue && next.value != null) {
-        final data = next.value!['data'] as Map<String, dynamic>?;
-        if (data != null) {
-          final dbId = data['id']?.toString() ?? widget.cloudId;
-          if (dbId != _currentDbId) {
-            _currentDbId = dbId;
-            _setupPresence(dbId);
-          }
-        }
-      }
-    });
-
     final tournamentAsync = ref.watch(cloudTournamentDetailProvider(widget.cloudId));
-    final l10n = AppLocalizations.of(context)!;
-
+    
     return tournamentAsync.when(
-      loading: () => const Scaffold(backgroundColor: Color(0xFF020617), body: Center(child: CircularProgressIndicator(color: Colors.orange))),
-      error: (e, s) => Scaffold(backgroundColor: Color(0xFF020617), body: Center(child: Text('Error: $e', style: const TextStyle(color: Colors.white)))),
+      loading: () => _mergedData != null 
+          ? _buildMainContent(context, _mergedData!) 
+          : _buildSkeletonLoader(context),
+      error: (e, s) => Scaffold(backgroundColor: const Color(0xFF020617), body: Center(child: Text('Error: $e', style: const TextStyle(color: Colors.white)))),
       data: (rawData) {
         if (rawData == null) {
-          return Scaffold(backgroundColor: Color(0xFF020617), body: Center(child: Text(l10n.notFound, style: const TextStyle(color: Colors.white))));
+          if (_mergedData != null) return _buildMainContent(context, _mergedData!);
+          final l10n = AppLocalizations.of(context)!;
+          return Scaffold(backgroundColor: const Color(0xFF020617), body: Center(child: Text(l10n.notFound, style: const TextStyle(color: Colors.white))));
         }
 
-        final data = rawData['data'] as Map<String, dynamic>?;
-        if (data == null) return const Scaffold(body: Center(child: Text('Invalid Data')));
-
-        final views = ((rawData['app_views'] as num? ?? 0) + (rawData['web_views'] as num? ?? 0)).toInt();
-        final spectators = _spectatorCount > 0 ? _spectatorCount : (rawData['spectators'] as num? ?? 0).toInt();
-        final dbId = data['id']?.toString() ?? widget.cloudId;
-
-        final tournament = data['tournament'] as Map<String, dynamic>? ?? {};
-        final teams = data['teams'] as List? ?? [];
-        final matches = data['matches'] as List? ?? [];
-
-        final twitchChannel = tournament['twitchChannel']?.toString();
-        final youtubeVideoId = tournament['youtubeVideoId']?.toString();
-        final hasVideo = (twitchChannel != null && twitchChannel.isNotEmpty) || 
-                         (youtubeVideoId != null && youtubeVideoId.isNotEmpty);
-
-        // 1. Resolve Location and Coordinates
-        String locationText = tournament['location']?.toString() ?? '';
-        double? lat = (tournament['latitude'] as num?)?.toDouble();
-        double? lon = (tournament['longitude'] as num?)?.toDouble();
-        
-        final venueCourtId = data['venue_court_id']?.toString() ?? 
-                             tournament['venue_court_id']?.toString() ?? 
-                             tournament['venueCourtId']?.toString();
-        
-        if (venueCourtId != null && venueCourtId.isNotEmpty) {
-          final courtsAsync = ref.watch(mergedCourtsProvider);
-          final match = courtsAsync.when(
-            data: (courts) => courts.where((c) {
-              final courtCloudId = c.cloudId?.toString();
-              final courtSourceId = c.sourceId?.toString();
-              return courtCloudId == venueCourtId || courtSourceId == venueCourtId;
-            }).firstOrNull,
-            loading: () => null,
-            error: (_, __) => null,
-          );
-          
-          if (match != null) {
-            locationText = match.name;
-            lat = match.latitude;
-            lon = match.longitude;
-          }
+        // LOGICA DI MERGE (APPEND): Non perdiamo mai i dati vecchi
+        if (_mergedData == null) {
+          _mergedData = Map<String, dynamic>.from(rawData);
+        } else {
+          // Fondiamo i nuovi dati con quelli vecchi
+          rawData.forEach((key, value) {
+            if (value != null) {
+              // Se arriva un campo 'data' (JSONB), controlliamo che non sia vuoto
+              if (key == 'data' && value is Map && value.isEmpty) {
+                // Se il nuovo data è vuoto, manteniamo quello vecchio
+                return;
+              }
+              _mergedData![key] = value;
+            }
+          });
         }
 
-        if (locationText.isEmpty) {
-          locationText = l10n.noTournamentsAtMoment;
-          if (locationText.contains('moment')) locationText = 'Posizione non specificata';
-        }
+        return _buildMainContent(context, _mergedData!);
+      },
+    );
+  }
 
-        void openMap() {
-          Uri uri;
-          if (lat != null && lon != null) {
-            uri = Uri.parse('https://www.google.com/maps/search/?api=1&query=$lat,$lon');
-          } else if (locationText.isNotEmpty && locationText != 'Posizione non specificata') {
-            uri = Uri.parse('https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(locationText)}');
-          } else {
-            return;
-          }
-          launchUrl(uri, mode: LaunchMode.externalApplication);
-        }
+  Widget _buildMainContent(BuildContext context, Map<String, dynamic> rawData) {
+    final l10n = AppLocalizations.of(context)!;
 
-        void addToCalendar() {
-          final startDateVal = tournament['startDate'];
-          DateTime? startDt;
-          if (startDateVal is String) startDt = DateTime.tryParse(startDateVal);
-          else if (startDateVal is int) startDt = DateTime.fromMillisecondsSinceEpoch(startDateVal);
+    // Estrazione dati resiliente (coerente con Calendar e altri)
+    final Map<String, dynamic> data = (rawData['data'] is Map 
+        ? Map<String, dynamic>.from(rawData['data'] as Map) 
+        : Map<String, dynamic>.from(rawData));
 
-          if (startDt == null) return;
+    final views = ((rawData['app_views'] as num? ?? 0) + (rawData['web_views'] as num? ?? 0)).toInt();
+    final spectators = _spectatorCount > 0 ? _spectatorCount : (rawData['spectators'] as num? ?? 0).toInt();
+    
+    final dbId = data['id']?.toString() ?? widget.cloudId;
+    if (dbId != _currentDbId && dbId.isNotEmpty) {
+      _currentDbId = dbId;
+      WidgetsBinding.instance.addPostFrameCallback((_) => _setupPresence(dbId));
+    }
 
-          final endDt = startDt.add(const Duration(hours: 4)); // Default 4h duration
-          
-          String formatGDate(DateTime dt) {
-            final u = dt.toUtc();
-            return '${u.year}${u.month.toString().padLeft(2, '0')}${u.day.toString().padLeft(2, '0')}T${u.hour.toString().padLeft(2, '0')}${u.minute.toString().padLeft(2, '0')}${u.second.toString().padLeft(2, '0')}Z';
-          }
+    final Map<String, dynamic> tournament = data['tournament'] != null 
+        ? Map<String, dynamic>.from(data['tournament'] as Map) 
+        : <String, dynamic>{};
+    final teams = data['teams'] as List? ?? [];
+    
+    // Recupero descrizione (dalla colonna o dal JSON)
+    final effectiveDescription = rawData['description']?.toString() ?? tournament['description']?.toString();
 
-          final title = Uri.encodeComponent(tournament['name']?.toString() ?? 'Torneo Basket');
-          final location = Uri.encodeComponent(locationText);
-          final dates = '${formatGDate(startDt)}/${formatGDate(endDt)}';
-          
-          final url = 'https://www.google.com/calendar/render?action=TEMPLATE&text=$title&location=$location&dates=$dates';
-          launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
-        }
+    final twitchChannel = tournament['twitchChannel']?.toString();
+    final youtubeVideoId = tournament['youtubeVideoId']?.toString();
+    final hasVideo = (twitchChannel != null && twitchChannel.isNotEmpty) || 
+                     (youtubeVideoId != null && youtubeVideoId.isNotEmpty);
 
-        return Scaffold(
-          backgroundColor: const Color(0xFF020617),
-          body: CustomScrollView(
-            slivers: [
-              SliverAppBar(
-                expandedHeight: 150,
-                pinned: true,
-                backgroundColor: const Color(0xFF0F172A),
-                actions: [
-                  IconButton(
-                    icon: const Icon(Icons.public, color: Colors.white70),
-                    onPressed: () {
-                      final effectiveId = dbId ?? widget.cloudId;
-                      String? webUrl = data['webUrl']?.toString();
-                      
-                      if ((webUrl == null || webUrl.isEmpty)) {
-                        webUrl = 'https://trnmnt.vercel.app/it/tournaments/$effectiveId';
-                      }
+    // 1. Resolve Location and Coordinates
+    String locationText = tournament['location']?.toString() ?? '';
+    double? lat = (tournament['latitude'] as num?)?.toDouble();
+    double? lon = (tournament['longitude'] as num?)?.toDouble();
+    
+    final venueCourtId = data['venue_court_id']?.toString() ?? 
+                         tournament['venue_court_id']?.toString() ?? 
+                         tournament['venueCourtId']?.toString();
+    
+    if (venueCourtId != null && venueCourtId.isNotEmpty) {
+      final courtsAsync = ref.watch(mergedCourtsProvider);
+      final match = courtsAsync.when(
+        data: (courts) => courts.where((c) {
+          final courtCloudId = c.cloudId?.toString();
+          final courtSourceId = c.sourceId?.toString();
+          return courtCloudId == venueCourtId || courtSourceId == venueCourtId;
+        }).firstOrNull,
+        loading: () => null,
+        error: (_, __) => null,
+      );
+      
+      if (match != null) {
+        locationText = match.name;
+        lat = match.latitude;
+        lon = match.longitude;
+      }
+    }
 
-                      final Uri url = Uri.parse(webUrl);
-                      launchUrl(url, mode: LaunchMode.externalApplication);
-                    },
-                    tooltip: 'Apri nel Browser',
-                  ),
-                ],
-                flexibleSpace: FlexibleSpaceBar(
-                  title: Text(tournament['name']?.toString() ?? 'TOURNAMENT', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
-                  background: Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          Colors.purple.withOpacity(0.8),
-                          Colors.orange.withOpacity(0.8),
-                        ],
-                      ),
-                    ),
-                    child: Center(
-                      child: Icon(
-                        Icons.cloud_outlined,
-                        size: 80,
-                        color: Colors.white.withOpacity(0.1),
-                      ),
-                    ),
-                  ),
-                ),
+    if (locationText.isEmpty) {
+      locationText = l10n.noTournamentsAtMoment;
+      if (locationText.contains('moment')) locationText = 'Posizione non specificata';
+    }
+
+    void openMap() {
+      Uri uri;
+      if (lat != null && lon != null) {
+        uri = Uri.parse('https://www.google.com/maps/search/?api=1&query=$lat,$lon');
+      } else if (locationText.isNotEmpty && locationText != 'Posizione non specificata') {
+        uri = Uri.parse('https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(locationText)}');
+      } else {
+        return;
+      }
+      launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+
+    void addToCalendar() {
+      final startDateVal = tournament['startDate'];
+      DateTime? startDt;
+      if (startDateVal is String) startDt = DateTime.tryParse(startDateVal);
+      else if (startDateVal is int) startDt = DateTime.fromMillisecondsSinceEpoch(startDateVal);
+
+      if (startDt == null) return;
+
+      final endDt = startDt.add(const Duration(hours: 4));
+      
+      String formatGDate(DateTime dt) {
+        final u = dt.toUtc();
+        return '${u.year}${u.month.toString().padLeft(2, '0')}${u.day.toString().padLeft(2, '0')}T${u.hour.toString().padLeft(2, '0')}${u.minute.toString().padLeft(2, '0')}${u.second.toString().padLeft(2, '0')}Z';
+      }
+
+      final title = Uri.encodeComponent(tournament['name']?.toString() ?? 'Torneo Basket');
+      final location = Uri.encodeComponent(locationText);
+      final dates = '${formatGDate(startDt)}/${formatGDate(endDt)}';
+      
+      final url = 'https://www.google.com/calendar/render?action=TEMPLATE&text=$title&location=$location&dates=$dates';
+      launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+    }
+
+    return Scaffold(
+      backgroundColor: const Color(0xFF020617),
+      body: CustomScrollView(
+        slivers: [
+          SliverAppBar(
+            expandedHeight: 150,
+            pinned: true,
+            backgroundColor: const Color(0xFF0F172A),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.public, color: Colors.white70),
+                onPressed: () {
+                  final effectiveId = dbId ?? widget.cloudId;
+                  String? webUrl = rawData['webUrl']?.toString();
+                  if ((webUrl == null || webUrl.isEmpty)) {
+                    webUrl = 'https://trnmnt.vercel.app/it/tournaments/$effectiveId';
+                  }
+                  launchUrl(Uri.parse(webUrl), mode: LaunchMode.externalApplication);
+                },
+                tooltip: 'Apri nel Browser',
               ),
-              if (hasVideo)
-                SliverToBoxAdapter(
-                  child: _LivestreamSection(
-                    twitchChannel: twitchChannel,
-                    youtubeVideoId: youtubeVideoId,
-                  ),
-                ),
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Header Info Row
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _buildHeaderBadge(
-                              context, 
-                              icon: Icons.stadium, 
-                              label: locationText, 
-                              color: Colors.orange,
-                              onTap: openMap,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          _buildHeaderBadge(
-                            context, 
-                            icon: Icons.calendar_today, 
-                            label: _formatDate(tournament['startDate']),
-                            color: Colors.blue,
-                            onTap: addToCalendar,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-
-                      if (tournament['description'] != null && tournament['description'].toString().isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 16),
-                          child: Text(
-                            tournament['description'].toString(),
-                            style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 13, height: 1.5),
-                          ),
-                        ),
-                      
-                      // Community Branding
-                      if (tournament['communityName'] != null || rawData['community_slug'] != null)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 16),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.05),
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: Colors.white.withOpacity(0.1)),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(Icons.hub_outlined, size: 12, color: Colors.grey),
-                                const SizedBox(width: 8),
-                                Text(
-                                  (tournament['communityName'] ?? rawData['community_slug'] ?? '').toString().toUpperCase(),
-                                  style: const TextStyle(
-                                    color: Colors.white70,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w900,
-                                    letterSpacing: 0.5,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ).animate().fadeIn(delay: 100.ms),
-
-                      // STATS ROW: Views and Live Spectators
-                      Row(
-                        children: [
-                           _buildStatBadge(context, label: 'VIEWS', value: '$views', icon: Icons.remove_red_eye_outlined, color: Colors.blueGrey),
-                           const SizedBox(width: 12),
-                           _buildStatBadge(context, label: 'LIVE', value: '$spectators', icon: Icons.sensors, color: Colors.redAccent),
-                           if (kDebugMode) ...[
-                             const SizedBox(width: 8),
-                             Text('ID: ${dbId?.substring(0, 5)}...', style: const TextStyle(color: Colors.white24, fontSize: 8)),
-                           ],
-                           const Spacer(),
-                           TournamentStatusBadge(data: data),
-                        ],
-                      ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.1),
-
-                      const SizedBox(height: 32),
-                      
-                      // Teams Section
-                      Text(
-                        l10n.participatingTeams.toUpperCase(),
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 1.2),
-                      ),
-                      const SizedBox(height: 12),
-                      if (teams.isEmpty)
-                        Text(l10n.noTournaments, style: const TextStyle(color: Colors.grey, fontSize: 12, fontStyle: FontStyle.italic))
-                      else
-                        SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: Row(
-                            children: teams.map((t) {
-                              final team = Map<String, dynamic>.from(t);
-                              return Padding(
-                                padding: const EdgeInsets.only(right: 8),
-                                child: Chip(
-                                  backgroundColor: const Color(0xFF1E293B),
-                                  side: BorderSide.none,
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                  label: Text(team['name']?.toString() ?? '', style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
-                                ),
-                              );
-                            }).toList(),
-                          ),
-                        ),
-
-                      const SizedBox(height: 32),
-                      
-                      // Action Grid (Limited for spectator)
-                      Text(
-                        l10n.tournamentStages.toUpperCase(),
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 1.2),
-                      ),
-                      _buildActionCards(context, tournament),
-                      
-                      const SizedBox(height: 40),
+            ],
+            flexibleSpace: FlexibleSpaceBar(
+              title: Text(tournament['name']?.toString() ?? 'TOURNAMENT', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+              background: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Colors.purple.withOpacity(0.8),
+                      Colors.orange.withOpacity(0.8),
                     ],
                   ),
                 ),
+                child: Center(
+                  child: Icon(
+                    Icons.cloud_outlined,
+                    size: 80,
+                    color: Colors.white.withOpacity(0.1),
+                  ),
+                ),
               ),
-            ],
+            ),
           ),
-        );
-      },
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Header Info Row
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildHeaderBadge(
+                          context, 
+                          icon: Icons.stadium, 
+                          label: locationText, 
+                          color: Colors.orange,
+                          onTap: openMap,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      _buildHeaderBadge(
+                        context, 
+                        icon: Icons.calendar_today, 
+                        label: _formatDate(tournament['startDate']),
+                        color: Colors.blue,
+                        onTap: addToCalendar,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  // Community Branding
+                  if (tournament['communityName'] != null || rawData['community_slug'] != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.05),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: Colors.white.withOpacity(0.1)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.hub_outlined, size: 12, color: Colors.grey),
+                            const SizedBox(width: 8),
+                            Text(
+                              (tournament['communityName'] ?? rawData['community_slug'] ?? '').toString().toUpperCase(),
+                              style: const TextStyle(
+                                color: Colors.white70,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                  // STATS ROW
+                  Row(
+                    children: [
+                       _buildStatBadge(context, label: 'VIEWS', value: '$views', icon: Icons.remove_red_eye_outlined, color: Colors.blueGrey),
+                       const SizedBox(width: 12),
+                       _buildStatBadge(context, label: 'LIVE', value: '$spectators', icon: Icons.sensors, color: Colors.redAccent),
+                       const Spacer(),
+                       TournamentStatusBadge(data: data),
+                    ],
+                  ).animate().fadeIn(delay: 200.ms),
+
+                  const SizedBox(height: 32),
+                  
+                  // Teams Section
+                  Text(
+                    l10n.participatingTeams.toUpperCase(),
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 1.2),
+                  ),
+                  const SizedBox(height: 12),
+                  if (teams.isEmpty)
+                    Text(l10n.noTournaments, style: const TextStyle(color: Colors.grey, fontSize: 12, fontStyle: FontStyle.italic))
+                  else
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: teams.map((t) {
+                          final team = Map<String, dynamic>.from(t);
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: Chip(
+                              backgroundColor: const Color(0xFF1E293B),
+                              side: BorderSide.none,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              label: Text(team['name']?.toString() ?? '', style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+
+                  const SizedBox(height: 32),
+                  
+                  // Action Grid
+                  Text(
+                    l10n.tournamentStages.toUpperCase(),
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 1.2),
+                  ),
+                  _buildActionCards(context, tournament, hasVideo: hasVideo),
+                  
+                  if (effectiveDescription != null && effectiveDescription.isNotEmpty) ...[
+                    const SizedBox(height: 32),
+                    Text(
+                      l10n.description.toUpperCase(),
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 1.2),
+                    ),
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1E293B),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.white.withOpacity(0.05)),
+                      ),
+                      child: Text(
+                        effectiveDescription,
+                        style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 13, height: 1.5),
+                      ),
+                    ),
+                  ],
+                  
+                  const SizedBox(height: 40),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSkeletonLoader(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF020617),
+      body: CustomScrollView(
+        slivers: [
+          SliverAppBar(
+            expandedHeight: 180,
+            backgroundColor: const Color(0xFF0F172A),
+            leading: const BackButton(color: Colors.white),
+            flexibleSpace: FlexibleSpaceBar(
+              background: Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFF1E293B), Color(0xFF0F172A)],
+                  ),
+                ),
+                child: Center(
+                  child: Icon(Icons.emoji_events, size: 80, color: Colors.white.withOpacity(0.05)),
+                ),
+              ).animate(onPlay: (c) => c.repeat(reverse: true)).shimmer(duration: 2.seconds, color: Colors.white.withOpacity(0.05)),
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Title Skeleton
+                  Container(
+                    height: 32,
+                    width: 200,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.05),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ).animate(onPlay: (c) => c.repeat(reverse: true)).fadeIn(duration: 1.seconds),
+                  const SizedBox(height: 16),
+                  
+                  // Stats Row Skeleton
+                  Row(
+                    children: [
+                      Container(width: 80, height: 24, decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), borderRadius: BorderRadius.circular(12))),
+                      const SizedBox(width: 12),
+                      Container(width: 80, height: 24, decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), borderRadius: BorderRadius.circular(12))),
+                    ],
+                  ).animate(onPlay: (c) => c.repeat(reverse: true)).fadeIn(duration: 1.seconds, delay: 200.ms),
+                  
+                  const SizedBox(height: 40),
+                  
+                  // Action Grid Header Skeleton
+                  Container(width: 120, height: 16, decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), borderRadius: BorderRadius.circular(4))),
+                  const SizedBox(height: 16),
+                  
+                  // Action Grid Skeleton
+                  GridView.count(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    crossAxisCount: 2,
+                    mainAxisSpacing: 16,
+                    crossAxisSpacing: 16,
+                    childAspectRatio: 1.3,
+                    children: List.generate(4, (index) => Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.03),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Colors.white.withOpacity(0.05)),
+                      ),
+                    ).animate(onPlay: (c) => c.repeat(reverse: true)).shimmer(duration: 2.seconds, delay: (index * 100).ms)),
+                  ),
+                  
+                  const SizedBox(height: 40),
+                  
+                  // Description Header Skeleton
+                  Container(width: 100, height: 16, decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), borderRadius: BorderRadius.circular(4))),
+                  const SizedBox(height: 12),
+                  Container(
+                    height: 100,
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.02),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ).animate(onPlay: (c) => c.repeat(reverse: true)).fadeIn(duration: 1.seconds, delay: 400.ms),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -453,14 +566,6 @@ class _CloudTournamentDetailScreenState extends ConsumerState<CloudTournamentDet
                   maxLines: 1,
                 ),
               ),
-              if (onTap != null) ...[
-                const SizedBox(width: 4),
-                Icon(
-                  icon == Icons.stadium ? Icons.directions : Icons.event_available, 
-                  size: 12, 
-                  color: color.withOpacity(0.5)
-                ),
-              ],
             ],
           ),
         ),
@@ -494,26 +599,9 @@ class _CloudTournamentDetailScreenState extends ConsumerState<CloudTournamentDet
     );
   }
 
-  Widget _buildStatusChip(BuildContext context, String label, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.2),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Text(label, style: TextStyle(color: color, fontSize: 9, fontWeight: FontWeight.w900)),
-    );
-  }
-
-  Widget _buildActionCards(BuildContext context, Map<String, dynamic> tournament) {
+  Widget _buildActionCards(BuildContext context, Map<String, dynamic> tournament, {bool hasVideo = false}) {
     final mode = tournament['mode']?.toString() ?? 'group_only';
-    final actions = <Widget>[];
     final l10n = AppLocalizations.of(context)!;
-
-    if (mode == 'group_only' || mode == 'group_and_elimination') {
-       // We'll need cloud versions of these screens too, or make them generic
-       // For now, let's keep them as action placeholders
-    }
 
     return GridView.count(
       crossAxisCount: 2,
@@ -523,6 +611,15 @@ class _CloudTournamentDetailScreenState extends ConsumerState<CloudTournamentDet
       crossAxisSpacing: 10,
       childAspectRatio: 1.5,
       children: [
+        if (hasVideo)
+          _buildActionCard(
+            context,
+            icon: Icons.live_tv,
+            title: l10n.liveStream,
+            subtitle: l10n.watchTournamentLive,
+            color: Colors.red,
+            onTap: () => context.push('/tournaments/${widget.cloudId}/live'),
+          ),
         _buildActionCard(
           context,
           icon: Icons.calendar_month,
@@ -617,149 +714,3 @@ class _CloudTournamentDetailScreenState extends ConsumerState<CloudTournamentDet
   }
 }
 
-class _LivestreamSection extends StatefulWidget {
-  final String? twitchChannel;
-  final String? youtubeVideoId;
-
-  const _LivestreamSection({this.twitchChannel, this.youtubeVideoId});
-
-  @override
-  State<_LivestreamSection> createState() => _LivestreamSectionState();
-}
-
-class _LivestreamSectionState extends State<_LivestreamSection> {
-  late final WebViewController _controller;
-  bool _isExpanded = false;
-  bool _hasError = false;
-
-  @override
-  void initState() {
-    super.initState();
-    String url = '';
-    if (widget.youtubeVideoId != null && widget.youtubeVideoId!.isNotEmpty) {
-      url = 'https://www.youtube.com/embed/${widget.youtubeVideoId}?autoplay=0&mute=1&playsinline=1';
-    } else if (widget.twitchChannel != null && widget.twitchChannel!.isNotEmpty) {
-      url = 'https://player.twitch.tv/?channel=${widget.twitchChannel}&parent=trnmnt.vercel.app&autoplay=false&muted=true';
-    }
-
-    _controller = WebViewController()
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setBackgroundColor(const Color(0xFF020617))
-      ..setUserAgent('Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36')
-      ..setNavigationDelegate(
-        NavigationDelegate(
-          onWebResourceError: (WebResourceError error) {
-            // Only show error UI if it's the main frame failing
-            if ((error.isForMainFrame ?? true) && mounted) {
-              setState(() => _hasError = true);
-            }
-          },
-        ),
-      )
-      ..loadRequest(
-        Uri.parse(url),
-        headers: url.contains('twitch.tv') 
-          ? {'Referer': 'https://trnmnt.vercel.app/'} 
-          : {},
-      );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.purple.withOpacity(0.3), width: 1),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.purple.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        children: [
-          InkWell(
-            onTap: () => setState(() => _isExpanded = !_isExpanded),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: Row(
-                children: [
-                   Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: Colors.red.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(Icons.live_tv, color: Colors.red, size: 16),
-                  ),
-                  const SizedBox(width: 12),
-                  const Text(
-                    'LIVE STREAM',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w900,
-                      fontSize: 12,
-                      letterSpacing: 1.2,
-                    ),
-                  ),
-                  const Spacer(),
-                  Container(
-                    width: 8,
-                    height: 8,
-                    decoration: const BoxDecoration(
-                      color: Colors.red,
-                      shape: BoxShape.circle,
-                    ),
-                  ).animate(onPlay: (c) => c.repeat()).fadeIn(duration: 600.ms).fadeOut(duration: 600.ms),
-                  const SizedBox(width: 12),
-                  Icon(
-                    _isExpanded ? Icons.expand_less : Icons.expand_more,
-                    color: Colors.grey,
-                    size: 20,
-                  ),
-                ],
-              ),
-            ),
-          ),
-          if (_isExpanded)
-            AspectRatio(
-              aspectRatio: 16 / 9,
-              child: _hasError 
-                ? Container(
-                    color: Colors.black45,
-                    child: Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.signal_wifi_off, color: Colors.white24, size: 40),
-                          const SizedBox(height: 8),
-                          const Text('STREAM NON DISPONIBILE', style: TextStyle(color: Colors.white24, fontSize: 10, fontWeight: FontWeight.bold)),
-                          const SizedBox(height: 12),
-                          TextButton.icon(
-                            onPressed: () {
-                              if (mounted) {
-                                setState(() {
-                                  _hasError = false;
-                                });
-                                _controller.reload();
-                              }
-                            },
-                            icon: const Icon(Icons.refresh, size: 14, color: Colors.orange),
-                            label: const Text('RIPROVA', style: TextStyle(color: Colors.orange, fontSize: 10)),
-                          ),
-                        ],
-                      ),
-                    ),
-                  )
-                : WebViewWidget(controller: _controller),
-            ),
-        ],
-      ),
-    ).animate().fadeIn().slideY(begin: 0.1);
-  }
-}

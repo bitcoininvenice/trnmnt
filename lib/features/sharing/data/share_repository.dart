@@ -178,6 +178,8 @@ class ShareRepository {
 
     final activeCommunity = await _communityRepo.getActiveCommunity(null);
     final tournamentMap = tournament.toJson();
+    // Remove description from JSON to keep it only in the top-level column
+    tournamentMap.remove('description');
     if (tournament.venueCourtId != null) {
       final court = await (_db.select(_db.courts)..where((c) => c.id.equals(tournament.venueCourtId!))).getSingleOrNull();
       if (court != null) {
@@ -553,12 +555,7 @@ class ShareRepository {
             't_id': cloudId,
             'origin': origin,
           });
-        } catch (_) {
-          // Fallback: try old RPC name
-          try {
-            await supabase.rpc('increment_tournament_view', params: {'t_id': cloudId});
-          } catch (_) {}
-        }
+        } catch (_) {}
       }
 
       // 2. Granular log entry

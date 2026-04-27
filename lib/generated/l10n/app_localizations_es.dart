@@ -1169,4 +1169,13 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get sessionError =>
       'Sesión caducada o no válida. Por favor, inicia sesión de nuevo.';
+
+  @override
+  String get liveStream => 'LIVE STREAM';
+
+  @override
+  String get watchTournamentLive => 'Ver el torneo en vivo';
+
+  @override
+  String get retry => 'REINTENTAR';
 }

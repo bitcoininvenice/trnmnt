@@ -468,5 +468,8 @@
   },
   "optional": "Opcional",
   "rlsViolationError": "Error de seguridad: ya tienes una comunidad activa en la nube o los permisos son insuficientes. Revisa las políticas RLS.",
-  "sessionError": "Sesión caducada o no válida. Por favor, inicia sesión de nuevo."
+  "sessionError": "Sesión caducada o no válida. Por favor, inicia sesión de nuevo.",
+  "liveStream": "LIVE STREAM",
+  "watchTournamentLive": "Ver el torneo en vivo",
+  "retry": "REINTENTAR"
 }

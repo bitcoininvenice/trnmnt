@@ -191,16 +191,26 @@ class _TournamentsTab extends ConsumerWidget {
             data: (tournaments) {
               final now = DateTime.now();
               final filteredTournaments = tournaments.where((t) {
-                final tournament = t['tournament'] as Map? ?? t;
-                final winnerId = tournament['winner_team_id'] ?? tournament['winnerTeamId'] ?? t['winner_team_id'] ?? t['winnerTeamId'];
-                final isConcluded = winnerId != null;
+                // Estrazione sicura dei dati del torneo (coerente con CloudTournamentDetailScreen)
+                final Map<String, dynamic> data = (t['data'] is Map 
+                    ? Map<String, dynamic>.from(t['data'] as Map) 
+                    : Map<String, dynamic>.from(t));
                 
-                final startDateVal = tournament['startDate'];
+                final tournament = data['tournament'] as Map? ?? {};
+                
+                final winnerId = tournament['winner_team_id'] ?? 
+                                 tournament['winnerTeamId'] ?? 
+                                 t['winner_team_id'] ?? 
+                                 t['winnerTeamId'];
+                                 
+                final isConcluded = winnerId != null && winnerId.toString().isNotEmpty;
+                
+                final startDateVal = tournament['startDate'] ?? t['startDate'];
                 DateTime? startDate;
                 if (startDateVal is String) startDate = DateTime.tryParse(startDateVal);
                 if (startDateVal is int) startDate = DateTime.fromMillisecondsSinceEpoch(startDateVal);
 
-                final endDateVal = tournament['endDate'];
+                final endDateVal = tournament['endDate'] ?? t['endDate'];
                 DateTime? endDate;
                 if (endDateVal is String) endDate = DateTime.tryParse(endDateVal);
                 if (endDateVal is int) endDate = DateTime.fromMillisecondsSinceEpoch(endDateVal);
@@ -220,6 +230,9 @@ class _TournamentsTab extends ConsumerWidget {
                   } else {
                     matchLive = true;
                   }
+                } else {
+                  // Fallback: se mancano le date ma il torneo è attivo, mostralo in 'live' o 'all'
+                  matchLive = true;
                 }
 
                 if (filter == 'live') return matchLive;

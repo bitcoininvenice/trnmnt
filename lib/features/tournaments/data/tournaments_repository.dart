@@ -107,6 +107,9 @@ enum CloudFilter { past, inProgress, future }
 
 final cloudFilterProvider = StateProvider<Set<CloudFilter>>((ref) => {CloudFilter.inProgress, CloudFilter.future});
 
+/// Memoria interna per gestire gli aggiornamenti parziali dello stream
+final Map<String, Map<String, dynamic>> _hubStreamCache = {};
+
 /// Provider for the HUB - returns ALL tournaments without pre-filtering
 final hubTournamentsProvider = StreamProvider<List<Map<String, dynamic>>>((ref) {
   final supabase = Supabase.instance.client;
@@ -116,19 +119,46 @@ final hubTournamentsProvider = StreamProvider<List<Map<String, dynamic>>>((ref) 
     .order('last_updated', ascending: false)
     .map((data) {
       final List<Map<String, dynamic>> allTournaments = [];
+      
       for (final item in data) {
         try {
+          final id = item['id']?.toString();
+          if (id == null) continue;
+
           final tournamentData = item['data'] as Map<String, dynamic>?;
+          
           if (tournamentData != null) {
-            tournamentData['id'] = item['id'];
+            // Caso 1: Abbiamo i dati completi nel JSONB
+            tournamentData['id'] = id;
             tournamentData['community_slug'] = item['community_slug'];
             tournamentData['community_id'] = item['community_id'];
             tournamentData['venue_court_id'] = item['venue_court_id'];
+            tournamentData['description'] = item['description'];
+            tournamentData['app_views'] = item['app_views'];
+            tournamentData['web_views'] = item['web_views'];
+            tournamentData['spectators'] = item['spectators'];
+            
+            // Aggiorniamo la cache con i dati freschi
+            _hubStreamCache[id] = Map<String, dynamic>.from(tournamentData);
             allTournaments.add(tournamentData);
+          } else if (_hubStreamCache.containsKey(id)) {
+            // Caso 2: L'aggiornamento è parziale (senza JSONB), usiamo la cache
+            final cached = Map<String, dynamic>.from(_hubStreamCache[id]!);
+            
+            // Ma aggiorniamo i metadati che potrebbero essere arrivati nella riga "flat"
+            item.forEach((key, value) {
+              if (value != null) cached[key] = value;
+            });
+            
+            allTournaments.add(cached);
+          } else {
+            // Caso 3: Primo caricamento ma dato parziale (raro), lo aggiungiamo così com'è
+            allTournaments.add(Map<String, dynamic>.from(item));
           }
         } catch (_) {}
       }
 
+      // Ordinamento ultra-stabile
       allTournaments.sort((a, b) {
         final tA = a['tournament'] as Map<String, dynamic>? ?? a;
         final tB = b['tournament'] as Map<String, dynamic>? ?? b;
@@ -141,27 +171,25 @@ final hubTournamentsProvider = StreamProvider<List<Map<String, dynamic>>>((ref) 
         final isActiveA = tA['isActive'] == true;
         final isActiveB = tB['isActive'] == true;
 
-        // 1. Active first
         if (isActiveA && !isActiveB) return -1;
         if (!isActiveA && isActiveB) return 1;
 
         final isFutureA = dateA.isAfter(now);
         final isFutureB = dateB.isAfter(now);
 
-        // 2. Future vs Past
         if (isFutureA && !isFutureB) return -1;
         if (!isFutureA && isFutureB) return 1;
 
-        // 3. Both Future: ASCENDING (soonest first)
         if (isFutureA && isFutureB) return dateA.compareTo(dateB);
-
-        // 4. Both Past: DESCENDING (latest first)
         return dateB.compareTo(dateA);
       });
 
       return allTournaments;
     });
 });
+
+/// Memoria interna per gestire gli aggiornamenti parziali del cloudTournamentsProvider
+final Map<String, Map<String, dynamic>> _cloudStreamCache = {};
 
 /// Provider for global/cloud published tournaments from Supabase
 final cloudTournamentsProvider = StreamProvider<List<Map<String, dynamic>>>((ref) {
@@ -173,23 +201,37 @@ final cloudTournamentsProvider = StreamProvider<List<Map<String, dynamic>>>((ref
     .order('last_updated', ascending: false)
     .map((data) {
       final now = DateTime.now();
-      
       final List<Map<String, dynamic>> allTournaments = [];
+
       for (final item in data) {
         try {
+          final id = item['id']?.toString();
+          if (id == null) continue;
+
           final tournamentData = item['data'] as Map<String, dynamic>?;
+          
           if (tournamentData != null) {
-            // CRITICAL: Merge DB metadata into the map so UI can access it
-            tournamentData['id'] = item['id'];
+            tournamentData['id'] = id;
             tournamentData['community_slug'] = item['community_slug'];
             tournamentData['community_id'] = item['community_id'];
             tournamentData['venue_court_id'] = item['venue_court_id'];
+            tournamentData['description'] = item['description'];
+            tournamentData['app_views'] = item['app_views'];
+            tournamentData['web_views'] = item['web_views'];
+            tournamentData['spectators'] = item['spectators'];
             
+            _cloudStreamCache[id] = Map<String, dynamic>.from(tournamentData);
             allTournaments.add(tournamentData);
+          } else if (_cloudStreamCache.containsKey(id)) {
+            final cached = Map<String, dynamic>.from(_cloudStreamCache[id]!);
+            item.forEach((key, value) {
+              if (value != null) cached[key] = value;
+            });
+            allTournaments.add(cached);
+          } else {
+            allTournaments.add(Map<String, dynamic>.from(item));
           }
-        } catch (_) {
-          // Skip invalid items
-        }
+        } catch (_) {}
       }
 
       // Sort ALL tournaments: Active > Future (Soonest First) > Past (Newest First)
@@ -205,26 +247,20 @@ final cloudTournamentsProvider = StreamProvider<List<Map<String, dynamic>>>((ref
 
         final dateA = parseDate(tA['startDate']);
         final dateB = parseDate(tB['startDate']);
-        final now = DateTime.now();
         
         final isActiveA = tA['isActive'] == true;
         final isActiveB = tB['isActive'] == true;
 
-        // 1. Active first
         if (isActiveA && !isActiveB) return -1;
         if (!isActiveA && isActiveB) return 1;
 
         final isFutureA = dateA.isAfter(now);
         final isFutureB = dateB.isAfter(now);
 
-        // 2. Future vs Past
         if (isFutureA && !isFutureB) return -1;
         if (!isFutureA && isFutureB) return 1;
 
-        // 3. Both Future: ASCENDING (soonest first)
         if (isFutureA && isFutureB) return dateA.compareTo(dateB);
-
-        // 4. Both Past: DESCENDING (latest first)
         return dateB.compareTo(dateA);
       });
 
@@ -239,7 +275,6 @@ final cloudTournamentsProvider = StreamProvider<List<Map<String, dynamic>>>((ref
             if (startDateVal is String) {
               startDate = DateTime.tryParse(startDateVal);
             } else if (startDateVal is int) {
-              // Drift JSON can sometimes serialize DateTime as int (ms)
               startDate = DateTime.fromMillisecondsSinceEpoch(startDateVal);
             }
             
@@ -248,34 +283,24 @@ final cloudTournamentsProvider = StreamProvider<List<Map<String, dynamic>>>((ref
             if (filters.contains(CloudFilter.past) && !isActive && (startDate != null && startDate.isBefore(now))) return true;
             if (filters.contains(CloudFilter.inProgress) && isActive) return true;
             if (filters.contains(CloudFilter.future) && !isActive && (startDate != null && startDate.isAfter(now))) return true;
-          } catch (_) {
-            // Silently handle format errors
-          }
+          } catch (_) {}
           return false;
         }).take(50).toList();
       }
 
-      // 1. Try with user selected filters
       var result = filterData(activeFilters);
       if (result.isNotEmpty) return result;
 
-      // 2. Fallback logic: if empty, try to find ANY active tournament first (Live)
       final liveFallback = filterData({CloudFilter.inProgress});
       if (liveFallback.isNotEmpty) return liveFallback;
 
-      // 3. Then try Future
       final futureFallback = filterData({CloudFilter.future});
       if (futureFallback.isNotEmpty) return futureFallback;
       
-      // 4. Finally try Past
       final pastFallback = filterData({CloudFilter.past});
       if (pastFallback.isNotEmpty) return pastFallback;
 
-      // 5. If REALLY empty, but cloud has data, return the first 50 regardless of filtering
-      if (allTournaments.isNotEmpty) {
-        return allTournaments.take(50).toList();
-      }
-
+      if (allTournaments.isNotEmpty) return allTournaments.take(50).toList();
       return [];
     });
 });
@@ -285,13 +310,54 @@ final tournamentSearchQueryProvider = StateProvider<String>((ref) => '');
 final tournamentModeFilterProvider = StateProvider<String?>((ref) => null);
 final tournamentStatusFilterProvider = StateProvider<String>((ref) => 'all'); // Default to local as requested
 
-/// Provider for a specific cloud tournament by UUID
-final cloudTournamentDetailProvider = StreamProvider.family<Map<String, dynamic>?, String>((ref, cloudId) {
+/// Cache per mantenere i dati del torneo stabili durante gli aggiornamenti parziali dello stream
+final Map<String, Map<String, dynamic>> _cloudTournamentCache = {};
+
+/// Provider for a specific cloud tournament by UUID - Hybrid (Future for stability + Stream for updates with Merge Logic)
+final cloudTournamentDetailProvider = StreamProvider.family<Map<String, dynamic>?, String>((ref, cloudId) async* {
   final supabase = Supabase.instance.client;
-  return supabase.from('published_tournaments')
+  
+  // 1. Initial stable fetch to avoid flickering
+  try {
+    final initialData = await supabase.from('published_tournaments')
+      .select('*')
+      .eq('id', cloudId)
+      .single();
+    _cloudTournamentCache[cloudId] = Map<String, dynamic>.from(initialData);
+    yield initialData;
+  } catch (_) {
+    // Se fallisce il fetch iniziale, proviamo a usare la cache se esiste
+    if (_cloudTournamentCache.containsKey(cloudId)) {
+      yield _cloudTournamentCache[cloudId];
+    }
+  }
+  
+  // 2. Continuous stream for real-time updates with MERGE logic
+  final stream = supabase.from('published_tournaments')
     .stream(primaryKey: ['id'])
     .eq('id', cloudId)
     .map((data) => data.isNotEmpty ? data.first : null);
+
+  await for (final update in stream) {
+    if (update == null) {
+      yield _cloudTournamentCache[cloudId];
+      continue;
+    }
+
+    // Fondiamo l'aggiornamento con i dati esistenti per non perdere colonne
+    final existing = _cloudTournamentCache[cloudId] ?? {};
+    final merged = Map<String, dynamic>.from(existing);
+    
+    update.forEach((key, value) {
+      // Sovrascriviamo solo se il valore non è nullo (per evitare perdite durante i partial updates)
+      if (value != null) {
+        merged[key] = value;
+      }
+    });
+
+    _cloudTournamentCache[cloudId] = merged;
+    yield merged;
+  }
 });
 
 /// Provider for filtered tournaments

@@ -259,15 +259,16 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
       body: cloudDetail.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, _) => Center(child: Text('Errore: $err')),
-        data: (data) {
-          if (data == null) return const Center(child: Text('Torneo non trovato'));
-          final tournamentData = data['data'] as Map<String, dynamic>?;
-          if (tournamentData == null) return const Center(child: Text('Dati non disponibili'));
-
-          final matches = (tournamentData['matches'] as List? ?? []).map((m) {
+        data: (rawData) {
+          if (rawData == null) return const Center(child: Text('Torneo non trovato'));
+          
+          // Logica resiliente per estrarre i dati (coerente con CloudTournamentDetailScreen)
+          final Map<String, dynamic> data = (rawData['data'] is Map 
+              ? Map<String, dynamic>.from(rawData['data'] as Map) 
+              : Map<String, dynamic>.from(rawData));
+          
+          final matches = (data['matches'] as List? ?? []).map((m) {
             final match = TournamentMatch.fromJson(m);
-            // In guest mode we can't easily join teams without a full local DB, 
-            // but we have names in the JSON export (I added them recently in share_repo)
             return (
               match: match, 
               homeName: m['homeTeamName'] as String? ?? 'Home',
@@ -322,10 +323,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
      return Card(
        margin: const EdgeInsets.only(bottom: 8),
        child: ListTile(
-         onTap: () => context.pushNamed('match-detail', pathParameters: {
-            'tournamentId': widget.tournamentId.toString(),
-            'matchId': match.id.toString(),
-         }),
+         onTap: null, // Disabilitato in modalità ospite
          title: Row(
            children: [
              Expanded(child: Text(homeName, textAlign: TextAlign.right, style: const TextStyle(fontSize: 14))),
@@ -344,7 +342,6 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
              Expanded(child: Text(awayName, textAlign: TextAlign.left, style: const TextStyle(fontSize: 14))),
            ],
          ),
-         trailing: const Icon(Icons.chevron_right, size: 16),
        ),
      );
   }
@@ -816,4 +813,3 @@ class _LiveMatchBadge extends ConsumerWidget {
     ).animate(onPlay: (c) => c.repeat()).shimmer(duration: 2.seconds);
   }
 }
-

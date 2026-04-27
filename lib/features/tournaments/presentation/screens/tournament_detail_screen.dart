@@ -182,11 +182,12 @@ class _TournamentDetailScreenState extends ConsumerState<TournamentDetailScreen>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final tournamentAsync = ref.watch(tournamentByIdProvider(widget.tournamentId));
     final teamsAsync = ref.watch(tournamentTeamsProvider(widget.tournamentId));
 
     return tournamentAsync.when(
-      loading: () => const Scaffold(body: Center(child: CircularProgressIndicator(color: Colors.orange))),
+      loading: () => _buildSkeletonLoader(context),
       error: (error, stack) => Scaffold(
         appBar: AppBar(title: Text(AppLocalizations.of(context)!.error)),
         body: Center(child: Text('${AppLocalizations.of(context)!.error}: $error')),
@@ -318,7 +319,7 @@ class _TournamentDetailScreenState extends ConsumerState<TournamentDetailScreen>
                       Row(
                         children: [
                           if (tournament.isPublished)
-                             _buildStatusChip(context, "CLOUD", Colors.blue),
+                             _buildStatusChip(context, "HUB", Colors.blue),
                           if (tournament.communityId != null) ...[
                             const SizedBox(width: 8),
                             _CommunityBadge(
@@ -328,18 +329,6 @@ class _TournamentDetailScreenState extends ConsumerState<TournamentDetailScreen>
                           ],
                         ],
                       ),
-                      const SizedBox(height: 24),
-
-                      if (tournament.description != null && tournament.description!.isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 24),
-                          child: Text(
-                            tournament.description!,
-                            style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 13, height: 1.5),
-                          ),
-                        ),
-
-                      const SizedBox(height: 8),
                       
                       if (tournament.cloudId != null && tournament.isWebRegistrationEnabled) ...[
                         Consumer(
@@ -431,7 +420,7 @@ class _TournamentDetailScreenState extends ConsumerState<TournamentDetailScreen>
                             ),
                       ),
 
-                      const SizedBox(height: 32),
+                      const SizedBox(height: 24),
                       
                       // Action Grid
                       Text(
@@ -439,6 +428,28 @@ class _TournamentDetailScreenState extends ConsumerState<TournamentDetailScreen>
                         style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 1.2),
                       ),
                       _buildActionCards(context, tournament),
+
+                      if (tournament.description != null && tournament.description!.isNotEmpty) ...[
+                        const SizedBox(height: 24),
+                        Text(
+                          l10n.description.toUpperCase(),
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 1.2),
+                        ),
+                        const SizedBox(height: 12),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF1E293B),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: Colors.white.withOpacity(0.05)),
+                          ),
+                          child: Text(
+                            tournament.description!,
+                            style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 13, height: 1.5),
+                          ),
+                        ),
+                      ],
                       
                       const SizedBox(height: 40),
                     ],
@@ -591,6 +602,98 @@ class _TournamentDetailScreenState extends ConsumerState<TournamentDetailScreen>
             ],
           ),
         ),
+      ),
+    );
+  }
+  Widget _buildSkeletonLoader(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF020617),
+      body: CustomScrollView(
+        slivers: [
+          SliverAppBar(
+            expandedHeight: 180,
+            backgroundColor: const Color(0xFF0F172A),
+            leading: const BackButton(color: Colors.white),
+            flexibleSpace: FlexibleSpaceBar(
+              background: Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFF1E293B), Color(0xFF0F172A)],
+                  ),
+                ),
+                child: Center(
+                  child: Icon(Icons.emoji_events, size: 80, color: Colors.white.withOpacity(0.05)),
+                ),
+              ).animate(onPlay: (c) => c.repeat(reverse: true)).shimmer(duration: 2.seconds, color: Colors.white.withOpacity(0.05)),
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Title Skeleton
+                  Container(
+                    height: 32,
+                    width: 200,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.05),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ).animate(onPlay: (c) => c.repeat(reverse: true)).fadeIn(duration: 1.seconds),
+                  const SizedBox(height: 16),
+                  
+                  // Stats Row Skeleton
+                  Row(
+                    children: [
+                      Container(width: 80, height: 24, decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), borderRadius: BorderRadius.circular(12))),
+                      const SizedBox(width: 12),
+                      Container(width: 80, height: 24, decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), borderRadius: BorderRadius.circular(12))),
+                    ],
+                  ).animate(onPlay: (c) => c.repeat(reverse: true)).fadeIn(duration: 1.seconds, delay: 200.ms),
+                  
+                  const SizedBox(height: 40),
+                  
+                  // Teams Header Skeleton
+                  Container(width: 120, height: 16, decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), borderRadius: BorderRadius.circular(4))),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: List.generate(3, (index) => Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: Container(width: 80, height: 32, decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), borderRadius: BorderRadius.circular(12))),
+                    )),
+                  ).animate(onPlay: (c) => c.repeat(reverse: true)).fadeIn(duration: 1.seconds, delay: 300.ms),
+
+                  const SizedBox(height: 40),
+                  
+                  // Action Grid Header Skeleton
+                  Container(width: 120, height: 16, decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), borderRadius: BorderRadius.circular(4))),
+                  const SizedBox(height: 16),
+                  
+                  // Action Grid Skeleton
+                  GridView.count(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    crossAxisCount: 2,
+                    mainAxisSpacing: 16,
+                    crossAxisSpacing: 16,
+                    childAspectRatio: 1.3,
+                    children: List.generate(4, (index) => Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.03),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Colors.white.withOpacity(0.05)),
+                      ),
+                    ).animate(onPlay: (c) => c.repeat(reverse: true)).shimmer(duration: 2.seconds, delay: (index * 100).ms)),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

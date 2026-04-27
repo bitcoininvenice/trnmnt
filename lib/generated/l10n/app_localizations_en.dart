@@ -1163,4 +1163,13 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get sessionError =>
       'Session expired or invalid. Please sign in again.';
+
+  @override
+  String get liveStream => 'LIVE STREAM';
+
+  @override
+  String get watchTournamentLive => 'Watch the tournament live';
+
+  @override
+  String get retry => 'RETRY';
 }

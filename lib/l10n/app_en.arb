@@ -473,5 +473,8 @@
   "leaveAction": "Leave",
   "removeAction": "Remove",
   "rlsViolationError": "Security error: you already have an active community on the cloud or permissions are insufficient. Check RLS policies.",
-  "sessionError": "Session expired or invalid. Please sign in again."
+  "sessionError": "Session expired or invalid. Please sign in again.",
+  "liveStream": "LIVE STREAM",
+  "watchTournamentLive": "Watch the tournament live",
+  "retry": "RETRY"
 }

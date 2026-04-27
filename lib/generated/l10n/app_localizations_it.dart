@@ -1167,4 +1167,13 @@ class AppLocalizationsIt extends AppLocalizations {
   @override
   String get sessionError =>
       'Sessione scaduta o non valida. Effettua nuovamente l\'accesso.';
+
+  @override
+  String get liveStream => 'LIVE STREAM';
+
+  @override
+  String get watchTournamentLive => 'Guarda il torneo live';
+
+  @override
+  String get retry => 'RIPROVA';
 }

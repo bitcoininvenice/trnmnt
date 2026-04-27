@@ -14,6 +14,7 @@ import '../../features/tournaments/presentation/screens/bracket_screen.dart';
 import '../../features/tournaments/presentation/screens/match_screen.dart';
 import '../../features/tournaments/presentation/screens/madness_screen.dart';
 import '../../features/tournaments/presentation/screens/cloud_tournament_detail_screen.dart';
+import '../../features/tournaments/presentation/screens/live_stream_screen.dart';
 import '../../features/timer/presentation/screens/timer_screen.dart';
 import '../../features/single_match/presentation/screens/single_match_setup_screen.dart';
 import '../../features/map/presentation/screens/radar_screen.dart';
@@ -180,6 +181,14 @@ final routerProvider = Provider<GoRouter>((ref) {
                     return RegistrationManagementScreen(tournamentId: id, cloudId: cloudId);
                   }
                   return CloudTournamentDetailScreen(cloudId: idStr);
+                },
+              ),
+              GoRoute(
+                path: 'live',
+                name: 'tournament-live',
+                builder: (context, state) {
+                  final idStr = state.pathParameters['tournamentId']!;
+                  return LiveStreamScreen(cloudId: idStr);
                 },
               ),
             ],

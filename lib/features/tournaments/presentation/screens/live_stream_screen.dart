@@ -1,0 +1,410 @@
+import 'package:flutter/material.dart';
+import 'dart:async';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:webview_flutter/webview_flutter.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'package:trnmnt/generated/l10n/app_localizations.dart';
+import '../../data/tournaments_repository.dart';
+
+class LiveStreamScreen extends ConsumerStatefulWidget {
+  final String cloudId;
+  const LiveStreamScreen({super.key, required this.cloudId});
+
+  @override
+  ConsumerState<LiveStreamScreen> createState() => _LiveStreamScreenState();
+}
+
+class _LiveStreamScreenState extends ConsumerState<LiveStreamScreen> {
+  Map<String, dynamic>? _mergedData;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final tournamentAsync = ref.watch(cloudTournamentDetailProvider(widget.cloudId));
+
+    return Scaffold(
+      backgroundColor: const Color(0xFF020617),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF0F172A),
+        title: Text(l10n.liveStream, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 1.2)),
+        elevation: 0,
+      ),
+      body: tournamentAsync.when(
+        loading: () => _mergedData == null 
+            ? _buildSkeletonLoader(context)
+            : _buildContent(context, _mergedData!),
+        error: (err, stack) => _mergedData == null
+            ? Center(child: Text('${l10n.error}: $err', style: const TextStyle(color: Colors.white)))
+            : _buildContent(context, _mergedData!),
+        data: (rawData) {
+          if (rawData != null) {
+            if (_mergedData == null) {
+              _mergedData = Map<String, dynamic>.from(rawData);
+            } else {
+              // LOGICA APPEND / MERGE
+              rawData.forEach((key, value) {
+                if (value != null) {
+                  // Se arriva un campo 'data' (JSONB), controlliamo che non sia vuoto
+                  if (key == 'data' && value is Map && value.isEmpty) return;
+                  _mergedData![key] = value;
+                }
+              });
+            }
+          }
+
+          if (_mergedData == null) {
+            return Center(child: Text(l10n.notFound, style: const TextStyle(color: Colors.white)));
+          }
+
+          return _buildContent(context, _mergedData!);
+        },
+      ),
+    );
+  }
+
+  Widget _buildContent(BuildContext context, Map<String, dynamic> rawData) {
+    final l10n = AppLocalizations.of(context)!;
+    
+    // Estrazione dati resiliente
+    final Map<String, dynamic> dataJson = (rawData['data'] is Map) 
+        ? Map<String, dynamic>.from(rawData['data'] as Map) 
+        : <String, dynamic>{};
+
+    final Map<String, dynamic> tournament = dataJson['tournament'] != null 
+        ? Map<String, dynamic>.from(dataJson['tournament'] as Map) 
+        : <String, dynamic>{};
+
+    final twitchChannel = tournament['twitchChannel']?.toString() ?? rawData['twitchChannel']?.toString();
+    final youtubeVideoId = tournament['youtubeVideoId']?.toString() ?? rawData['youtubeVideoId']?.toString();
+    
+    if ((twitchChannel == null || twitchChannel.isEmpty) && (youtubeVideoId == null || youtubeVideoId.isEmpty)) {
+       return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.videocam_off, color: Colors.white24, size: 64),
+            const SizedBox(height: 16),
+            Text(l10n.noTournamentsAtMoment, style: const TextStyle(color: Colors.white70)),
+          ],
+        ),
+      );
+    }
+
+    return SingleChildScrollView(
+      key: PageStorageKey('live-scroll-${widget.cloudId}'),
+      child: Column(
+        children: [
+          _LivestreamSection(
+            key: ValueKey('live-video-${widget.cloudId}-${twitchChannel ?? youtubeVideoId}'),
+            twitchChannel: twitchChannel,
+            youtubeVideoId: youtubeVideoId,
+          ),
+          _TournamentTicker(
+            text: tournament['customTicker']?.toString() ?? 
+                  tournament['name']?.toString().toUpperCase() ?? 
+                  l10n.liveStream,
+          ),
+          const SizedBox(height: 40),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSkeletonLoader(BuildContext context) {
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          // Video Player Skeleton
+          Container(
+            margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1E293B),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white.withOpacity(0.05)),
+            ),
+            child: Column(
+              children: [
+                // Header Skeleton
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  child: Row(
+                    children: [
+                      Container(width: 24, height: 24, decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), borderRadius: BorderRadius.circular(6))),
+                      const SizedBox(width: 12),
+                      Container(width: 100, height: 12, decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), borderRadius: BorderRadius.circular(4))),
+                    ],
+                  ),
+                ),
+                // Player Area Skeleton
+                AspectRatio(
+                  aspectRatio: 16 / 9,
+                  child: Container(
+                    color: Colors.black.withOpacity(0.2),
+                    child: Center(
+                      child: Icon(Icons.play_circle_outline, size: 64, color: Colors.white.withOpacity(0.03)),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ).animate(onPlay: (c) => c.repeat(reverse: true)).shimmer(duration: 2.seconds, color: Colors.white.withOpacity(0.03)),
+          
+          const SizedBox(height: 12),
+          
+          // Ticker Skeleton
+          Container(
+            height: 32,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: Colors.black,
+              border: Border.symmetric(
+                horizontal: BorderSide(color: Colors.white.withOpacity(0.05), width: 0.5),
+              ),
+            ),
+          ).animate(onPlay: (c) => c.repeat(reverse: true)).fadeIn(duration: 1.seconds),
+        ],
+      ),
+    );
+  }
+}
+
+class _TournamentTicker extends StatefulWidget {
+  final String text;
+  const _TournamentTicker({required this.text});
+
+  @override
+  State<_TournamentTicker> createState() => _TournamentTickerState();
+}
+
+class _TournamentTickerState extends State<_TournamentTicker> {
+  late ScrollController _scrollController;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _startScrolling());
+  }
+
+  void _startScrolling() {
+    if (!mounted) return;
+    const speed = 0.5;
+    const tickDuration = Duration(milliseconds: 16);
+    
+    _timer = Timer.periodic(tickDuration, (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      if (_scrollController.hasClients) {
+        final currentOffset = _scrollController.offset;
+        _scrollController.jumpTo(currentOffset + speed);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 32,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.black,
+        border: Border.symmetric(
+          horizontal: BorderSide(color: Colors.orange.withOpacity(0.2), width: 0.5),
+        ),
+      ),
+      child: IgnorePointer(
+        child: ListView.builder(
+          controller: _scrollController,
+          scrollDirection: Axis.horizontal,
+          itemBuilder: (context, index) {
+            return Row(
+              children: [
+                const SizedBox(width: 40),
+                Text(
+                  widget.text.toUpperCase(),
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.9),
+                    fontSize: 9,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+                const SizedBox(width: 40),
+                Icon(Icons.star, size: 8, color: Colors.orange.withOpacity(0.5)),
+                const SizedBox(width: 40),
+                Container(width: 1, height: 12, color: Colors.white.withOpacity(0.1)),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _LivestreamSection extends StatefulWidget {
+  final String? twitchChannel;
+  final String? youtubeVideoId;
+
+  const _LivestreamSection({super.key, this.twitchChannel, this.youtubeVideoId});
+
+  @override
+  State<_LivestreamSection> createState() => _LivestreamSectionState();
+}
+
+class _LivestreamSectionState extends State<_LivestreamSection> {
+  WebViewController? _controller;
+  bool _isExpanded = true;
+  bool _hasError = false;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _initController();
+  }
+
+  void _initController() {
+    String url = '';
+    if (widget.youtubeVideoId != null && widget.youtubeVideoId!.isNotEmpty) {
+      url = 'https://www.youtube.com/embed/${widget.youtubeVideoId}?autoplay=1&mute=0&playsinline=1';
+    } else if (widget.twitchChannel != null && widget.twitchChannel!.isNotEmpty) {
+      url = 'https://player.twitch.tv/?channel=${widget.twitchChannel}&parent=trnmnt.vercel.app&autoplay=true&muted=false';
+    }
+
+    if (url.isEmpty) return;
+
+    _controller = WebViewController()
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setBackgroundColor(const Color(0xFF020617))
+      ..setUserAgent('Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36')
+      ..setNavigationDelegate(
+        NavigationDelegate(
+          onPageFinished: (_) {
+            if (mounted) setState(() => _isLoading = false);
+          },
+          onWebResourceError: (WebResourceError error) {
+            if ((error.isForMainFrame ?? true) && mounted) {
+              setState(() {
+                _hasError = true;
+                _isLoading = false;
+              });
+            }
+          },
+        ),
+      )
+      ..loadRequest(
+        Uri.parse(url),
+        headers: url.contains('twitch.tv') 
+          ? {'Referer': 'https://trnmnt.vercel.app/'} 
+          : {},
+      );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_controller == null) return const SizedBox.shrink();
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E293B),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.purple.withOpacity(0.3), width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.purple.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        children: [
+          InkWell(
+            onTap: () => setState(() => _isExpanded = !_isExpanded),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Row(
+                children: [
+                   Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: Colors.red.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.live_tv, color: Colors.red, size: 16),
+                  ),
+                  const SizedBox(width: 12),
+                  const Text(
+                    'LIVE STREAM',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 12,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                  const Spacer(),
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: const BoxDecoration(
+                      color: Colors.red,
+                      shape: BoxShape.circle,
+                    ),
+                  ).animate(onPlay: (c) => c.repeat()).fadeIn(duration: 600.ms).fadeOut(duration: 600.ms),
+                  const SizedBox(width: 12),
+                  Icon(
+                    _isExpanded ? Icons.expand_less : Icons.expand_more,
+                    color: Colors.grey,
+                    size: 20,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (_isExpanded)
+            Stack(
+              children: [
+                AspectRatio(
+                  aspectRatio: 16 / 9,
+                  child: _hasError 
+                    ? Container(
+                        color: Colors.black45,
+                        child: const Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.signal_wifi_off, color: Colors.white24, size: 40),
+                              SizedBox(height: 8),
+                              Text('STREAM NON DISPONIBILE', style: TextStyle(color: Colors.white24, fontSize: 10, fontWeight: FontWeight.bold)),
+                            ],
+                          ),
+                        ),
+                      )
+                    : WebViewWidget(controller: _controller!),
+                ),
+                if (_isLoading && !_hasError)
+                  const AspectRatio(
+                    aspectRatio: 16 / 9,
+                    child: Center(child: CircularProgressIndicator(color: Colors.orange)),
+                  ),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+}

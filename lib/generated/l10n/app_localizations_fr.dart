@@ -1170,4 +1170,13 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get sessionError =>
       'Session expirée ou invalide. Veuillez vous reconnecter.';
+
+  @override
+  String get liveStream => 'LIVE STREAM';
+
+  @override
+  String get watchTournamentLive => 'Regarder le tournoi en direct';
+
+  @override
+  String get retry => 'RÉESSAYER';
 }
