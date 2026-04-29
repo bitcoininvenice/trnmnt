@@ -85,9 +85,9 @@ class _MatchScreenState extends ConsumerState<MatchScreen> {
       final matchData = await ref.read(matchByIdProvider(widget.matchId!).future);
       final tId = matchData?.match.tournamentId;
       if (tId != null) {
-        final t = await ref.read(tournamentByIdProvider(tId).future);
+        final t = await ref.read(tournamentByIdProvider(tId)).value;
         if (t?.cloudId != null) {
-          trackingCloudId = t!.cloudId;
+          trackingCloudId = t?.cloudId;
           trackingMatchId = '${trackingCloudId}_${widget.matchId}';
         }
       }
@@ -129,8 +129,10 @@ class _MatchScreenState extends ConsumerState<MatchScreen> {
     });
   }
 
-  int? get _localTid => int.tryParse(widget.tournamentId.toString());
-  bool get _isGuest => _localTid == null && _localTid! != null;
+  bool get _isGuest {
+    if (widget.tournamentId == null) return false;
+    return int.tryParse(widget.tournamentId.toString()) == null;
+  }
 
   Future<void> _saveScore() async {
     if (widget.matchId == null || _isGuest) return;
@@ -224,7 +226,11 @@ class _MatchScreenState extends ConsumerState<MatchScreen> {
     }
 
     final activeGameNotifier = ref.read(activeGameProvider.notifier);
-    final matchAsync = ref.watch(matchByIdProvider(widget.matchId!));
+    final mId = widget.matchId;
+    if (mId == null) {
+      return const Scaffold(body: Center(child: Text('Errore: Partita non inizializzata')));
+    }
+    final matchAsync = ref.watch(matchByIdProvider(mId));
 
     return matchAsync.when(
       loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
@@ -817,7 +823,7 @@ class _SpecialShotsRowState extends ConsumerState<_SpecialShotsRow> {
               'three_pointer', 
               widget.side,
               manualMatchId: widget.matchId,
-              manualTournamentId: widget.tournamentId!,
+              manualTournamentId: widget.tournamentId,
             ),
             child: const Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -840,7 +846,7 @@ class _SpecialShotsRowState extends ConsumerState<_SpecialShotsRow> {
                 'buzzer_beater', 
                 widget.side,
                 manualMatchId: widget.matchId,
-                manualTournamentId: widget.tournamentId!,
+                manualTournamentId: widget.tournamentId,
               )
             ),
             _iconActionBtn(
@@ -850,7 +856,7 @@ class _SpecialShotsRowState extends ConsumerState<_SpecialShotsRow> {
                 'circus_shot', 
                 widget.side,
                 manualMatchId: widget.matchId,
-                manualTournamentId: widget.tournamentId!,
+                manualTournamentId: widget.tournamentId,
               )
             ),
           ],
