@@ -85,112 +85,112 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
           ? IconButton(icon: const Icon(Icons.close), onPressed: _resetSelection)
           : null,
         actions: [
-          if (!_isSelectionMode) ...[
+          if (!_isSelectionMode && tournament != null && tournament.isActive) ...[
             IconButton(
-              icon: const Icon(Icons.add),
+              icon: const Icon(Icons.add_circle_outline),
               tooltip: 'Aggiungi partita',
               onPressed: () async {
                 if (_isProcessing) return;
                 final result = await showDialog<bool>(
                   context: context,
-                  builder: (context) => AddMatchDialog(tournamentId: localId),
+                  builder: (context) => AddMatchDialog(tournamentId: _localId!),
                 );
                 if (result == true && mounted) {
-                  // The stream provider will auto-refresh
+                  ref.invalidate(groupMatchesProvider(_localId!));
                 }
               },
             ),
             IconButton(
               icon: const Icon(Icons.shuffle),
-              tooltip: 'Genera casuale',
+              tooltip: 'Genera automatico',
               onPressed: () async {
                 if (_isProcessing) return;
+                final doubleRound = await showDialog<bool>(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text('Genera Calendario'),
+                    content: const Text('Vuoi generare solo l\'andata o anche il ritorno?'),
+                    actions: [
+                      TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Solo Andata')),
+                      ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Andata e Ritorno')),
+                    ],
+                  ),
+                );
+                
+                if (doubleRound == null) return;
+
+                setState(() => _isProcessing = true);
+                try {
+                  await ref.read(matchesRepositoryProvider).generateGroupCalendar(_localId!, doubleRound: doubleRound);
+                  if (tournament?.isPublished == true) {
+                    await ref.read(shareRepositoryProvider).publishToSupabase(_localId!);
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Errore: $e')));
+                  }
+                } finally {
+                  if (mounted) {
+                    setState(() => _isProcessing = false);
+                    ref.invalidate(groupMatchesProvider(_localId!));
+                  }
+                }
+              },
+            ),
+          ],
+          if (tournament != null && tournament.isActive)
+            IconButton(
+              icon: Icon(_isSelectionMode ? Icons.delete : Icons.delete_outline, color: _isSelectionMode ? Colors.redAccent : null),
+              tooltip: _isSelectionMode ? 'Elimina selezionate' : 'Elimina calendario',
+              onPressed: () async {
+                if (_isProcessing) return;
+                
+                final isBulk = !_isSelectionMode;
                 final confirm = await showDialog<bool>(
                   context: context,
                   builder: (context) => AlertDialog(
-                    title: const Text('Genera calendario'),
-                    content: const Text('Questo cancellerà il calendario esistente e ne creerà uno nuovo casuale. Continuare?'),
+                    title: Text(isBulk ? 'Elimina calendario' : 'Elimina partite'),
+                    content: Text(isBulk 
+                      ? 'Questo cancellerà TUTTO il calendario esistente. Continuare?'
+                      : 'Vuoi eliminare le ${_selectedMatchIds.length} partite selezionate?'),
                     actions: [
                       TextButton(
                         onPressed: () => Navigator.pop(context, false),
                         child: const Text('Annulla'),
                       ),
                       ElevatedButton(
+                        style: isBulk ? null : ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
                         onPressed: () => Navigator.pop(context, true),
-                        child: const Text('Genera'),
+                        child: Text(isBulk ? 'Elimina tutto' : 'Elimina'),
                       ),
                     ],
                   ),
                 );
+
                 if (confirm == true && mounted) {
                   setState(() => _isProcessing = true);
                   try {
-                    await ref.read(matchesRepositoryProvider).generateGroupCalendar(localId);
+                    if (isBulk) {
+                      await ref.read(matchesRepositoryProvider).deleteMatchesByPhase(_localId!, 'group');
+                    } else {
+                      await ref.read(matchesRepositoryProvider).deleteMatches(_selectedMatchIds.toList());
+                      _resetSelection();
+                    }
+                    
                     if (!mounted) return;
                     if (tournament?.isPublished == true) {
-                      await ref.read(shareRepositoryProvider).publishToSupabase(localId);
+                      await ref.read(shareRepositoryProvider).publishToSupabase(_localId!);
                     }
                   } catch (e) {
                   } finally {
                     if (mounted) {
                       setState(() => _isProcessing = false);
+                      ref.invalidate(groupMatchesProvider(_localId!));
                     }
                   }
                 }
               },
             ),
-          ],
-          IconButton(
-            icon: Icon(_isSelectionMode ? Icons.delete : Icons.delete_outline, color: _isSelectionMode ? Colors.redAccent : null),
-            tooltip: _isSelectionMode ? 'Elimina selezionate' : 'Elimina calendario',
-            onPressed: () async {
-              if (_isProcessing) return;
-              
-              final isBulk = !_isSelectionMode;
-              final confirm = await showDialog<bool>(
-                context: context,
-                builder: (context) => AlertDialog(
-                  title: Text(isBulk ? 'Elimina calendario' : 'Elimina partite'),
-                  content: Text(isBulk 
-                    ? 'Questo cancellerà TUTTO il calendario esistente. Continuare?'
-                    : 'Vuoi eliminare le ${_selectedMatchIds.length} partite selezionate?'),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context, false),
-                      child: const Text('Annulla'),
-                    ),
-                    ElevatedButton(
-                      style: isBulk ? null : ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
-                      onPressed: () => Navigator.pop(context, true),
-                      child: Text(isBulk ? 'Elimina tutto' : 'Elimina'),
-                    ),
-                  ],
-                ),
-              );
-
-              if (confirm == true && mounted) {
-                setState(() => _isProcessing = true);
-                try {
-                  if (isBulk) {
-                    await ref.read(matchesRepositoryProvider).deleteMatchesByPhase(localId, 'group');
-                  } else {
-                    await ref.read(matchesRepositoryProvider).deleteMatches(_selectedMatchIds.toList());
-                    _resetSelection();
-                  }
-                  
-                  if (!mounted) return;
-                  if (tournament?.isPublished == true) {
-                    await ref.read(shareRepositoryProvider).publishToSupabase(localId);
-                  }
-                } catch (e) {
-                } finally {
-                  if (mounted) {
-                    setState(() => _isProcessing = false);
-                  }
-                }
-              }
-            },
-          ),
           
           if (!_isSelectionMode && tournament != null && tournament.isActive && (tournament.mode == 'group_only' || tournament.mode == 'madness'))
             IconButton(
@@ -356,7 +356,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
             size: 100,
             color: Colors.white.withValues(alpha: 0.3),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 32),
           Text(
             'Nessuna partita',
             style: Theme.of(context).textTheme.headlineSmall,
@@ -369,7 +369,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
             ),
           ),
           const SizedBox(height: 24),
-          if (!_isGuest)
+          if (!_isGuest && _localId != null && (tournament?.isActive ?? false))
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -377,12 +377,12 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                   onPressed: () async {
                     final result = await showDialog<bool>(
                       context: context,
-                      builder: (context) => AddMatchDialog(tournamentId: widget.tournamentId),
+                      builder: (context) => AddMatchDialog(tournamentId: _localId!),
                     );
                     if (result == true) {
                       if (!mounted) return;
                       // ignore: unused_result
-                      ref.refresh(groupMatchesProvider(widget.tournamentId));
+                      ref.refresh(groupMatchesProvider(_localId!));
                     }
                   },
                   icon: const Icon(Icons.add),
@@ -391,15 +391,37 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                 const SizedBox(width: 16),
                 ElevatedButton.icon(
                   onPressed: () async {
+                    final doubleRound = await showDialog<bool>(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: const Text('Genera Calendario'),
+                        content: const Text('Vuoi generare solo l\'andata o anche il ritorno?'),
+                        actions: [
+                          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Solo Andata')),
+                          ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Andata e Ritorno')),
+                        ],
+                      ),
+                    );
+                    
+                    if (doubleRound == null) return;
+
                     setState(() => _isProcessing = true);
-                    await ref.read(matchesRepositoryProvider).generateGroupCalendar(widget.tournamentId);
-                    if (tournament?.isPublished == true) {
-                      await ref.read(shareRepositoryProvider).publishToSupabase(widget.tournamentId);
+                    try {
+                      await ref.read(matchesRepositoryProvider).generateGroupCalendar(_localId!, doubleRound: doubleRound);
+                      if (tournament?.isPublished == true) {
+                        await ref.read(shareRepositoryProvider).publishToSupabase(_localId!);
+                      }
+                    } catch (e) {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Errore: $e')));
+                      }
+                    } finally {
+                      if (mounted) {
+                        setState(() => _isProcessing = false);
+                        // ignore: unused_result
+                        ref.refresh(groupMatchesProvider(_localId!));
+                      }
                     }
-                    if (!mounted) return;
-                    setState(() => _isProcessing = false);
-                    // ignore: unused_result
-                    ref.refresh(groupMatchesProvider(widget.tournamentId));
                   },
                   icon: const Icon(Icons.shuffle),
                   label: const Text('Genera automatico'),
@@ -588,9 +610,9 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
         setState(() => _isProcessing = true);
         try {
           await ref.read(matchesRepositoryProvider).deleteMatches([match.id]);
-          final tournament = await ref.read(tournamentByIdProvider(widget.tournamentId).future);
+          final tournament = await ref.read(tournamentByIdProvider(_localId!).future);
           if (tournament?.isPublished == true) {
-            await ref.read(shareRepositoryProvider).publishToSupabase(widget.tournamentId);
+            await ref.read(shareRepositoryProvider).publishToSupabase(_localId!);
           }
         } catch (e) {
           if (mounted) {
@@ -608,7 +630,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
 
   void _finalizeTournament(BuildContext context, WidgetRef ref, Tournament tournament) async {
     // 1. Fetch current standings to find the winner
-    final standings = await ref.read(standingsProvider(widget.tournamentId).future);
+    final standings = await ref.read(standingsProvider(_localId!).future);
     
     if (standings.isEmpty || standings.values.every((list) => list.isEmpty)) {
       if (mounted) {
@@ -656,12 +678,12 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     if (confirm == true) {
       if (!mounted) return;
       setState(() => _isProcessing = true);
-      await ref.read(tournamentsRepositoryProvider).finalizeTournament(widget.tournamentId, winner.teamId);
+      await ref.read(tournamentsRepositoryProvider).finalizeTournament(_localId!, winner.teamId);
       if (!mounted) return;
       
       // Auto-sync after finalization if published
       if (tournament.isPublished) {
-         await ref.read(shareRepositoryProvider).publishToSupabase(widget.tournamentId);
+         await ref.read(shareRepositoryProvider).publishToSupabase(_localId!);
       }
       if (!mounted) return;
 

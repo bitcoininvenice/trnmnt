@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:collection/collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -30,6 +31,7 @@ class _MadnessScreenState extends ConsumerState<MadnessScreen> {
 
     final teamsAsync = ref.watch(tournamentTeamsProvider(widget.tournamentId));
     final matchesAsync = ref.watch(tournamentMatchesProvider(widget.tournamentId));
+    final tournamentAsync = ref.watch(tournamentByIdProvider(widget.tournamentId));
 
     return teamsAsync.when(
       loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
@@ -46,9 +48,14 @@ class _MadnessScreenState extends ConsumerState<MadnessScreen> {
             ).toList();
             
             final finalMatch = playoffMatches.where((m) => m.match.phase == 'final' && m.match.isCompleted).firstOrNull;
-            final winner = finalMatch != null 
+            dynamic winner = finalMatch != null 
                 ? (finalMatch.match.homeScore! > finalMatch.match.awayScore! ? finalMatch.homeTeam : finalMatch.awayTeam)
                 : null;
+                
+            // If no final match, check global winner
+            if (winner == null && tournamentAsync.value?.winnerTeamId != null) {
+              winner = teams.firstWhereOrNull((t) => t.team.id == tournamentAsync.value!.winnerTeamId)?.team;
+            }
 
             final state = _calculateCurrentState(teams, madnessMatches);
             
@@ -612,9 +619,17 @@ class _MadnessScreenState extends ConsumerState<MadnessScreen> {
           ).toList();
           
           final finalMatch = playoffMatches.where((m) => m.match.phase == 'final' && m.match.isCompleted).firstOrNull;
-          final winner = finalMatch != null 
+          dynamic winner = finalMatch != null 
               ? (finalMatch.match.homeScore! > finalMatch.match.awayScore! ? finalMatch.homeTeam : finalMatch.awayTeam)
               : null;
+              
+          if (winner == null) {
+            final tInfo = tournamentData['tournament'] as Map<String, dynamic>?;
+            final winnerTeamId = tInfo?['winnerTeamId'];
+            if (winnerTeamId != null) {
+              winner = teams.firstWhereOrNull((t) => t.team.id == winnerTeamId)?.team;
+            }
+          }
 
           final state = _calculateCurrentState(teams, madnessMatches);
           

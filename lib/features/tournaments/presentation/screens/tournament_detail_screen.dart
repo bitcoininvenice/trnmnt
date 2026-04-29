@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:collection/collection.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -312,7 +313,65 @@ class _TournamentDetailScreenState extends ConsumerState<TournamentDetailScreen>
                           ),
                         ],
                       ),
-                      
+
+                      // Winner Section
+                      if (!tournament.isActive && tournament.winnerTeamId != null)
+                        teamsAsync.when(
+                          data: (teams) {
+                            final winner = teams.firstWhereOrNull((t) => t.team.id == tournament.winnerTeamId);
+                            if (winner == null) return const SizedBox.shrink();
+                            return Container(
+                              margin: const EdgeInsets.only(top: 20),
+                              padding: const EdgeInsets.all(20),
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [Color(0xFFFEF3C7), Color(0xFFFDE68A)],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                                borderRadius: BorderRadius.circular(24),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.orange.withOpacity(0.3),
+                                    blurRadius: 20,
+                                    offset: const Offset(0, 10),
+                                  ),
+                                ],
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: const BoxDecoration(
+                                      color: Colors.orange,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(Icons.emoji_events, color: Colors.white, size: 32),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          l10n.hallOfFame.toUpperCase(),
+                                          style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 2),
+                                        ),
+                                        Text(
+                                          winner.team.name.toUpperCase(),
+                                          style: const TextStyle(color: Color(0xFF78350F), fontWeight: FontWeight.w900, fontSize: 24),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ).animate().shimmer(duration: 2.seconds).shake(hz: 2, curve: Curves.easeInOut);
+                          },
+                          loading: () => const SizedBox.shrink(),
+                          error: (_, __) => const SizedBox.shrink(),
+                        ),
+
                       const SizedBox(height: 24),
                       
                       // Status & Community Row
@@ -398,7 +457,7 @@ class _TournamentDetailScreenState extends ConsumerState<TournamentDetailScreen>
                         loading: () => const Center(child: CircularProgressIndicator()),
                         error: (e, s) => Text('Error: $e', style: const TextStyle(color: Colors.red)),
                         data: (teams) => teams.isEmpty 
-                          ? Text(AppLocalizations.of(context)!.noTournaments, style: const TextStyle(color: Colors.grey, fontSize: 12, fontStyle: FontStyle.italic))
+                          ? Text(AppLocalizations.of(context)!.noTeamsFound, style: const TextStyle(color: Colors.grey, fontSize: 12, fontStyle: FontStyle.italic))
                           : SingleChildScrollView(
                               scrollDirection: Axis.horizontal,
                               child: Row(

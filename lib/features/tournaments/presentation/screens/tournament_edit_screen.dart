@@ -7,6 +7,7 @@ import '../../data/tournaments_repository.dart';
 import '../../data/matches_repository.dart';
 import '../../../teams/data/teams_repository.dart';
 import '../../../sharing/data/share_repository.dart';
+import '../../../sharing/data/sync_repository.dart';
 import '../../../tournaments/presentation/widgets/court_picker_sheet.dart';
 import '../../../map/data/courts_repository.dart';
 
@@ -42,6 +43,7 @@ class _TournamentEditScreenState extends ConsumerState<TournamentEditScreen> {
   int _timerValue = 10;
   bool _isLoading = false;
   bool _isInit = false;
+  bool _hasModifiedTeams = false;
   bool _isWebRegistrationEnabled = false;
   DateTime? _endDate;
   int? _venueCourtId;
@@ -74,6 +76,10 @@ class _TournamentEditScreenState extends ConsumerState<TournamentEditScreen> {
 
     setState(() => _isLoading = true);
 
+    final syncRepo = ref.read(syncRepositoryProvider);
+    final shareRepo = ref.read(shareRepositoryProvider);
+    syncRepo.blockSync(); // SHIELD ON: Prevent cloud updates from messing with local save
+
     try {
       final repo = ref.read(tournamentsRepositoryProvider);
       
@@ -100,7 +106,7 @@ class _TournamentEditScreenState extends ConsumerState<TournamentEditScreen> {
       // Auto-sync after edit if published
       final tournament = await ref.read(tournamentByIdProvider(widget.tournamentId).future);
       if (tournament != null && tournament.isPublished) {
-        ref.read(shareRepositoryProvider).publishToSupabase(widget.tournamentId).catchError((_) => null);
+        await shareRepo.publishToSupabase(widget.tournamentId);
       }
 
       if (mounted) {
@@ -113,6 +119,7 @@ class _TournamentEditScreenState extends ConsumerState<TournamentEditScreen> {
         );
       }
     } finally {
+      syncRepo.unblockSync(); // SHIELD OFF
       if (mounted) {
         setState(() => _isLoading = false);
       }
@@ -138,6 +145,11 @@ class _TournamentEditScreenState extends ConsumerState<TournamentEditScreen> {
           data: (teams) {
             final matches = matchesAsync.value ?? [];
             final bool isModeLocked = matches.any((m) => m.match.isCompleted || (m.match.homeScore ?? 0) > 0 || (m.match.awayScore ?? 0) > 0);
+
+            if (!_hasModifiedTeams && _selectedTeamIds.length != teams.length) {
+              _selectedTeamIds = teams.map((e) => e.team.id).toList();
+              _teamToGroup = { for (var e in teams) e.team.id : e.tournamentTeam.groupNumber };
+            }
 
             if (!_isInit) {
               _nameController.text = tournament.name;
@@ -225,6 +237,8 @@ class _TournamentEditScreenState extends ConsumerState<TournamentEditScreen> {
                       validator: (value) => (value == null || value.trim().isEmpty) ? AppLocalizations.of(context)!.enterTournamentLocation : null,
                     ),
                     const SizedBox(height: 16),
+                    _buildCourtPicker(isReadOnly, context),
+                    const SizedBox(height: 16),
                     TextFormField(
                       controller: _descriptionController,
                       enabled: !isReadOnly,
@@ -238,9 +252,6 @@ class _TournamentEditScreenState extends ConsumerState<TournamentEditScreen> {
                     _buildDateField(isReadOnly, context),
                     const SizedBox(height: 16),
                     _buildEndDateField(isReadOnly, context),
-                    const SizedBox(height: 16),
-                    _buildCourtPicker(isReadOnly, context),
-                    
                     const SizedBox(height: 32),
                     Text(
                       AppLocalizations.of(context)!.configStep,
@@ -583,6 +594,7 @@ class _TournamentEditScreenState extends ConsumerState<TournamentEditScreen> {
                   },
                   onReorder: isReadOnly ? (o, n) {} : (oldIndex, newIndex) {
                     setState(() {
+                      _hasModifiedTeams = true;
                       if (newIndex > oldIndex) newIndex -= 1;
                       final item = _selectedTeamIds.removeAt(oldIndex);
                       _selectedTeamIds.insert(newIndex, item);
@@ -621,6 +633,7 @@ class _TournamentEditScreenState extends ConsumerState<TournamentEditScreen> {
                       enabled: !isReadOnly,
                       onChanged: (val) {
                         setState(() {
+                          _hasModifiedTeams = true;
                           if (val == true) {
                             if (!_selectedTeamIds.contains(team.id)) {
                               _selectedTeamIds.add(team.id);

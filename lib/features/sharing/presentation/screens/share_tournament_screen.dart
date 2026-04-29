@@ -166,57 +166,6 @@ class _ShareTournamentScreenState extends ConsumerState<ShareTournamentScreen> {
     }
   }
 
-  Future<void> _runLiveTest(String cloudId) async {
-    setState(() => _isTesting = true);
-    final repo = ref.read(shareRepositoryProvider);
-    
-    try {
-      final List<Map<String, dynamic>> steps = [
-        {'h': 2, 'a': 0, 't': '00:30', 'r': true},
-        {'h': 2, 'a': 3, 't': '01:15', 'r': true},
-        {'h': 5, 'a': 3, 't': '02:00', 'r': true},
-        {'h': 5, 'a': 7, 't': '03:45', 'r': true},
-        {'h': 10, 'a': 10, 't': '05:00', 'r': false},
-      ];
-
-      for (var i = 0; i < steps.length; i++) {
-        if (!mounted) break;
-        final s = steps[i];
-        
-        await repo.updateLiveMatch(
-          cloudId: cloudId,
-          matchId: 999, // Dummy ID
-          homeScore: s['h'],
-          awayScore: s['a'],
-          timer: s['t'],
-          homeName: 'TEST CASA',
-          awayName: 'TEST OSPITE',
-          isRunning: s['r'],
-        );
-        
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('TEST SYNC ${i+1}/${steps.length}: ${s['h']}-${s['a']}'), 
-              duration: const Duration(milliseconds: 800),
-              backgroundColor: Colors.green,
-            ),
-          );
-        }
-        
-        await Future.delayed(const Duration(seconds: 2));
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Test Error: $e'), backgroundColor: Colors.red),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isTesting = false);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final apiConfig = ref.watch(apiConfigProvider);
@@ -443,9 +392,9 @@ class _ShareTournamentScreenState extends ConsumerState<ShareTournamentScreen> {
                     onPressed: _isPublishing ? null : _publishToWeb,
                     icon: _isPublishing 
                       ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.blueAccent))
-                      : Icon(Icons.sync, color: _isPublishing ? Colors.grey : Colors.blueAccent),
+                      : Icon(Icons.cloud_upload, color: _isPublishing ? Colors.grey : Colors.blueAccent),
                     label: Text(
-                      _isPublishing ? l10n.syncing : l10n.syncCloud,
+                      _isPublishing ? l10n.syncing : "FORZA SALVATAGGIO CLOUD",
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                     style: ElevatedButton.styleFrom(
@@ -453,32 +402,6 @@ class _ShareTournamentScreenState extends ConsumerState<ShareTournamentScreen> {
                       side: BorderSide(color: Colors.blueAccent.withValues(alpha: 0.5)),
                     ),
                   ),
-                  ElevatedButton.icon(
-                    onPressed: _isPublishing ? null : _syncFromCloud,
-                    icon: _isPublishing 
-                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.greenAccent))
-                      : Icon(Icons.cloud_download, color: _isPublishing ? Colors.grey : Colors.greenAccent),
-                    label: Text(
-                      _isPublishing ? l10n.syncing : "SINCRONIZZA DA CLOUD",
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      side: BorderSide(color: Colors.greenAccent.withValues(alpha: 0.5)),
-                    ),
-                  ),
-                  if (isCloudActive)
-                    TextButton.icon(
-                      onPressed: _isTesting ? null : () => _runLiveTest(cloudId!),
-                      style: TextButton.styleFrom(
-                        foregroundColor: Colors.redAccent,
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      ),
-                      icon: _isTesting 
-                        ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.redAccent))
-                        : const Icon(Icons.bug_report, size: 16),
-                      label: const Text('DEBUG: TEST REALTIME', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
-                    ),
                 ],
               ),
             ],

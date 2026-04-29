@@ -7,15 +7,39 @@ import 'package:trnmnt/core/providers/database_provider.dart';
 class SyncRepository {
   final AppDatabase _db;
   RealtimeChannel? _subscription;
+  bool _isSyncBlocked = false;
 
   SyncRepository(this._db);
 
+  /// Blocks cloud updates from overwriting local data (used during admin saves)
+  void blockSync() => _isSyncBlocked = true;
+  
+  /// Unblocks cloud updates
+  void unblockSync() => _isSyncBlocked = false;
+
   /// Subscribes to realtime updates for a specific tournament on Supabase
-  void subscribeToTournament(String cloudId, int tournamentId) {
+  Future<void> subscribeToTournament(String cloudId, int tournamentId) async {
     _subscription?.unsubscribe();
     
     final supabase = Supabase.instance.client;
     
+    // First, immediately fetch the latest data since our local DB is just a stub
+    try {
+      final response = await supabase
+          .from('published_tournaments')
+          .select('data')
+          .eq('id', cloudId)
+          .maybeSingle();
+
+
+      if (response != null && response['data'] != null) {
+        await _handleCloudUpdate(tournamentId, response['data'] as Map<String, dynamic>);
+      }
+    } catch (e) {
+      // Ignore errors, realtime will handle it if possible
+    }
+
+    // Then subscribe for future changes
     _subscription = supabase
         .channel('tournament_sync_$cloudId')
         .onPostgresChanges(
@@ -43,11 +67,17 @@ class SyncRepository {
   }
 
   Future<void> _handleCloudUpdate(int tournamentId, Map<String, dynamic> data) async {
+    if (_isSyncBlocked) {
+      return;
+    }
     final tournamentData = data['tournament'] as Map<String, dynamic>?;
     final teamsData = data['teams'] as List<dynamic>?;
     final matchesData = data['matches'] as List<dynamic>?;
     
-    if (tournamentData == null || teamsData == null || matchesData == null) return;
+    if (tournamentData == null || teamsData == null || matchesData == null) {
+      return;
+    }
+
 
     // 1. Update general tournament info
     await (_db.update(_db.tournaments)..where((t) => t.id.equals(tournamentId))).write(
@@ -63,39 +93,39 @@ class SyncRepository {
     // 2. Map Teams by NAME (safer than IDs which diverge between devices)
     final Map<int, int> teamMapping = {}; // { RemoteId : LocalId }
     
-    // Fetch current local teams
-    final localTeams = await (
-      _db.select(_db.tournamentTeams).join([
-        innerJoin(_db.teams, _db.teams.id.equalsExp(_db.tournamentTeams.teamId)),
-      ])..where(_db.tournamentTeams.tournamentId.equals(tournamentId))
-    ).get();
-
     for (final teamJson in teamsData) {
       final remoteId = teamJson['id'] as int;
       final teamName = teamJson['name'] as String;
       
-      // Try to find local match by name
-      final localTeam = localTeams.where((row) => row.readTable(_db.teams).name == teamName).firstOrNull;
+      // Check if team exists globally by name (use limit(1) to avoid Bad State if duplicates exist)
+      final existingTeams = await (_db.select(_db.teams)
+            ..where((t) => t.name.equals(teamName))
+            ..limit(1))
+          .get();
+      final existingTeam = existingTeams.firstOrNull;
       
-      if (localTeam != null) {
-        teamMapping[remoteId] = localTeam.readTable(_db.teams).id;
+      int localTeamId;
+      if (existingTeam != null) {
+        localTeamId = existingTeam.id;
       } else {
-        // Team was added by creator but we don't have it! Let's insert it
-        final newTeamId = await _db.into(_db.teams).insert(
+        localTeamId = await _db.into(_db.teams).insert(
           TeamsCompanion.insert(
             name: teamName,
             logoPath: Value(teamJson['logoPath']),
           )
         );
-        await _db.into(_db.tournamentTeams).insert(
-          TournamentTeamsCompanion.insert(
-            tournamentId: tournamentId,
-            teamId: newTeamId,
-            groupNumber: Value(teamJson['groupNumber'] ?? 1),
-          )
-        );
-        teamMapping[remoteId] = newTeamId;
       }
+
+      // Link it to the tournament (using insertOnConflictUpdate to avoid duplicate link errors)
+      await _db.into(_db.tournamentTeams).insertOnConflictUpdate(
+        TournamentTeamsCompanion.insert(
+          tournamentId: tournamentId,
+          teamId: localTeamId,
+          groupNumber: Value(teamJson['groupNumber'] ?? 1),
+        )
+      );
+
+      teamMapping[remoteId] = localTeamId;
     }
 
     // 3. Smart Matches Sync (Preserving IDs to avoid UI breakage)
@@ -145,14 +175,19 @@ class SyncRepository {
           final int remoteAwayScore = m['awayScore'] ?? 0;
 
           // SMART SCORE UPDATE LOGIC:
-          // 1. If remote is completed and local isn't, ALWAYS take remote (final result is king)
-          // 2. If both are live, only take remote scores if local is still 0-0 (initial sync)
-          //    to avoid overwriting active work on this device.
+          // 1. If remote is completed, cloud result is final and should win if different
+          // 2. If both are live, take remote if local is 0-0 or if remote actually changed
           bool shouldUpdateScores = false;
-          if (remoteCompleted && !localMatch.isCompleted) {
-            shouldUpdateScores = true;
-          } else if (!remoteCompleted && !localMatch.isCompleted) {
-            if (localMatch.homeScore == 0 && localMatch.awayScore == 0) {
+          if (remoteCompleted) {
+            if (localMatch.homeScore != remoteHomeScore || 
+                localMatch.awayScore != remoteAwayScore || 
+                !localMatch.isCompleted) {
+              shouldUpdateScores = true;
+            }
+          } else if (!localMatch.isCompleted) {
+            // Both are live: update if local is empty or if remote has a new score
+            if ((localMatch.homeScore == 0 && localMatch.awayScore == 0) ||
+                (remoteHomeScore != localMatch.homeScore || remoteAwayScore != localMatch.awayScore)) {
               shouldUpdateScores = true;
             }
           }

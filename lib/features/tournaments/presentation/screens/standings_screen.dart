@@ -189,7 +189,7 @@ class _StandingsScreenState extends ConsumerState<StandingsScreen> {
             if (groupNumbers.length <= 1) {
               return Scaffold(
                 appBar: AppBar(title: const Text('Classifica')),
-                body: _buildSingleGroupBody(context, groupedStandings[groupNumbers.first]!, tournament.qualifiersPerGroup),
+                body: _buildSingleGroupBody(context, groupedStandings[groupNumbers.first]!, tournament.qualifiersPerGroup, tournament.winnerTeamId),
               );
             }
 
@@ -215,7 +215,7 @@ class _StandingsScreenState extends ConsumerState<StandingsScreen> {
                 ),
                 body: TabBarView(
                   children: groupNumbers.map((gn) {
-                    return _buildSingleGroupBody(context, groupedStandings[gn]!, tournament.qualifiersPerGroup);
+                    return _buildSingleGroupBody(context, groupedStandings[gn]!, tournament.qualifiersPerGroup, tournament.winnerTeamId);
                   }).toList(),
                 ),
               ),
@@ -322,7 +322,7 @@ class _StandingsScreenState extends ConsumerState<StandingsScreen> {
 
           final groupNumbers = result.keys.toList()..sort();
           if (groupNumbers.length <= 1) {
-            return _buildSingleGroupBody(context, result[groupNumbers.first]!, qualifiers);
+            return _buildSingleGroupBody(context, result[groupNumbers.first]!, qualifiers, null); // Guest mode: winner check later or from cloud
           }
 
           return DefaultTabController(
@@ -337,7 +337,7 @@ class _StandingsScreenState extends ConsumerState<StandingsScreen> {
               ),
               body: TabBarView(
                 children: groupNumbers.map((gn) {
-                  return _buildSingleGroupBody(context, result[gn]!, qualifiers);
+                  return _buildSingleGroupBody(context, result[gn]!, qualifiers, null);
                 }).toList(),
               ),
             ),
@@ -347,12 +347,12 @@ class _StandingsScreenState extends ConsumerState<StandingsScreen> {
     );
   }
 
-  Widget _buildSingleGroupBody(BuildContext context, List<StandingEntry> standings, int qualifiers) {
+  Widget _buildSingleGroupBody(BuildContext context, List<StandingEntry> standings, int qualifiers, int? winnerTeamId) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
-          _buildStandingsTable(context, standings, qualifiers),
+          _buildStandingsTable(context, standings, qualifiers, winnerTeamId),
           const SizedBox(height: 16),
           _buildLegend(context, qualifiers),
         ],
@@ -387,7 +387,7 @@ class _StandingsScreenState extends ConsumerState<StandingsScreen> {
     );
   }
 
-  Widget _buildStandingsTable(BuildContext context, List<StandingEntry> standings, int qualifiers) {
+  Widget _buildStandingsTable(BuildContext context, List<StandingEntry> standings, int qualifiers, int? winnerTeamId) {
     return Card(
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
@@ -436,9 +436,18 @@ class _StandingsScreenState extends ConsumerState<StandingsScreen> {
                     ),
                   ),
                 ),
-                DataCell(Text(
-                  standing.teamName,
-                  style: const TextStyle(fontWeight: FontWeight.w600),
+                DataCell(Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      standing.teamName,
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    if (winnerTeamId != null && standing.teamId == winnerTeamId) ...[
+                      const SizedBox(width: 8),
+                      const Icon(Icons.emoji_events, color: Colors.orange, size: 16).animate(onPlay: (controller) => controller.repeat()).shimmer(duration: 2.seconds),
+                    ],
+                  ],
                 )),
                 DataCell(Text('${standing.played}')),
                 DataCell(Text('${standing.won}', style: const TextStyle(color: Colors.green))),

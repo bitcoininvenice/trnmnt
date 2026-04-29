@@ -130,7 +130,7 @@ class _MatchScreenState extends ConsumerState<MatchScreen> {
   }
 
   int? get _localTid => int.tryParse(widget.tournamentId.toString());
-  bool get _isGuest => _localTid == null && widget.tournamentId != null;
+  bool get _isGuest => _localTid == null && _localTid! != null;
 
   Future<void> _saveScore() async {
     if (widget.matchId == null || _isGuest) return;
@@ -281,14 +281,17 @@ class _MatchScreenState extends ConsumerState<MatchScreen> {
                               score: _homeScore ?? 0,
                               onScoreChanged: isReadOnly ? null : (val) {
                                 setState(() => _homeScore = val);
-                                ref.read(activeGameProvider.notifier).syncManualScoreWithCloud(
-                                  tournamentId: match.tournamentId, 
-                                  matchId: match.id, 
-                                  homeScore: val, 
-                                  awayScore: _awayScore ?? 0, 
-                                  homeName: matchWithTeams.homeTeam?.name ?? 'Home', 
-                                  awayName: matchWithTeams.awayTeam?.name ?? 'Away'
-                                );
+                                final activeGame = ref.read(activeGameProvider);
+                                if (activeGame.matchId == match.id) {
+                                  ref.read(activeGameProvider.notifier).syncManualScoreWithCloud(
+                                    tournamentId: match.tournamentId, 
+                                    matchId: match.id, 
+                                    homeScore: val, 
+                                    awayScore: _awayScore ?? 0, 
+                                    homeName: matchWithTeams.homeTeam?.name ?? 'Home', 
+                                    awayName: matchWithTeams.awayTeam?.name ?? 'Away'
+                                  );
+                                }
                               },
                             ),
                           ],
@@ -306,14 +309,17 @@ class _MatchScreenState extends ConsumerState<MatchScreen> {
                               score: _awayScore ?? 0,
                               onScoreChanged: isReadOnly ? null : (val) {
                                 setState(() => _awayScore = val);
-                                ref.read(activeGameProvider.notifier).syncManualScoreWithCloud(
-                                  tournamentId: match.tournamentId, 
-                                  matchId: match.id, 
-                                  homeScore: _homeScore ?? 0, 
-                                  awayScore: val, 
-                                  homeName: matchWithTeams.homeTeam?.name ?? 'Home', 
-                                  awayName: matchWithTeams.awayTeam?.name ?? 'Away'
-                                );
+                                final activeGame = ref.read(activeGameProvider);
+                                if (activeGame.matchId == match.id) {
+                                  ref.read(activeGameProvider.notifier).syncManualScoreWithCloud(
+                                    tournamentId: match.tournamentId, 
+                                    matchId: match.id, 
+                                    homeScore: _homeScore ?? 0, 
+                                    awayScore: val, 
+                                    homeName: matchWithTeams.homeTeam?.name ?? 'Home', 
+                                    awayName: matchWithTeams.awayTeam?.name ?? 'Away'
+                                  );
+                                }
                               },
                             ),
                           ],
@@ -811,7 +817,7 @@ class _SpecialShotsRowState extends ConsumerState<_SpecialShotsRow> {
               'three_pointer', 
               widget.side,
               manualMatchId: widget.matchId,
-              manualTournamentId: widget.tournamentId,
+              manualTournamentId: widget.tournamentId!,
             ),
             child: const Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -834,7 +840,7 @@ class _SpecialShotsRowState extends ConsumerState<_SpecialShotsRow> {
                 'buzzer_beater', 
                 widget.side,
                 manualMatchId: widget.matchId,
-                manualTournamentId: widget.tournamentId,
+                manualTournamentId: widget.tournamentId!,
               )
             ),
             _iconActionBtn(
@@ -844,7 +850,7 @@ class _SpecialShotsRowState extends ConsumerState<_SpecialShotsRow> {
                 'circus_shot', 
                 widget.side,
                 manualMatchId: widget.matchId,
-                manualTournamentId: widget.tournamentId,
+                manualTournamentId: widget.tournamentId!,
               )
             ),
           ],

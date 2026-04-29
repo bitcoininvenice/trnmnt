@@ -7,6 +7,7 @@ import '../../../core/env/env.dart';
 import '../../../core/providers/database_provider.dart';
 import '../../../core/database/app_database.dart';
 import '../../community/data/community_repository.dart';
+import '../../../core/services/analytics_service.dart';
 
 class ShareRepository {
   final AppDatabase _db;
@@ -217,6 +218,9 @@ class ShareRepository {
     String? cloudId = tournament.cloudId;
     final baseUrl = Env.baseUrl;
     
+    // Recupera l'ID dispositivo da AnalyticsService
+    final String? creatorId = await AnalyticsService.getUserId();
+    
     try {
       // Find the community for this tournament
       final String? tournamentCommunityId = tournament.communityId;
@@ -282,6 +286,7 @@ class ShareRepository {
           'venue_court_id': (export['tournament'] as Map?)?['venue_court_id'],
           'description': tournament.description,
           'last_updated': DateTime.now().toIso8601String(),
+          if (creatorId != null) 'creator_id': creatorId, // INJECT CREATOR ID
         }).select('id').single();
         
         cloudId = response['id'].toString();
@@ -302,12 +307,14 @@ class ShareRepository {
           'venue_court_id': (export['tournament'] as Map?)?['venue_court_id'],
           'description': tournament.description,
           'last_updated': DateTime.now().toIso8601String(),
+          // Se per caso mancava, proviamo a settarlo (opzionale, ma sicuro)
+          if (creatorId != null) 'creator_id': creatorId,
         }).eq('id', cloudId);
       }
 
       final String finalUrl = '$baseUrl/it/tournaments/$cloudId';
 
-      // Update local status with the NEW definitive URL
+      // 1. Update local status with the NEW definitive URL (STUB)
       await (_db.update(_db.tournaments)..where((t) => t.id.equals(tournamentId))).write(
         TournamentsCompanion(
           isPublished: const Value(true),
@@ -316,6 +323,9 @@ class ShareRepository {
           cloudId: Value(cloudId),
         ),
       );
+      
+      // After publication, we keep local data to ensure a smooth transition
+      // without waiting for the sync engine to refill the database.
       
       // Cleanup live_matches table for matches that are now completed
       if (cloudId != null) {

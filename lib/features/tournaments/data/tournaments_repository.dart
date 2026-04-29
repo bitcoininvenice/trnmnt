@@ -587,14 +587,17 @@ class TournamentsRepository {
   }
 
   Future<void> setTournamentTeams(int tournamentId, List<int> teamIds, {Map<int, int>? teamToGroup}) async {
-    // Remove all existing teams
-    await (_db.delete(_db.tournamentTeams)..where((tt) => tt.tournamentId.equals(tournamentId))).go();
-    // Add new teams
-    for (var i = 0; i < teamIds.length; i++) {
-      final teamId = teamIds[i];
-      final group = teamToGroup?[teamId] ?? 1;
-      await addTeamToTournament(tournamentId, teamId, seed: i, groupNumber: group);
-    }
+    await _db.transaction(() async {
+      // Remove all existing teams
+      await (_db.delete(_db.tournamentTeams)..where((tt) => tt.tournamentId.equals(tournamentId))).go();
+      
+      // Add new teams
+      for (var i = 0; i < teamIds.length; i++) {
+        final teamId = teamIds[i];
+        final group = teamToGroup?[teamId] ?? 1;
+        await addTeamToTournament(tournamentId, teamId, seed: i, groupNumber: group);
+      }
+    });
   }
 
   Future<void> finalizeTournament(int tournamentId, int winnerTeamId) async {

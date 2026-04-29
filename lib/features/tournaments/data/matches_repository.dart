@@ -53,76 +53,94 @@ class MatchesRepository {
   MatchesRepository(this._db);
 
   /// Generate round-robin calendar for group phase
-  Future<void> generateGroupCalendar(int tournamentId) async {
-    // Get tournament teams
-    final tournamentTeams = await (_db.select(_db.tournamentTeams)
-      ..where((tt) => tt.tournamentId.equals(tournamentId)))
-      .get();
+  Future<void> generateGroupCalendar(int tournamentId, {bool doubleRound = false}) async {
+    await _db.transaction(() async {
+      // Get tournament teams
+      final tournamentTeams = await (_db.select(_db.tournamentTeams)
+        ..where((tt) => tt.tournamentId.equals(tournamentId)))
+        .get();
 
-    if (tournamentTeams.isEmpty) return;
+      if (tournamentTeams.isEmpty) return;
 
-    // Delete existing group matches
-    await (_db.delete(_db.matches)
-      ..where((m) => m.tournamentId.equals(tournamentId) & m.phase.equals('group')))
-      .go();
+      // Delete existing group matches
+      await (_db.delete(_db.matches)
+        ..where((m) => m.tournamentId.equals(tournamentId) & m.phase.equals('group')))
+        .go();
 
-    // Group teams by groupNumber
-    final Map<int, List<int>> groups = {};
-    for (final tt in tournamentTeams) {
-      groups.putIfAbsent(tt.groupNumber, () => []).add(tt.teamId);
-    }
-
-    for (final groupEntry in groups.entries) {
-      final groupNumber = groupEntry.key;
-      final teamIds = groupEntry.value;
-      final numTeams = teamIds.length;
-      
-      // Add BYE team if odd number
-      final List<int?> teams = List.from(teamIds);
-      if (numTeams % 2 != 0) {
-        teams.add(null); // null represents BYE
+      // Group teams by groupNumber
+      final Map<int, List<int>> groups = {};
+      for (final tt in tournamentTeams) {
+        groups.putIfAbsent(tt.groupNumber, () => []).add(tt.teamId);
       }
-      
-      final n = teams.length;
-      final numRounds = n - 1;
-      final matchesPerRound = n ~/ 2;
-      
-      // Shuffle teams for random order
-      teams.shuffle(Random());
-      
-      // Round-robin algorithm (circle method)
-      for (var round = 0; round < numRounds; round++) {
-        for (var match = 0; match < matchesPerRound; match++) {
-          final home = match;
-          final away = n - 1 - match;
-          
-          final homeTeam = teams[home];
-          final awayTeam = teams[away];
-          
-          if (homeTeam == null && awayTeam == null) continue;
-          
-          final isBye = homeTeam == null || awayTeam == null;
-          
-          await _db.into(_db.matches).insert(
-            MatchesCompanion.insert(
-              tournamentId: tournamentId,
-              homeTeamId: Value(homeTeam),
-              awayTeamId: Value(awayTeam),
-              round: Value(round + 1),
-              phase: const Value('group'),
-              isBye: Value(isBye),
-              groupNumber: Value(groupNumber), // Assign group number to match
-            ),
-          );
+
+      for (final groupEntry in groups.entries) {
+        final groupNumber = groupEntry.key;
+        final teamIds = groupEntry.value;
+        final numTeams = teamIds.length;
+        
+        // Add BYE team if odd number
+        final List<int?> teams = List.from(teamIds);
+        if (numTeams % 2 != 0) {
+          teams.add(null); // null represents BYE
         }
         
-        // Rotate teams (keep first team fixed)
-        if (teams.length > 1) {
-          final last = teams.removeLast();
-          teams.insert(1, last);
+        final n = teams.length;
+        final numRounds = n - 1;
+        final matchesPerRound = n ~/ 2;
+        
+        // Shuffle teams for random order
+        teams.shuffle(Random());
+        
+        // Round-robin algorithm (circle method)
+        for (var round = 0; round < numRounds; round++) {
+          for (var match = 0; match < matchesPerRound; match++) {
+            final home = match;
+            final away = n - 1 - match;
+            
+            final homeTeam = teams[home];
+            final awayTeam = teams[away];
+            
+            if (homeTeam == null && awayTeam == null) continue;
+            
+            final isBye = homeTeam == null || awayTeam == null;
+            
+            // Add first round (Andata)
+            await _db.into(_db.matches).insert(
+              MatchesCompanion.insert(
+                tournamentId: tournamentId,
+                homeTeamId: Value(homeTeam),
+                awayTeamId: Value(awayTeam),
+                round: Value(round + 1),
+                phase: const Value('group'),
+                isBye: Value(isBye),
+                groupNumber: Value(groupNumber),
+              ),
+            );
+
+            // Add second round (Ritorno) if requested
+            if (doubleRound) {
+               await _db.into(_db.matches).insert(
+                MatchesCompanion.insert(
+                  tournamentId: tournamentId,
+                  homeTeamId: Value(awayTeam), // Inverted
+                  awayTeamId: Value(homeTeam), // Inverted
+                  round: Value(round + 1 + numRounds),
+                  phase: const Value('group'),
+                  isBye: Value(isBye),
+                  groupNumber: Value(groupNumber),
+                ),
+              );
+            }
+          }
+          
+          // Rotate teams (keep first team fixed)
+          if (teams.length > 1) {
+            final last = teams.removeLast();
+            teams.insert(1, last);
+          }
         }
       }
-    }
+    });
   }
 
   /// Update match score and propagate winner in bracket
