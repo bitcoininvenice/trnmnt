@@ -6,6 +6,7 @@ import 'package:trnmnt/generated/l10n/app_localizations.dart';
 import 'package:trnmnt/features/tournaments/data/tournaments_repository.dart';
 import 'package:trnmnt/features/community/data/community_repository.dart';
 import 'package:trnmnt/core/database/app_database.dart';
+import 'package:trnmnt/features/tournaments/presentation/widgets/tournament_status_badge.dart';
 
 class TournamentsScreen extends ConsumerStatefulWidget {
   const TournamentsScreen({super.key});
@@ -35,9 +36,9 @@ class _TournamentsScreenState extends ConsumerState<TournamentsScreen> {
         title: Text(AppLocalizations.of(context)!.myTournaments),
         actions: [
           IconButton(
-            icon: const Icon(Icons.hub_outlined),
-            tooltip: 'Gestione Community',
-            onPressed: () => context.go('/community'),
+            icon: const Icon(Icons.qr_code_scanner),
+            tooltip: 'Scan',
+            onPressed: () => context.go('/scan'),
           ),
           IconButton(
             icon: const Icon(Icons.add),
@@ -313,6 +314,8 @@ class _TournamentsScreenState extends ConsumerState<TournamentsScreen> {
               padding: const EdgeInsets.all(16),
               child: Row(
                 children: [
+                  TournamentStatusBadge(data: {'tournament': tournament.toJson()}),    
+                  const SizedBox(width: 8),      
                   _buildChip(modeLabel, modeColor),
                   const SizedBox(width: 8),
                   if (tournament.includeConsolationFinals)
@@ -357,13 +360,18 @@ class _TournamentsScreenState extends ConsumerState<TournamentsScreen> {
   }
 
   String _getModeLabel(String mode, BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     switch (mode) {
       case 'group_only':
-        return AppLocalizations.of(context)!.groupOnly;
+        return l10n.groupOnly;
       case 'elimination_only':
-        return AppLocalizations.of(context)!.eliminationOnly;
+        return l10n.eliminationOnly;
       case 'group_and_elimination':
-        return AppLocalizations.of(context)!.groupAndElimination;
+        return l10n.groupAndElimination;
+      case 'league_madness':
+        return l10n.leagueMadness;
+      case 'madness':
+        return l10n.madness;
       default:
         return mode;
     }
@@ -377,6 +385,10 @@ class _TournamentsScreenState extends ConsumerState<TournamentsScreen> {
         return Colors.orange;
       case 'group_and_elimination':
         return Colors.green;
+      case 'league_madness':
+        return Colors.purple;
+      case 'madness':
+        return Colors.red;
       default:
         return Colors.grey;
     }

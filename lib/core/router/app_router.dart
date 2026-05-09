@@ -150,12 +150,7 @@ final routerProvider = Provider<GoRouter>((ref) {
                 name: 'tournament-madness',
                 builder: (context, state) {
                   final idStr = state.pathParameters['tournamentId']!;
-                  final id = int.tryParse(idStr);
-                  if (id != null) {
-                    return MadnessScreen(tournamentId: id);
-                  }
-                  // For now, guest madness is just the detail or not supported
-                  return CloudTournamentDetailScreen(cloudId: idStr);
+                  return MadnessScreen(tournamentId: idStr);
                 },
               ),
               GoRoute(

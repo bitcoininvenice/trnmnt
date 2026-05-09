@@ -146,6 +146,8 @@ class TournamentModeBadge extends StatelessWidget {
       case 'group_and_brackets':
       case 'group_and_elimination':
         return l10n.groupAndElimination;
+      case 'league_madness':
+        return l10n.leagueMadness;
       case 'madness':
         return l10n.madness;
       default:

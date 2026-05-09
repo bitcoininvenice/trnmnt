@@ -159,9 +159,9 @@ class _TournamentSetupScreenState extends ConsumerState<TournamentSetupScreen> {
         final int roundsCount = (math.log(qualifiers.toDouble()) / math.log(2)).ceil();
         playoffTime = (roundsCount * (qualifiers ~/ 2) * slotDuration);
       }
-    } else if (_mode == 'madness') {
+    } else if (_mode == 'madness' || _mode == 'league_madness') {
       const int madnessBaseMinutes = 120;
-      const int qualifiers = 4;
+      const int qualifiers = 2; // Only 2 finalists for Madness mode
       int totalPlayoffSlots = 0;
       int currentTeams = qualifiers;
       while (currentTeams > 1) {
@@ -170,7 +170,9 @@ class _TournamentSetupScreenState extends ConsumerState<TournamentSetupScreen> {
         currentTeams = matchesInRound;
       }
       playoffTime = (totalPlayoffSlots * slotDuration) + madnessBaseMinutes;
-      groupMatchesCount = 0;
+      if (_mode == 'madness') {
+        groupMatchesCount = 0;
+      }
     }
 
     final int groupSlots = (groupMatchesCount / _courtCount).ceil();
@@ -284,10 +286,11 @@ class _TournamentSetupScreenState extends ConsumerState<TournamentSetupScreen> {
   Widget _buildSummaryStep() {
     final l10n = AppLocalizations.of(context)!;
     String modeLabel = _mode;
-    if (_mode == 'madness') modeLabel = 'Madness';
+    if (_mode == 'madness') modeLabel = l10n.madness;
     if (_mode == 'group_only') modeLabel = l10n.groupOnly;
     if (_mode == 'elimination_only') modeLabel = l10n.eliminationOnly;
     if (_mode == 'group_and_elimination') modeLabel = l10n.groupAndElimination;
+    if (_mode == 'league_madness') modeLabel = l10n.leagueMadness;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -688,7 +691,7 @@ class _TournamentSetupScreenState extends ConsumerState<TournamentSetupScreen> {
           _buildCustomScoringInputs(),
         ],
         
-        if (_mode != 'group_only') ...[
+        if (_mode != 'group_only' && _mode != 'madness' && _mode != 'league_madness') ...[
           const SizedBox(height: 16),
           SwitchListTile(
             title: Text(AppLocalizations.of(context)!.consolationFinals),
@@ -748,7 +751,7 @@ class _TournamentSetupScreenState extends ConsumerState<TournamentSetupScreen> {
           ),
         ),
 
-        if (_mode == 'group_only' || _mode == 'group_and_elimination') ...[
+        if (_mode == 'group_only' || _mode == 'group_and_elimination' || _mode == 'league_madness') ...[
           const SizedBox(height: 24),
           Container(
             padding: const EdgeInsets.all(16),
@@ -857,6 +860,7 @@ class _TournamentSetupScreenState extends ConsumerState<TournamentSetupScreen> {
         _buildModeOption('group_only', AppLocalizations.of(context)!.groupOnly, AppLocalizations.of(context)!.groupOnlySubtitle, Icons.table_chart),
         _buildModeOption('elimination_only', AppLocalizations.of(context)!.eliminationOnly, AppLocalizations.of(context)!.eliminationOnlySubtitle, Icons.account_tree),
         _buildModeOption('group_and_elimination', AppLocalizations.of(context)!.groupAndElimination, AppLocalizations.of(context)!.groupAndEliminationSubtitle, Icons.sports_basketball),
+        _buildModeOption('league_madness', AppLocalizations.of(context)!.leagueMadness, AppLocalizations.of(context)!.leagueMadnessSubtitle, Icons.electric_bolt),
         _buildModeOption('madness', AppLocalizations.of(context)!.madness, AppLocalizations.of(context)!.madnessSubtitle, Icons.flash_on),
       ],
     );
@@ -1097,10 +1101,27 @@ class _TournamentSetupScreenState extends ConsumerState<TournamentSetupScreen> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (_mode == 'madness' && _selectedTeamIds.isNotEmpty) ...[
-              Text(
-                '${AppLocalizations.of(context)!.teamOrder} (${AppLocalizations.of(context)!.dragToReorder})',
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(color: Colors.orange, fontWeight: FontWeight.bold),
+            if ((_mode == 'madness' || _mode == 'league_madness') && _selectedTeamIds.isNotEmpty) ...[
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      '${AppLocalizations.of(context)!.teamOrder} (${AppLocalizations.of(context)!.dragToReorder})',
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(color: Colors.orange, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  TextButton.icon(
+                    onPressed: () {
+                      setState(() {
+                        _selectedTeamIds = _selectedTeamIds.reversed.toList();
+                      });
+                    },
+                    icon: const Icon(Icons.swap_vert, size: 16),
+                    label: Text(AppLocalizations.of(context)!.invertAction, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                    style: TextButton.styleFrom(foregroundColor: Colors.orange),
+                  ),
+                ],
               ),
               const SizedBox(height: 8),
               Container(

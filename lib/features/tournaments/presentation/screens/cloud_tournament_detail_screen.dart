@@ -646,7 +646,7 @@ class _CloudTournamentDetailScreenState extends ConsumerState<CloudTournamentDet
             color: Colors.orange,
             onTap: () => context.push('/tournaments/${widget.cloudId}/bracket'),
           ),
-        if (mode == 'madness')
+        if (mode == 'madness' || mode == 'league_madness')
           _buildActionCard(
             context,
             icon: Icons.flash_on,

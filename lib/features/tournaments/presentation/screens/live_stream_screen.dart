@@ -100,9 +100,9 @@ class _LiveStreamScreenState extends ConsumerState<LiveStreamScreen> {
             youtubeVideoId: youtubeVideoId,
           ),
           _TournamentTicker(
-            text: tournament['customTicker']?.toString() ?? 
+            text: (tournament['customTicker']?.toString() ?? 
                   tournament['name']?.toString().toUpperCase() ?? 
-                  l10n.liveStream,
+                  l10n.liveStream).replaceAll('[REV_Q]', '').trim(),
           ),
           const SizedBox(height: 40),
         ],

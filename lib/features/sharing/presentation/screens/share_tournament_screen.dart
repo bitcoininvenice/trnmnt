@@ -36,6 +36,7 @@ class _ShareTournamentScreenState extends ConsumerState<ShareTournamentScreen> {
   final _youtubeController = TextEditingController();
   final _tickerController = TextEditingController();
   final _locationController = TextEditingController();
+  bool _isQueueReversed = false;
 
   @override
   void initState() {
@@ -68,7 +69,14 @@ class _ShareTournamentScreenState extends ConsumerState<ShareTournamentScreen> {
             _youtubeController.text = tournament.youtubeVideoId!;
           }
           if (tournament.customTicker != null) {
-            _tickerController.text = tournament.customTicker!;
+            String ticker = tournament.customTicker!;
+            if (ticker.contains('[REV_Q]')) {
+              _isQueueReversed = true;
+              _tickerController.text = ticker.replaceAll('[REV_Q]', '').trim();
+            } else {
+              _isQueueReversed = false;
+              _tickerController.text = ticker;
+            }
           }
         });
       }
@@ -96,7 +104,10 @@ class _ShareTournamentScreenState extends ConsumerState<ShareTournamentScreen> {
       
       final twitchChannel = _twitchController.text.trim();
       final youtubeVideoId = _youtubeController.text.trim();
-      final customTicker = _tickerController.text.trim();
+      String customTicker = _tickerController.text.trim();
+      if (_isQueueReversed && !customTicker.contains('[REV_Q]')) {
+        customTicker = '[REV_Q] $customTicker'.trim();
+      }
       final location = _locationController.text.trim();
       
       await tournamentsRepo.updateTournament(

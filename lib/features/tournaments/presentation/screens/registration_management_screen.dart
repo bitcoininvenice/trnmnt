@@ -74,6 +74,8 @@ class _RegistrationManagementScreenState extends ConsumerState<RegistrationManag
   Future<void> _createSettings() async {
     final l10n = AppLocalizations.of(context)!;
     final maxTeamsController = TextEditingController(text: '16');
+    final minPlayersController = TextEditingController(text: '3');
+    final maxPlayersController = TextEditingController(text: '5');
     bool showLunch = true;
     List<String> lunchOptions = ['Pranzo al Sacco', 'Chiosco Ambulante'];
 
@@ -96,6 +98,34 @@ class _RegistrationManagementScreenState extends ConsumerState<RegistrationManag
                   ),
                   keyboardType: TextInputType.number,
                   style: const TextStyle(color: Colors.white),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: minPlayersController,
+                        decoration: const InputDecoration(
+                          labelText: 'Min Players / Team',
+                          labelStyle: TextStyle(color: Colors.orange, fontSize: 12),
+                        ),
+                        keyboardType: TextInputType.number,
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: TextField(
+                        controller: maxPlayersController,
+                        decoration: const InputDecoration(
+                          labelText: 'Max Players / Team',
+                          labelStyle: TextStyle(color: Colors.orange, fontSize: 12),
+                        ),
+                        keyboardType: TextInputType.number,
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 16),
                 SwitchListTile(
@@ -154,6 +184,8 @@ class _RegistrationManagementScreenState extends ConsumerState<RegistrationManag
         await ref.read(shareRepositoryProvider).createRegistrationSettings(
           cloudId: widget.cloudId,
           maxTeams: int.tryParse(maxTeamsController.text) ?? 16,
+          playerCountMin: int.tryParse(minPlayersController.text) ?? 3,
+          playerCountMax: int.tryParse(maxPlayersController.text) ?? 5,
           showLunch: showLunch,
           lunchOptions: lunchOptions,
         );
@@ -174,6 +206,8 @@ class _RegistrationManagementScreenState extends ConsumerState<RegistrationManag
     
     final l10n = AppLocalizations.of(context)!;
     final maxTeamsController = TextEditingController(text: _settings!['max_teams'].toString());
+    final minPlayersController = TextEditingController(text: (_settings!['player_count_min'] ?? 3).toString());
+    final maxPlayersController = TextEditingController(text: (_settings!['player_count_max'] ?? 5).toString());
     bool showLunch = _settings!['show_lunch_options'] ?? true;
     List<String> lunchOptions = List<String>.from(_settings!['lunch_options'] ?? []);
 
@@ -196,6 +230,34 @@ class _RegistrationManagementScreenState extends ConsumerState<RegistrationManag
                   ),
                   keyboardType: TextInputType.number,
                   style: const TextStyle(color: Colors.white),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: minPlayersController,
+                        decoration: const InputDecoration(
+                          labelText: 'Min Players / Team',
+                          labelStyle: TextStyle(color: Colors.orange, fontSize: 12),
+                        ),
+                        keyboardType: TextInputType.number,
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: TextField(
+                        controller: maxPlayersController,
+                        decoration: const InputDecoration(
+                          labelText: 'Max Players / Team',
+                          labelStyle: TextStyle(color: Colors.orange, fontSize: 12),
+                        ),
+                        keyboardType: TextInputType.number,
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 16),
                 SwitchListTile(
@@ -254,6 +316,8 @@ class _RegistrationManagementScreenState extends ConsumerState<RegistrationManag
         await ref.read(shareRepositoryProvider).createRegistrationSettings(
           cloudId: widget.cloudId,
           maxTeams: int.tryParse(maxTeamsController.text) ?? 16,
+          playerCountMin: int.tryParse(minPlayersController.text) ?? 3,
+          playerCountMax: int.tryParse(maxPlayersController.text) ?? 5,
           showLunch: showLunch,
           lunchOptions: lunchOptions,
         );

@@ -192,12 +192,14 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
               },
             ),
           
-          if (!_isSelectionMode && tournament != null && tournament.isActive && (tournament.mode == 'group_only' || tournament.mode == 'madness'))
-            IconButton(
-              icon: const Icon(FontAwesomeIcons.trophy, color: Colors.orange, size: 20),
-              tooltip: 'Finalizza torneo',
-              onPressed: () => _finalizeTournament(context, ref, tournament),
-            ),
+          if (!_isSelectionMode && tournament != null && tournament.isActive)
+            if (!((tournament.groupCount ?? 1) > 1 && tournament.mode != 'league_madness'))
+              if (tournament.mode == 'group_only' || tournament.mode == 'madness' || tournament.mode == 'league_madness')
+                IconButton(
+                  icon: const Icon(FontAwesomeIcons.trophy, color: Colors.orange, size: 20),
+                  tooltip: 'Finalizza torneo',
+                  onPressed: () => _finalizeTournament(context, ref, tournament),
+                ),
         ],
       ),
       body: matchesAsync.when(

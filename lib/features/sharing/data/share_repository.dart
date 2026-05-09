@@ -144,13 +144,14 @@ class ShareRepository {
     }
   }
 
-  Future<Map<String, dynamic>?> getTournamentExport(int tournamentId) async {
+  Future<Map<String, dynamic>?> getTournamentExport(int tournamentId, {List<int>? madnessQueue}) async {
     final tournament = await (_db.select(_db.tournaments)..where((t) => t.id.equals(tournamentId))).getSingleOrNull();
     if (tournament == null) return null;
 
     final teamsQuery = _db.select(_db.tournamentTeams).join([
       innerJoin(_db.teams, _db.teams.id.equalsExp(_db.tournamentTeams.teamId)),
-    ])..where(_db.tournamentTeams.tournamentId.equals(tournamentId));
+    ])..where(_db.tournamentTeams.tournamentId.equals(tournamentId))
+      ..orderBy([OrderingTerm.asc(_db.tournamentTeams.seed)]);
 
     final teamsRows = await teamsQuery.get();
     final exportTeams = teamsRows.map((row) {
@@ -196,22 +197,28 @@ class ShareRepository {
       tournamentMap['communityName'] = activeCommunity.name;
     }
 
+    if (tournament.mode == 'league_madness') {
+      final hasMadnessMatches = matches.any((m) => m.phase == 'madness' || m.phase == 'final' || m.phase == 'semifinale_spareggio');
+      tournamentMap['phase'] = hasMadnessMatches ? 'madness' : 'league';
+    }
+
     return {
       'tournament': tournamentMap,
       'teams': exportTeams,
       'matches': exportMatches,
       'exportedAt': DateTime.now().toIso8601String(),
+      if (madnessQueue != null) 'madnessQueue': madnessQueue,
     };
   }
 
-  Future<String?> publishToSupabase(int tournamentId) async {
-    final result = await publishToSupabaseFull(tournamentId);
+  Future<String?> publishToSupabase(int tournamentId, {List<int>? madnessQueue}) async {
+    final result = await publishToSupabaseFull(tournamentId, madnessQueue: madnessQueue);
     return result?.url;
   }
 
-  Future<({String url, String cloudId})?> publishToSupabaseFull(int tournamentId) async {
+  Future<({String url, String cloudId})?> publishToSupabaseFull(int tournamentId, {List<int>? madnessQueue}) async {
     final tournament = await (_db.select(_db.tournaments)..where((t) => t.id.equals(tournamentId))).getSingle();
-    final export = await getTournamentExport(tournamentId);
+    final export = await getTournamentExport(tournamentId, madnessQueue: madnessQueue);
     if (export == null) return null;
 
     final supabase = Supabase.instance.client;
@@ -431,6 +438,15 @@ class ShareRepository {
     }
   }
 
+  Future<void> clearAllLiveMatches(String cloudId) async {
+    try {
+      final supabase = Supabase.instance.client;
+      await supabase.from('live_matches').delete().eq('tournament_id', cloudId);
+    } catch (e) {
+      // Silent error
+    }
+  }
+
   /// Sends a special event (bomba, buzzer beater, etc) to Supabase for web animations
   Future<void> sendMatchEvent({
     required String cloudId,
@@ -471,6 +487,8 @@ class ShareRepository {
     required int maxTeams,
     required bool showLunch,
     required List<String> lunchOptions,
+    int playerCountMin = 3,
+    int playerCountMax = 5,
   }) async {
     try {
       final supabase = Supabase.instance.client;
@@ -481,6 +499,8 @@ class ShareRepository {
         'is_active': true,
         'show_lunch_options': showLunch,
         'lunch_options': lunchOptions,
+        'player_count_min': playerCountMin,
+        'player_count_max': playerCountMax,
       };
 
       final response = await supabase

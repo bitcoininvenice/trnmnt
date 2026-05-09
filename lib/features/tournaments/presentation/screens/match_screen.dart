@@ -12,6 +12,8 @@ import '../../../sharing/data/share_repository.dart';
 import '../../../game/providers/game_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:trnmnt/generated/l10n/app_localizations.dart';
+import '../../domain/madness_logic.dart';
+import 'standings_screen.dart';
 
 /// Provider for a single match by ID (only for tournament matches)
 final matchByIdProvider = FutureProvider.family<MatchWithTeams?, int>((ref, matchId) async {
@@ -621,7 +623,48 @@ class _LiveMatchView extends ConsumerWidget {
                             onPressed: () async {
                               onFinished();
                               Navigator.pop(context);
-                              notifier.finishGame();
+                              await notifier.finishGame();
+                              
+                              // Always publish if the tournament is published
+                              if (tournamentId != null && isPublished) {
+                                // Force refresh to get latest results locally before publishing
+                                await ref.refresh(tournamentMatchesProvider(tournamentId).future);
+                                await ref.refresh(standingsProvider(tournamentId).future);
+                                
+                                final tourney = await ref.read(tournamentByIdProvider(tournamentId).future);
+                                List<int>? queueIds;
+
+                                // If it's a madness mode, calculate the queue to include it in the publish
+                                if (tourney?.mode == 'madness' || tourney?.mode == 'league_madness') {
+                                  final teams = await ref.read(tournamentTeamsProvider(tournamentId).future);
+                                  final matches = await ref.read(tournamentMatchesProvider(tournamentId).future);
+                                  final madnessMatches = matches.where((m) => m.match.phase == 'madness' && m.match.isCompleted).toList();
+                                  final standings = (tourney?.mode == 'league_madness') 
+                                      ? await ref.read(standingsProvider(tournamentId).future) 
+                                      : null;
+                                  
+                                  final sortedTeams = MadnessLogic.getSortedTeams(
+                                    teams: teams, 
+                                    tournament: tourney, 
+                                    standings: standings,
+                                  );
+                                  
+                                  final state = MadnessLogic.calculateCurrentState(sortedTeams, madnessMatches);
+                                  
+                                  queueIds = [];
+                                  if (state.king != null) queueIds.add(state.king!.team.id!);
+                                  if (state.challenger != null) queueIds.add(state.challenger!.team.id!);
+                                  for (var t in state.queue) {
+                                    if (t.team.id != null) queueIds.add(t.team.id!);
+                                  }
+                                }
+
+                                // Final publish to cloud
+                                await ref.read(shareRepositoryProvider).publishToSupabase(
+                                  tournamentId,
+                                  madnessQueue: queueIds,
+                                );
+                              }
                             }, 
                             color: Colors.blue, 
                             size: 56
@@ -643,6 +686,63 @@ class _LiveMatchView extends ConsumerWidget {
 class _LiveMatchTimer extends ConsumerWidget {
   const _LiveMatchTimer();
 
+  void _showManualTimerDialog(BuildContext context, WidgetRef ref) {
+    final notifier = ref.read(activeGameProvider.notifier);
+    final currentState = ref.read(activeGameProvider);
+    final currentMins = currentState.remainingSeconds ~/ 60;
+    final currentSecs = currentState.remainingSeconds % 60;
+
+    final minsController = TextEditingController(text: currentMins.toString());
+    final secsController = TextEditingController(text: currentSecs.toString().padLeft(2, '0'));
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A1A),
+        title: const Text('IMPOSTA TIMER', style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontFamily: 'monospace')),
+        content: Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: minsController,
+                keyboardType: TextInputType.number,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold, fontFamily: 'monospace'),
+                decoration: const InputDecoration(labelText: 'MIN', labelStyle: TextStyle(color: Colors.white54, fontSize: 10)),
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(2)],
+              ),
+            ),
+            const Text(':', style: TextStyle(color: Colors.white54, fontSize: 32, fontWeight: FontWeight.bold)),
+            Expanded(
+              child: TextField(
+                controller: secsController,
+                keyboardType: TextInputType.number,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold, fontFamily: 'monospace'),
+                decoration: const InputDecoration(labelText: 'SEC', labelStyle: TextStyle(color: Colors.white54, fontSize: 10)),
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(2)],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('ANNULLA', style: TextStyle(color: Colors.white54))),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+            onPressed: () {
+              final mins = int.tryParse(minsController.text) ?? 0;
+              final secs = int.tryParse(secsController.text) ?? 0;
+              final total = (mins * 60) + (secs > 59 ? 59 : secs);
+              notifier.updateRemainingSeconds(total);
+              Navigator.pop(context);
+            },
+            child: const Text('CONFERMA'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final formattedTime = ref.watch(activeGameProvider.select((s) => s.formattedTime));
@@ -651,18 +751,21 @@ class _LiveMatchTimer extends ConsumerWidget {
     
     final timerColor = isFinished ? Colors.red : (isRunning ? Colors.green : Colors.blue);
     
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade900,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: timerColor.withValues(alpha: 0.5), width: 2),
-      ),
-      child: Text(
-        formattedTime,
-        style: TextStyle(fontSize: 64, fontWeight: FontWeight.bold, fontFamily: 'monospace', color: timerColor),
-      ),
-    ).animate(target: isFinished ? 1 : 0).shake().shimmer();
+    return GestureDetector(
+      onTap: () => _showManualTimerDialog(context, ref),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+        decoration: BoxDecoration(
+          color: Colors.grey.shade900,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: timerColor.withValues(alpha: 0.5), width: 2),
+        ),
+        child: Text(
+          formattedTime,
+          style: TextStyle(fontSize: 64, fontWeight: FontWeight.bold, fontFamily: 'monospace', color: timerColor),
+        ),
+      ).animate(target: isFinished ? 1 : 0).shake().shimmer(),
+    );
   }
 }
 

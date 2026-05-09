@@ -283,6 +283,16 @@ class GameNotifier extends StateNotifier<GameState> {
     _syncToLive(newState, force: true);
   }
 
+  void updateRemainingSeconds(int seconds) {
+    if (_isDisposed) return;
+    final newState = state.copyWith(
+      remainingSeconds: seconds,
+      isFinished: seconds <= 0,
+    );
+    _updateState(newState);
+    _syncToLive(newState, force: true);
+  }
+
   void setDuration(int minutes) {
     if (_isDisposed || state.isRunning) return;
     final seconds = minutes * 60;
@@ -424,7 +434,7 @@ class GameNotifier extends StateNotifier<GameState> {
         final tournament = await _ref.read(tournamentByIdProvider(tournamentId).future);
         if (tournament?.cloudId != null) {
           _ref.read(shareRepositoryProvider).clearLiveMatch(tournament!.cloudId!, state.matchId!).catchError((_) => null);
-          _ref.read(shareRepositoryProvider).publishToSupabase(tournamentId).catchError((_) => null);
+          // REMOVED: publishToSupabase(tournamentId) - handled by UI screens to include madnessQueue
         }
       }
     } else if (state.isPublic && state.standaloneUuid != null && !state.isHistorySaved) {

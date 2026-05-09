@@ -586,36 +586,78 @@ class _BracketScreenState extends ConsumerState<BracketScreen> {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
       ),
-      child: InkWell(
-        onTap: () {
-          if (match.matchId != null) {
-            context.pushNamed('match-detail', pathParameters: {
-              'tournamentId': widget.tournamentId.toString(),
-              'matchId': match.matchId.toString(),
-            });
-          }
-        },
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildTeamRow(context, match.homeTeam, match.homeScore, homeWon, match.matchId, true),
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 4),
-                child: Divider(height: 1, color: Colors.white10),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          InkWell(
+            onTap: () {
+              if (match.matchId != null) {
+                context.pushNamed('match-detail', pathParameters: {
+                  'tournamentId': widget.tournamentId.toString(),
+                  'matchId': match.matchId.toString(),
+                });
+              }
+            },
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildTeamRow(context, match.homeTeam, match.homeScore, homeWon, match.matchId, true),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 4),
+                    child: Divider(height: 1, color: Colors.white10),
+                  ),
+                  _buildTeamRow(context, match.awayTeam, match.awayScore, awayWon, match.matchId, false),
+                ],
               ),
-              _buildTeamRow(context, match.awayTeam, match.awayScore, awayWon, match.matchId, false),
-            ],
+            ),
           ),
-        ),
+          
+          // Basketball Action Button
+          if (match.matchId != null && !_isGuest && match.homeTeam != null && match.awayTeam != null && !match.isCompleted)
+            Positioned(
+              right: -20,
+              top: 0,
+              bottom: 0,
+              child: GestureDetector(
+                  onTap: () {
+                    context.pushNamed('match-detail', pathParameters: {
+                      'tournamentId': widget.tournamentId.toString(),
+                      'matchId': match.matchId.toString(),
+                    });
+                  },
+                  child:Center(
+                child:  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.orange,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.orange.withValues(alpha: 0.4),
+                          blurRadius: 8,
+                          spreadRadius: 2,
+                        ),
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.sports_basketball,
+                      size: 20,
+                      color: Colors.white,
+                    ),
+                  ).animate(onPlay: (c) => c.repeat()).shimmer(duration: 3.seconds),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
 
   Widget _buildTeamRow(BuildContext context, String? teamName, int? score, bool isWinner, int? matchId, bool isHome) {
     return InkWell(
-      onLongPress: (matchId == null || _isGuest) ? null : () => _showTeamPicker(context, matchId, isHome),
+      onTap: (matchId == null || _isGuest) ? null : () => _showTeamPicker(context, matchId, isHome),
       borderRadius: BorderRadius.circular(4),
       child: SizedBox(
         height: 24,
@@ -698,6 +740,12 @@ class _BracketScreenState extends ConsumerState<BracketScreen> {
     }
     
     ref.invalidate(bracketProvider(_localId!));
+
+    // Auto-sync back to cloud if published
+    final tournament = await ref.read(tournamentByIdProvider(_localId!).future);
+    if (tournament != null && tournament.isPublished) {
+      await ref.read(shareRepositoryProvider).publishToSupabase(_localId!);
+    }
   }
 
   String _getPhaseLabel(String phase) {

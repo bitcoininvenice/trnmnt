@@ -213,7 +213,7 @@ class CommunityRepository {
             .update({'owner_id': null})
             .eq('id', communityId);
       } catch (e) {
-        print('Cloud disassociation failed: $e');
+        // Silently fail or use a proper logging service in production
       }
     }
 

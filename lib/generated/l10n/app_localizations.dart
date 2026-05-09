@@ -666,6 +666,12 @@ abstract class AppLocalizations {
   /// **'Campionato & Playoff'**
   String get groupAndElimination;
 
+  /// No description provided for @leagueMadness.
+  ///
+  /// In it, this message translates to:
+  /// **'Campionato & Madness'**
+  String get leagueMadness;
+
   /// No description provided for @madness.
   ///
   /// In it, this message translates to:
@@ -1013,6 +1019,12 @@ abstract class AppLocalizations {
   /// In it, this message translates to:
   /// **'Campionato poi Playoff'**
   String get groupAndEliminationSubtitle;
+
+  /// No description provided for @leagueMadnessSubtitle.
+  ///
+  /// In it, this message translates to:
+  /// **'Gironi poi Madness'**
+  String get leagueMadnessSubtitle;
 
   /// No description provided for @madnessSubtitle.
   ///
@@ -2303,6 +2315,84 @@ abstract class AppLocalizations {
   /// In it, this message translates to:
   /// **'RIPROVA'**
   String get retry;
+
+  /// No description provided for @invertAction.
+  ///
+  /// In it, this message translates to:
+  /// **'INVERTI'**
+  String get invertAction;
+
+  /// No description provided for @startMadnessPhase.
+  ///
+  /// In it, this message translates to:
+  /// **'AVVIA FASE MADNESS'**
+  String get startMadnessPhase;
+
+  /// No description provided for @nextChallengers.
+  ///
+  /// In it, this message translates to:
+  /// **'Prossimi Sfidanti'**
+  String get nextChallengers;
+
+  /// No description provided for @kingOfTheCourt.
+  ///
+  /// In it, this message translates to:
+  /// **'KING OF THE COURT'**
+  String get kingOfTheCourt;
+
+  /// No description provided for @enterResult.
+  ///
+  /// In it, this message translates to:
+  /// **'INSERISCI RISULTATO'**
+  String get enterResult;
+
+  /// No description provided for @finalize.
+  ///
+  /// In it, this message translates to:
+  /// **'FINALIZZA'**
+  String get finalize;
+
+  /// No description provided for @recentMatches.
+  ///
+  /// In it, this message translates to:
+  /// **'Partite Recenti'**
+  String get recentMatches;
+
+  /// No description provided for @playbackMatch.
+  ///
+  /// In it, this message translates to:
+  /// **'Spareggio'**
+  String get playbackMatch;
+
+  /// No description provided for @grandFinal.
+  ///
+  /// In it, this message translates to:
+  /// **'Finalissima'**
+  String get grandFinal;
+
+  /// No description provided for @winnerTitle.
+  ///
+  /// In it, this message translates to:
+  /// **'VINCITORE'**
+  String get winnerTitle;
+
+  /// No description provided for @playoffsTitle.
+  ///
+  /// In it, this message translates to:
+  /// **'PLAYOFF'**
+  String get playoffsTitle;
+
+  /// No description provided for @playAction.
+  ///
+  /// In it, this message translates to:
+  /// **'GIOCA'**
+  String get playAction;
+
+  /// No description provided for @madnessMinTeamsError.
+  ///
+  /// In it, this message translates to:
+  /// **'Servono almeno 2 squadre per la Madness!'**
+  String get madnessMinTeamsError;
 }
 
 class _AppLocalizationsDelegate

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:collection/collection.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'dart:convert';
@@ -112,7 +113,15 @@ final standingsProvider = FutureProvider.family<Map<int, List<StandingEntry>>, i
         if (pointsComp != 0) return pointsComp;
         final diffComp = b.pointsDiff.compareTo(a.pointsDiff);
         if (diffComp != 0) return diffComp;
-        return b.pointsFor.compareTo(a.pointsFor);
+        final pointsForComp = b.pointsFor.compareTo(a.pointsFor);
+        if (pointsForComp != 0) return pointsForComp;
+
+        // Final tie-breaker: administrative seed from the tournament_teams table
+        final ttA = teamsAsync.firstWhereOrNull((t) => t.team.id == a.teamId);
+        final ttB = teamsAsync.firstWhereOrNull((t) => t.team.id == b.teamId);
+        final seedA = ttA?.tournamentTeam.seed ?? 0;
+        final seedB = ttB?.tournamentTeam.seed ?? 0;
+        return seedA.compareTo(seedB);
       });
     result[entry.key] = sorted;
   }

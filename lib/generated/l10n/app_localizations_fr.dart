@@ -310,6 +310,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get groupAndElimination => 'Ligue & Playoff';
 
   @override
+  String get leagueMadness => 'Ligue + Madness';
+
+  @override
   String get madness => 'Madness';
 
   @override
@@ -498,6 +501,9 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get groupAndEliminationSubtitle => 'Phase de groupes puis Playoff';
+
+  @override
+  String get leagueMadnessSubtitle => 'Phase de groupes puis Winner Stays On';
 
   @override
   String get madnessSubtitle => 'Le gagnant reste, haute intensité !';
@@ -1179,4 +1185,44 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get retry => 'RÉESSAYER';
+
+  @override
+  String get invertAction => 'INVERSER';
+
+  @override
+  String get startMadnessPhase => 'LANCER LA PHASE MADNESS';
+
+  @override
+  String get nextChallengers => 'Prochains Challengers';
+
+  @override
+  String get kingOfTheCourt => 'ROI DU TERRAIN';
+
+  @override
+  String get enterResult => 'SAISIR RÉSULTAT';
+
+  @override
+  String get finalize => 'FINALISER';
+
+  @override
+  String get recentMatches => 'Matchs Récents';
+
+  @override
+  String get playbackMatch => 'Match d\'Appui';
+
+  @override
+  String get grandFinal => 'Grande Finale';
+
+  @override
+  String get winnerTitle => 'VAINQUEUR';
+
+  @override
+  String get playoffsTitle => 'PLAYOFFS';
+
+  @override
+  String get playAction => 'JOUER';
+
+  @override
+  String get madnessMinTeamsError =>
+      'Il faut au moins 2 équipes pour la Madness !';
 }

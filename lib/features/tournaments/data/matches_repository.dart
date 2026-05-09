@@ -164,8 +164,8 @@ class MatchesRepository {
   Future<bool> updateMatchTeams(int matchId, {int? homeTeamId, int? awayTeamId}) async {
     return await (_db.update(_db.matches)..where((m) => m.id.equals(matchId))).write(
       MatchesCompanion(
-        homeTeamId: Value(homeTeamId),
-        awayTeamId: Value(awayTeamId),
+        homeTeamId: homeTeamId != null ? Value(homeTeamId) : const Value.absent(),
+        awayTeamId: awayTeamId != null ? Value(awayTeamId) : const Value.absent(),
       ),
     ) > 0;
   }

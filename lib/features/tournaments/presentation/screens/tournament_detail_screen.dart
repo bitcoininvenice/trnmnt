@@ -563,7 +563,7 @@ class _TournamentDetailScreenState extends ConsumerState<TournamentDetailScreen>
     final mode = tournament.mode;
     final actions = <Widget>[];
 
-    if (mode == 'group_only' || mode == 'group_and_elimination') {
+    if (mode == 'group_only' || mode == 'group_and_elimination' || mode == 'league_madness') {
       actions.add(_buildActionCard(
         context,
         icon: Icons.calendar_month,
@@ -585,7 +585,7 @@ class _TournamentDetailScreenState extends ConsumerState<TournamentDetailScreen>
     final isEliminationMode = mode == 'elimination_only' || mode == 'group_and_elimination';
     final hasMultiGroups = (tournament.groupCount ?? 1) > 1;
     
-    if (isEliminationMode || hasMultiGroups) {
+    if (isEliminationMode || (hasMultiGroups && mode != 'league_madness')) {
       actions.add(_buildActionCard(
         context,
         icon: Icons.account_tree,
@@ -596,7 +596,7 @@ class _TournamentDetailScreenState extends ConsumerState<TournamentDetailScreen>
       ));
     }
 
-    if (mode == 'madness') {
+    if (mode == 'madness' || mode == 'league_madness') {
       actions.add(_buildActionCard(
         context,
         icon: Icons.flash_on,

@@ -307,6 +307,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get groupAndElimination => 'League & Playoff';
 
   @override
+  String get leagueMadness => 'League + Madness';
+
+  @override
   String get madness => 'Madness';
 
   @override
@@ -493,6 +496,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get groupAndEliminationSubtitle => 'Group stage then playoffs';
+
+  @override
+  String get leagueMadnessSubtitle => 'Group stage then Winner Stays On';
 
   @override
   String get madnessSubtitle => 'Winner stays, high intensity!';
@@ -1172,4 +1178,43 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get retry => 'RETRY';
+
+  @override
+  String get invertAction => 'INVERT';
+
+  @override
+  String get startMadnessPhase => 'START MADNESS PHASE';
+
+  @override
+  String get nextChallengers => 'Next Challengers';
+
+  @override
+  String get kingOfTheCourt => 'KING OF THE COURT';
+
+  @override
+  String get enterResult => 'ENTER RESULT';
+
+  @override
+  String get finalize => 'FINALIZE';
+
+  @override
+  String get recentMatches => 'Recent Matches';
+
+  @override
+  String get playbackMatch => 'Playback Match';
+
+  @override
+  String get grandFinal => 'Grand Final';
+
+  @override
+  String get winnerTitle => 'WINNER';
+
+  @override
+  String get playoffsTitle => 'PLAYOFFS';
+
+  @override
+  String get playAction => 'PLAY';
+
+  @override
+  String get madnessMinTeamsError => 'Need at least 2 teams for Madness!';
 }

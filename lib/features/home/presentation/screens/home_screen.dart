@@ -591,15 +591,22 @@ class _WideCloudTournamentCard extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                   Expanded(
-                    child: Text(
-                      tournamentMap['name']?.toString().toUpperCase() ?? l10n.tournaments.toUpperCase(),
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
-                      overflow: TextOverflow.ellipsis,
+                    Expanded(
+                      child: Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              tournamentMap['name']?.toString().toUpperCase() ?? l10n.tournaments.toUpperCase(),
+                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          TournamentStatusBadge(data: data),
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  const Icon(Icons.chevron_right, color: Colors.grey),
+                    const Icon(Icons.chevron_right, color: Colors.grey),
                 ],
               ),
               const SizedBox(height: 8),
