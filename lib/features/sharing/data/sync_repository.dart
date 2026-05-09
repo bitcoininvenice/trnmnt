@@ -27,13 +27,13 @@ class SyncRepository {
     try {
       final response = await supabase
           .from('published_tournaments')
-          .select('data')
+          .select('data, description')
           .eq('id', cloudId)
           .maybeSingle();
 
 
       if (response != null && response['data'] != null) {
-        await _handleCloudUpdate(tournamentId, response['data'] as Map<String, dynamic>);
+        await _handleCloudUpdate(tournamentId, response['data'] as Map<String, dynamic>, description: response['description'] as String?);
       }
     } catch (e) {
       // Ignore errors, realtime will handle it if possible
@@ -53,8 +53,9 @@ class SyncRepository {
           ),
           callback: (payload) {
             final data = payload.newRecord['data'] as Map<String, dynamic>?;
+            final description = payload.newRecord['description'] as String?;
             if (data != null) {
-              _handleCloudUpdate(tournamentId, data);
+              _handleCloudUpdate(tournamentId, data, description: description);
             }
           },
         )
@@ -66,7 +67,7 @@ class SyncRepository {
     _subscription = null;
   }
 
-  Future<void> _handleCloudUpdate(int tournamentId, Map<String, dynamic> data) async {
+  Future<void> _handleCloudUpdate(int tournamentId, Map<String, dynamic> data, {String? description}) async {
     if (_isSyncBlocked) {
       return;
     }
@@ -85,7 +86,19 @@ class SyncRepository {
         name: Value(tournamentData['name']),
         location: Value(tournamentData['location']),
         mode: Value(tournamentData['mode']),
+        startDate: Value(tournamentData['startDate'] != null ? DateTime.tryParse(tournamentData['startDate']) : null),
+        endDate: Value(tournamentData['endDate'] != null ? DateTime.tryParse(tournamentData['endDate']) : null),
+        description: Value(description ?? tournamentData['description']),
+        venueCourtId: Value(tournamentData['venue_court_id'] ?? tournamentData['venueCourtId']),
+        scoringSystem: Value(tournamentData['scoringSystem']),
+        winPoints: Value(tournamentData['winPoints'] ?? 2),
+        drawPoints: Value(tournamentData['drawPoints'] ?? 0),
+        lossPoints: Value(tournamentData['lossPoints'] ?? 1),
+        timerMinutes: Value(tournamentData['timerMinutes'] ?? 10),
         isActive: Value(tournamentData['isActive'] ?? true),
+        twitchChannel: Value(tournamentData['twitchChannel']),
+        youtubeVideoId: Value(tournamentData['youtubeVideoId']),
+        customTicker: Value(tournamentData['customTicker']),
         groupCount: Value(tournamentData['groupCount'] ?? 1),
       ),
     );

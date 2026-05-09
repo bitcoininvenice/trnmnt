@@ -446,10 +446,11 @@ class _TournamentDetailScreenState extends ConsumerState<TournamentDetailScreen>
                             AppLocalizations.of(context)!.manualParticipants,
                             style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 1.2),
                           ),
-                          TextButton(
-                            onPressed: () => context.push('/tournaments/${widget.tournamentId}/edit'),
-                            child: Text(AppLocalizations.of(context)!.edit.toUpperCase(), style: const TextStyle(color: Colors.orange, fontSize: 12, fontWeight: FontWeight.bold)),
-                          ),
+                          if (!tournament.isReadOnly)
+                            TextButton(
+                              onPressed: () => context.push('/tournaments/${widget.tournamentId}/edit'),
+                              child: Text(AppLocalizations.of(context)!.edit.toUpperCase(), style: const TextStyle(color: Colors.orange, fontSize: 12, fontWeight: FontWeight.bold)),
+                            ),
                         ],
                       ),
                       const SizedBox(height: 8),

@@ -112,11 +112,12 @@ class ShareRepository {
       // 1. Fetch tournament data and community ID
       final response = await supabase
           .from('published_tournaments')
-          .select('data, community_id')
+          .select('data, community_id, description')
           .eq('id', cloudId)
           .single();
       
       final Map<String, dynamic> data = Map<String, dynamic>.from(response['data'] as Map);
+      data['description'] = response['description']; // Injected from top-level column
       final String? communityId = response['community_id'];
 
       // 2. If communityId is present but name is missing in JSON, fetch it from cloud communities table

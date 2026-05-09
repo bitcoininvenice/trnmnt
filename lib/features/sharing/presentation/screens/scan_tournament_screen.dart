@@ -106,6 +106,10 @@ class _ScanTournamentScreenState extends ConsumerState<ScanTournamentScreen> {
         name: importName,
         location: tournamentData['location'],
         mode: drift.Value(tournamentData['mode']),
+        startDate: drift.Value(tournamentData['startDate'] != null ? DateTime.tryParse(tournamentData['startDate']) : null),
+        endDate: drift.Value(tournamentData['endDate'] != null ? DateTime.tryParse(tournamentData['endDate']) : null),
+        description: drift.Value(data['description'] ?? tournamentData['description']), // Check both levels
+        venueCourtId: drift.Value(tournamentData['venue_court_id'] ?? tournamentData['venueCourtId']),
         scoringSystem: drift.Value(tournamentData['scoringSystem']),
         winPoints: drift.Value(tournamentData['winPoints']),
         drawPoints: drift.Value(tournamentData['drawPoints']),
@@ -113,7 +117,10 @@ class _ScanTournamentScreenState extends ConsumerState<ScanTournamentScreen> {
         includeConsolationFinals: drift.Value(tournamentData['includeConsolationFinals']),
         timerMinutes: drift.Value(tournamentData['timerMinutes']),
         isActive: drift.Value(tournamentData['isActive']),
-        isReadOnly: const drift.Value(false), // ALLOW EDITING for co-management
+        twitchChannel: drift.Value(tournamentData['twitchChannel']),
+        youtubeVideoId: drift.Value(tournamentData['youtubeVideoId']),
+        customTicker: drift.Value(tournamentData['customTicker']),
+        isReadOnly: const drift.Value(true), // READ ONLY for co-management (viewer mode)
         cloudId: drift.Value(cloudId),
         isPublished: const drift.Value(true),
         webUrl: drift.Value(tournamentData['webUrl']),
