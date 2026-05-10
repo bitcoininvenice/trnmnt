@@ -2393,6 +2393,504 @@ abstract class AppLocalizations {
   /// In it, this message translates to:
   /// **'Servono almeno 2 squadre per la Madness!'**
   String get madnessMinTeamsError;
+
+  /// No description provided for @matchesSelected.
+  ///
+  /// In it, this message translates to:
+  /// **'{count} selezionate'**
+  String matchesSelected(int count);
+
+  /// No description provided for @addMatch.
+  ///
+  /// In it, this message translates to:
+  /// **'Aggiungi partita'**
+  String get addMatch;
+
+  /// No description provided for @generateAutomatic.
+  ///
+  /// In it, this message translates to:
+  /// **'Genera automatico'**
+  String get generateAutomatic;
+
+  /// No description provided for @generateCalendar.
+  ///
+  /// In it, this message translates to:
+  /// **'Genera Calendario'**
+  String get generateCalendar;
+
+  /// No description provided for @generateCalendarPrompt.
+  ///
+  /// In it, this message translates to:
+  /// **'Vuoi generare solo l\'andata o anche il ritorno?'**
+  String get generateCalendarPrompt;
+
+  /// No description provided for @onlyOneWay.
+  ///
+  /// In it, this message translates to:
+  /// **'Solo Andata'**
+  String get onlyOneWay;
+
+  /// No description provided for @roundTrip.
+  ///
+  /// In it, this message translates to:
+  /// **'Andata e Ritorno'**
+  String get roundTrip;
+
+  /// No description provided for @deleteSelected.
+  ///
+  /// In it, this message translates to:
+  /// **'Elimina selezionate'**
+  String get deleteSelected;
+
+  /// No description provided for @deleteCalendar.
+  ///
+  /// In it, this message translates to:
+  /// **'Elimina calendario'**
+  String get deleteCalendar;
+
+  /// No description provided for @deleteMatches.
+  ///
+  /// In it, this message translates to:
+  /// **'Elimina partite'**
+  String get deleteMatches;
+
+  /// No description provided for @deleteAllMatchesConfirm.
+  ///
+  /// In it, this message translates to:
+  /// **'Questo cancellerà TUTTO il calendario esistente. Continuare?'**
+  String get deleteAllMatchesConfirm;
+
+  /// No description provided for @deleteSelectedMatchesConfirm.
+  ///
+  /// In it, this message translates to:
+  /// **'Vuoi eliminare le {count} partite selezionate?'**
+  String deleteSelectedMatchesConfirm(int count);
+
+  /// No description provided for @deleteAll.
+  ///
+  /// In it, this message translates to:
+  /// **'Elimina tutto'**
+  String get deleteAll;
+
+  /// No description provided for @finalizeTournamentTitle.
+  ///
+  /// In it, this message translates to:
+  /// **'Finalizza Torneo'**
+  String get finalizeTournamentTitle;
+
+  /// No description provided for @finalizeTournamentConfirm.
+  ///
+  /// In it, this message translates to:
+  /// **'Sei sicuro di voler chiudere il torneo?'**
+  String get finalizeTournamentConfirm;
+
+  /// No description provided for @currentWinnerLabel.
+  ///
+  /// In it, this message translates to:
+  /// **'VINCITORE ATTUALE:'**
+  String get currentWinnerLabel;
+
+  /// No description provided for @readOnlyWarning.
+  ///
+  /// In it, this message translates to:
+  /// **'Il torneo diventerà di sola lettura.'**
+  String get readOnlyWarning;
+
+  /// No description provided for @confirmAndFinalize.
+  ///
+  /// In it, this message translates to:
+  /// **'CONFERMA E FINALIZZA'**
+  String get confirmAndFinalize;
+
+  /// No description provided for @matchDayX.
+  ///
+  /// In it, this message translates to:
+  /// **'Giornata {round}'**
+  String matchDayX(int round);
+
+  /// No description provided for @guestCalendar.
+  ///
+  /// In it, this message translates to:
+  /// **'Calendario (Ospite)'**
+  String get guestCalendar;
+
+  /// No description provided for @noMatchesFound.
+  ///
+  /// In it, this message translates to:
+  /// **'Nessuna partita'**
+  String get noMatchesFound;
+
+  /// No description provided for @generateCalendarToStart.
+  ///
+  /// In it, this message translates to:
+  /// **'Genera il calendario per iniziare'**
+  String get generateCalendarToStart;
+
+  /// No description provided for @deleteMatch.
+  ///
+  /// In it, this message translates to:
+  /// **'Elimina partita'**
+  String get deleteMatch;
+
+  /// No description provided for @deleteMatchConfirm.
+  ///
+  /// In it, this message translates to:
+  /// **'Vuoi eliminare questa partita dal calendario?'**
+  String get deleteMatchConfirm;
+
+  /// No description provided for @noStandingsToFinalize.
+  ///
+  /// In it, this message translates to:
+  /// **'Nessuna squadra in classifica. Impossibile finalizzare.'**
+  String get noStandingsToFinalize;
+
+  /// No description provided for @noWinnerFound.
+  ///
+  /// In it, this message translates to:
+  /// **'Nessun vincitore trovato.'**
+  String get noWinnerFound;
+
+  /// No description provided for @matchRoundLabel.
+  ///
+  /// In it, this message translates to:
+  /// **'Giornata (Round)'**
+  String get matchRoundLabel;
+
+  /// No description provided for @enterValidNumber.
+  ///
+  /// In it, this message translates to:
+  /// **'Inserisci un numero valido'**
+  String get enterValidNumber;
+
+  /// No description provided for @differentTeamsRequired.
+  ///
+  /// In it, this message translates to:
+  /// **'Le due squadre devono essere diverse'**
+  String get differentTeamsRequired;
+
+  /// No description provided for @enterValidScores.
+  ///
+  /// In it, this message translates to:
+  /// **'Inserisci punteggi validi'**
+  String get enterValidScores;
+
+  /// No description provided for @matchNotFound.
+  ///
+  /// In it, this message translates to:
+  /// **'Partita non trovata'**
+  String get matchNotFound;
+
+  /// No description provided for @matchNotAvailable.
+  ///
+  /// In it, this message translates to:
+  /// **'Partita non disponibile'**
+  String get matchNotAvailable;
+
+  /// No description provided for @cloudDataNotReady.
+  ///
+  /// In it, this message translates to:
+  /// **'Dati Cloud non pronti'**
+  String get cloudDataNotReady;
+
+  /// No description provided for @period.
+  ///
+  /// In it, this message translates to:
+  /// **'Periodo'**
+  String get period;
+
+  /// No description provided for @guestMatchDetail.
+  ///
+  /// In it, this message translates to:
+  /// **'Dettaglio Partita (Ospite)'**
+  String get guestMatchDetail;
+
+  /// No description provided for @tournamentLabel.
+  ///
+  /// In it, this message translates to:
+  /// **'TORNEO'**
+  String get tournamentLabel;
+
+  /// No description provided for @liveStreamLabel.
+  ///
+  /// In it, this message translates to:
+  /// **'DIRETTA LIVE'**
+  String get liveStreamLabel;
+
+  /// No description provided for @spectators.
+  ///
+  /// In it, this message translates to:
+  /// **'SPETTATORI'**
+  String get spectators;
+
+  /// No description provided for @finalScore.
+  ///
+  /// In it, this message translates to:
+  /// **'FINALE'**
+  String get finalScore;
+
+  /// No description provided for @updateScores.
+  ///
+  /// In it, this message translates to:
+  /// **'AGGIORNA PUNTEGGI'**
+  String get updateScores;
+
+  /// No description provided for @editScore.
+  ///
+  /// In it, this message translates to:
+  /// **'Modifica Punteggio'**
+  String get editScore;
+
+  /// No description provided for @finishMatchTitle.
+  ///
+  /// In it, this message translates to:
+  /// **'Chiudi Partita'**
+  String get finishMatchTitle;
+
+  /// No description provided for @finishMatchConfirm.
+  ///
+  /// In it, this message translates to:
+  /// **'Vuoi chiudere definitivamente questa partita e aggiornare la classifica?'**
+  String get finishMatchConfirm;
+
+  /// No description provided for @closeAndSave.
+  ///
+  /// In it, this message translates to:
+  /// **'CHIUDI E SALVA'**
+  String get closeAndSave;
+
+  /// No description provided for @syncWithCloud.
+  ///
+  /// In it, this message translates to:
+  /// **'SINCRONIZZA CON CLOUD'**
+  String get syncWithCloud;
+
+  /// No description provided for @scoreSynced.
+  ///
+  /// In it, this message translates to:
+  /// **'SCORE SINCRONIZZATO'**
+  String get scoreSynced;
+
+  /// No description provided for @scoreSyncError.
+  ///
+  /// In it, this message translates to:
+  /// **'ERRORE SINCRONIZZAZIONE'**
+  String get scoreSyncError;
+
+  /// No description provided for @syncFromScoutLabel.
+  ///
+  /// In it, this message translates to:
+  /// **'SINCRONIZZA DA SCOUT'**
+  String get syncFromScoutLabel;
+
+  /// No description provided for @syncCompleted.
+  ///
+  /// In it, this message translates to:
+  /// **'SINCRONIZZAZIONE COMPLETATA'**
+  String get syncCompleted;
+
+  /// No description provided for @home.
+  ///
+  /// In it, this message translates to:
+  /// **'Casa'**
+  String get home;
+
+  /// No description provided for @away.
+  ///
+  /// In it, this message translates to:
+  /// **'Trasferta'**
+  String get away;
+
+  /// No description provided for @playLiveMatch.
+  ///
+  /// In it, this message translates to:
+  /// **'GIOCA PARTITA LIVE'**
+  String get playLiveMatch;
+
+  /// No description provided for @saveOnlyResult.
+  ///
+  /// In it, this message translates to:
+  /// **'SALVA SOLO RISULTATO'**
+  String get saveOnlyResult;
+
+  /// No description provided for @liveNow.
+  ///
+  /// In it, this message translates to:
+  /// **'🔴 LIVE ORA'**
+  String get liveNow;
+
+  /// No description provided for @dataNotAvailable.
+  ///
+  /// In it, this message translates to:
+  /// **'Dati non disponibili'**
+  String get dataNotAvailable;
+
+  /// No description provided for @threePointer.
+  ///
+  /// In it, this message translates to:
+  /// **'Bomba +3'**
+  String get threePointer;
+
+  /// No description provided for @confirm.
+  ///
+  /// In it, this message translates to:
+  /// **'Conferma'**
+  String get confirm;
+
+  /// No description provided for @setTimer.
+  ///
+  /// In it, this message translates to:
+  /// **'IMPOSTA TIMER'**
+  String get setTimer;
+
+  /// No description provided for @min.
+  ///
+  /// In it, this message translates to:
+  /// **'MIN'**
+  String get min;
+
+  /// No description provided for @sec.
+  ///
+  /// In it, this message translates to:
+  /// **'SEC'**
+  String get sec;
+
+  /// No description provided for @madnessMode.
+  ///
+  /// In it, this message translates to:
+  /// **'Modalità Madness'**
+  String get madnessMode;
+
+  /// No description provided for @syncWeb.
+  ///
+  /// In it, this message translates to:
+  /// **'Sincronizza Web'**
+  String get syncWeb;
+
+  /// No description provided for @tbd.
+  ///
+  /// In it, this message translates to:
+  /// **'TBD'**
+  String get tbd;
+
+  /// No description provided for @syncSuccessMadness.
+  ///
+  /// In it, this message translates to:
+  /// **'Dati e Coda sincronizzati sul Web! 🚀'**
+  String get syncSuccessMadness;
+
+  /// No description provided for @syncErrorMsg.
+  ///
+  /// In it, this message translates to:
+  /// **'Errore sync: {error}'**
+  String syncErrorMsg(String error);
+
+  /// No description provided for @liveStandingsBaskets.
+  ///
+  /// In it, this message translates to:
+  /// **'CLASSIFICA LIVE (I canestri valgono come punti)'**
+  String get liveStandingsBaskets;
+
+  /// No description provided for @pts.
+  ///
+  /// In it, this message translates to:
+  /// **'pt'**
+  String get pts;
+
+  /// No description provided for @finalizeSeason.
+  ///
+  /// In it, this message translates to:
+  /// **'Finalizza Stagione'**
+  String get finalizeSeason;
+
+  /// No description provided for @playbackMatchNeeded.
+  ///
+  /// In it, this message translates to:
+  /// **'Spareggio necessario tra {team1} e {team2} per l\'ultimo posto!'**
+  String playbackMatchNeeded(String team1, String team2);
+
+  /// No description provided for @finalMatchWillBe.
+  ///
+  /// In it, this message translates to:
+  /// **'La Finale sarà: {team1} vs {team2}'**
+  String finalMatchWillBe(String team1, String team2);
+
+  /// No description provided for @proceed.
+  ///
+  /// In it, this message translates to:
+  /// **'PROCEDI'**
+  String get proceed;
+
+  /// No description provided for @matchesGenerated.
+  ///
+  /// In it, this message translates to:
+  /// **'Partite generate!'**
+  String get matchesGenerated;
+
+  /// No description provided for @madnessModeGuest.
+  ///
+  /// In it, this message translates to:
+  /// **'Modalità Madness (Ospite)'**
+  String get madnessModeGuest;
+
+  /// No description provided for @team.
+  ///
+  /// In it, this message translates to:
+  /// **'Squadra'**
+  String get team;
+
+  /// No description provided for @king.
+  ///
+  /// In it, this message translates to:
+  /// **'RE'**
+  String get king;
+
+  /// No description provided for @challenger.
+  ///
+  /// In it, this message translates to:
+  /// **'SFIDANTE'**
+  String get challenger;
+
+  /// No description provided for @unknown.
+  ///
+  /// In it, this message translates to:
+  /// **'???'**
+  String get unknown;
+
+  /// No description provided for @winsShort.
+  ///
+  /// In it, this message translates to:
+  /// **'V'**
+  String get winsShort;
+
+  /// No description provided for @pointsForShort.
+  ///
+  /// In it, this message translates to:
+  /// **'PF'**
+  String get pointsForShort;
+
+  /// No description provided for @pointsAgainstShort.
+  ///
+  /// In it, this message translates to:
+  /// **'PS'**
+  String get pointsAgainstShort;
+
+  /// No description provided for @matchManagedByOther.
+  ///
+  /// In it, this message translates to:
+  /// **'Questa partita è già gestita da un altro dispositivo.'**
+  String get matchManagedByOther;
+
+  /// No description provided for @ok.
+  ///
+  /// In it, this message translates to:
+  /// **'OK'**
+  String get ok;
+
+  /// No description provided for @liveOther.
+  ///
+  /// In it, this message translates to:
+  /// **'LIVE (ALTRI)'**
+  String get liveOther;
 }
 
 class _AppLocalizationsDelegate

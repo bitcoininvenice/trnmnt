@@ -106,14 +106,43 @@ class GameNotifier extends StateNotifier<GameState> {
   GameNotifier(this._ref) : super(GameState());
 
   bool _isDisposed = false;
+  bool _syncEnabled = true;
+  bool _isQuitting = false;
 
   @override
   void dispose() {
-    _isDisposed = true;
-    _timer?.cancel();
-    _syncTimer?.cancel();
+    _stopAllSync();
+    
+    // Safety cleanup: if we have a match, try to clear it before disposing
+    if (state.matchId != null) {
+      _ref.read(tournamentByIdProvider(state.matchData?.match.tournamentId ?? 0).future).then((t) {
+        if (t?.cloudId != null) {
+          _ref.read(shareRepositoryProvider).clearLiveMatch(t!.cloudId!.trim(), state.matchId!);
+        }
+      });
+    } else if (state.isPublic && state.standaloneUuid != null) {
+      _ref.read(shareRepositoryProvider).clearLiveMatch('standalone', 0, customId: state.standaloneUuid);
+    }
+
     _audioPlayer.dispose();
     super.dispose();
+  }
+
+  void _startHeartbeat() {
+    _syncTimer?.cancel();
+    _syncTimer = Timer.periodic(const Duration(seconds: 10), (t) {
+      if (_isDisposed || !_syncEnabled) {
+        t.cancel();
+        return;
+      }
+      _syncToLive(state);
+    });
+  }
+
+  void _stopAllSync() {
+    _syncTimer?.cancel();
+    _timer?.cancel();
+    _syncEnabled = false;
   }
 
   void _updateState(GameState newState) {
@@ -137,6 +166,7 @@ class GameNotifier extends StateNotifier<GameState> {
   void setupStandalone(String home, String away, {int minutes = 10, bool isPublic = false, String? twitchUsername, String? matchTitle, String? venueCourtId}) {
     _timer?.cancel();
     _syncTimer?.cancel();
+    _syncEnabled = true;
     final newState = GameState(
       homeTeamName: home,
       awayTeamName: away,
@@ -152,10 +182,13 @@ class GameNotifier extends StateNotifier<GameState> {
 
     if (isPublic) {
       _syncToLive(newState, force: true);
+      _startHeartbeat();
     }
   }
 
   void startGame(MatchWithTeams matchData, int minutes) {
+    _stopAllSync();
+    _syncEnabled = true;
     _timer?.cancel();
     _syncTimer?.cancel();
 
@@ -175,39 +208,36 @@ class GameNotifier extends StateNotifier<GameState> {
     _lastSyncAwayScore = newState.awayScore;
 
     _syncToLive(newState, force: true); // Initial push
+    _startHeartbeat();
   }
 
   void quitGame() {
-    _timer?.cancel();
+    _isQuitting = true;
+    _stopAllSync();
     
-    if (state.matchId != null) {
-      final tournamentId = state.matchData?.match.tournamentId;
-      final matchId = state.matchId;
-      if (tournamentId != null && matchId != null) {
-        _ref.read(tournamentByIdProvider(tournamentId).future).then((t) {
-          if (t?.cloudId != null) {
-             _ref.read(shareRepositoryProvider).clearLiveMatch(t!.cloudId!, matchId);
-          }
-        });
-      }
-    } else if (state.isPublic && state.standaloneUuid != null && !state.isHistorySaved) {
-       // Standalone: Save ONLY IF not already saved by finishGame
-       _ref.read(shareRepositoryProvider).saveToStandaloneHistory(
-         homeName: state.homeTeamName,
-         awayName: state.awayTeamName,
-         homeScore: state.homeScore,
-         awayScore: state.awayScore,
-         matchTitle: state.matchTitle,
-         twitchUsername: state.twitchUsername,
-         period: state.period,
-         timer: state.formattedTime,
-         venueCourtId: state.venueCourtId,
-       ).catchError((_) => null);
-       
-       _ref.read(shareRepositoryProvider).clearLiveMatch('standalone', 0, customId: state.standaloneUuid).catchError((_) => null);
-    }
-    
+    final currentMatchId = state.matchId;
+    final tournamentId = state.matchData?.match.tournamentId;
+    final isPublic = state.isPublic;
+    final standaloneUuid = state.standaloneUuid;
+    final isHistorySaved = state.isHistorySaved;
+
+    // Aggiorna subito lo stato locale per la UI
     _updateState(GameState());
+
+    // Background cleanup
+    () async {
+      try {
+        if (currentMatchId != null && tournamentId != null) {
+          final t = await _ref.read(tournamentByIdProvider(tournamentId).future);
+          if (t?.cloudId != null) {
+              await _ref.read(shareRepositoryProvider).clearLiveMatch(t!.cloudId!.trim(), currentMatchId);
+          }
+        } else if (isPublic && standaloneUuid != null && !isHistorySaved) {
+            _ref.read(shareRepositoryProvider).clearLiveMatch('standalone', 0, customId: standaloneUuid);
+        }
+      } catch (e) {}
+      _isQuitting = false;
+    }();
   }
 
   void toggleTimer() {
@@ -232,11 +262,16 @@ class GameNotifier extends StateNotifier<GameState> {
           final newState = state.copyWith(remainingSeconds: state.remainingSeconds - 1);
           _updateState(newState);
         } else {
-          t.cancel();
+          _stopAllSync();
           final newState = state.copyWith(isRunning: false, isFinished: true);
           _updateState(newState);
           _playBuzzer();
           _syncToLive(newState, force: true); // Inform frontend to stop
+        }
+
+        // Periodic sync to keep cloud status fresh even if scores don't change
+        if (state.remainingSeconds % 10 == 0) {
+          _syncToLive(state);
         }
       });
     }
@@ -369,7 +404,7 @@ class GameNotifier extends StateNotifier<GameState> {
 
   /// Pushes tiny status updates specifically to the live_matches table
   Future<void> _syncToLive(GameState syncState, {bool force = false}) async {
-    if (_isDisposed) return;
+    if (_isDisposed || !_syncEnabled || syncState.isFinished || _isQuitting) return;
     final bool isStandalone = syncState.matchId == null && syncState.isPublic;
     
     if (syncState.matchId == null && !isStandalone) return;
@@ -381,8 +416,8 @@ class GameNotifier extends StateNotifier<GameState> {
         // standalone sync
         await repo.updateLiveMatch(
           cloudId: 'standalone',
-          matchId: 0, // Not used when we have compositeId logic
-          standaloneCustomId: syncState.standaloneUuid, // New param
+          matchId: 0, 
+          standaloneCustomId: syncState.standaloneUuid, 
           homeScore: syncState.homeScore,
           awayScore: syncState.awayScore,
           timer: syncState.formattedTime,
@@ -415,49 +450,61 @@ class GameNotifier extends StateNotifier<GameState> {
         awayName: syncState.awayTeamName,
         isRunning: syncState.isRunning,
         period: syncState.period,
+        twitchUsername: syncState.twitchUsername,
         matchTitle: syncState.matchTitle,
+        venueCourtId: syncState.venueCourtId,
+        phase: syncState.matchData?.match.phase,
+        round: syncState.matchData?.match.round,
       );
     } catch (e) {
     }
   }
 
-  Future<void> finishGame() async {
-    _timer?.cancel();
+  void finishGame() {
+    _isQuitting = true;
+    _stopAllSync();
     
-    if (state.matchId != null) {
-      // TOURNAMENT MATCH
-      final repo = _ref.read(matchesRepositoryProvider);
-      await repo.updateMatchScore(state.matchId!, state.homeScore, state.awayScore);
-      
-      final tournamentId = state.matchData?.match.tournamentId;
-      if (tournamentId != null) {
-        final tournament = await _ref.read(tournamentByIdProvider(tournamentId).future);
-        if (tournament?.cloudId != null) {
-          _ref.read(shareRepositoryProvider).clearLiveMatch(tournament!.cloudId!, state.matchId!).catchError((_) => null);
-          // REMOVED: publishToSupabase(tournamentId) - handled by UI screens to include madnessQueue
-        }
-      }
-    } else if (state.isPublic && state.standaloneUuid != null && !state.isHistorySaved) {
-      // STANDALONE PUBLIC MATCH: Save to permanent history
-      _ref.read(shareRepositoryProvider).saveToStandaloneHistory(
-        homeName: state.homeTeamName,
-        awayName: state.awayTeamName,
-        homeScore: state.homeScore,
-        awayScore: state.awayScore,
-        matchTitle: state.matchTitle,
-        twitchUsername: state.twitchUsername,
-        period: state.period,
-        timer: state.formattedTime,
-        venueCourtId: state.venueCourtId,
-      ).catchError((_) => null);
-      
-      // Clear from live scoreboard
-      _ref.read(shareRepositoryProvider).clearLiveMatch('standalone', 0, customId: state.standaloneUuid).catchError((_) => null);
-      
-      state = state.copyWith(isHistorySaved: true);
-    }
+    final currentMatchId = state.matchId;
+    final tournamentId = state.matchData?.match.tournamentId;
+    final homeScore = state.homeScore;
+    final awayScore = state.awayScore;
+    final isPublic = state.isPublic;
+    final standaloneUuid = state.standaloneUuid;
+    final isHistorySaved = state.isHistorySaved;
 
     _updateState(state.copyWith(isRunning: false, isFinished: true));
+
+    // Background processing
+    () async {
+      try {
+        if (currentMatchId != null) {
+          await _ref.read(matchesRepositoryProvider).updateMatchScore(currentMatchId, homeScore, awayScore);
+          
+          if (tournamentId != null) {
+            final tournament = await _ref.read(tournamentByIdProvider(tournamentId).future);
+            if (tournament?.cloudId != null) {
+              await _ref.read(shareRepositoryProvider).clearLiveMatch(tournament!.cloudId!.trim(), currentMatchId);
+            }
+          }
+        } else if (isPublic && standaloneUuid != null && !isHistorySaved) {
+          // STANDALONE PUBLIC MATCH: Save and clear
+          await _ref.read(shareRepositoryProvider).saveToStandaloneHistory(
+            homeName: state.homeTeamName,
+            awayName: state.awayTeamName,
+            homeScore: state.homeScore,
+            awayScore: state.awayScore,
+            matchTitle: state.matchTitle,
+            twitchUsername: state.twitchUsername,
+            period: state.period,
+            timer: state.formattedTime,
+            venueCourtId: state.venueCourtId,
+          ).catchError((_) => null);
+          
+          await _ref.read(shareRepositoryProvider).clearLiveMatch('standalone', 0, customId: standaloneUuid);
+        }
+      } catch (e) {}
+      _isQuitting = false;
+    }();
   }
 
   String _generateUuid() {
@@ -479,6 +526,6 @@ class GameNotifier extends StateNotifier<GameState> {
   }
 }
 
-final activeGameProvider = StateNotifierProvider<GameNotifier, GameState>((ref) {
+final activeGameProvider = StateNotifierProvider.autoDispose<GameNotifier, GameState>((ref) {
   return GameNotifier(ref);
 });

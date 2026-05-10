@@ -5,6 +5,9 @@ import 'package:webview_flutter/webview_flutter.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:trnmnt/generated/l10n/app_localizations.dart';
 import '../../data/tournaments_repository.dart';
+import '../widgets/live_match_widgets.dart';
+import '../../../sharing/providers/live_sync_providers.dart';
+import 'package:trnmnt/core/widgets/scrolling_ticker.dart';
 
 class LiveStreamScreen extends ConsumerStatefulWidget {
   final String cloudId;
@@ -37,10 +40,13 @@ class _LiveStreamScreenState extends ConsumerState<LiveStreamScreen> {
             ? Center(child: Text('${l10n.error}: $err', style: const TextStyle(color: Colors.white)))
             : _buildContent(context, _mergedData!),
         data: (rawData) {
-          if (rawData != null) {
-            if (_mergedData == null) {
-              _mergedData = Map<String, dynamic>.from(rawData);
-            } else {
+          if (rawData == null) {
+            setState(() => _mergedData = null);
+            return Center(child: Text(l10n.notFound, style: const TextStyle(color: Colors.white)));
+          }
+          if (_mergedData == null) {
+            _mergedData = Map<String, dynamic>.from(rawData);
+          } else {
               // LOGICA APPEND / MERGE
               rawData.forEach((key, value) {
                 if (value != null) {
@@ -48,8 +54,7 @@ class _LiveStreamScreenState extends ConsumerState<LiveStreamScreen> {
                   if (key == 'data' && value is Map && value.isEmpty) return;
                   _mergedData![key] = value;
                 }
-              });
-            }
+            });
           }
 
           if (_mergedData == null) {
@@ -90,25 +95,40 @@ class _LiveStreamScreenState extends ConsumerState<LiveStreamScreen> {
       );
     }
 
-    return SingleChildScrollView(
-      key: PageStorageKey('live-scroll-${widget.cloudId}'),
-      child: Column(
-        children: [
+    return RefreshIndicator(
+      onRefresh: () async {
+        ref.invalidate(cloudTournamentDetailProvider(widget.cloudId));
+        ref.invalidate(liveMatchesStreamProvider(widget.cloudId));
+        await Future.delayed(const Duration(milliseconds: 500));
+      },
+      color: Colors.orange,
+      backgroundColor: const Color(0xFF1E293B),
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        key: PageStorageKey('live-scroll-${widget.cloudId}'),
+        child: Column(
+          children: [
           _LivestreamSection(
             key: ValueKey('live-video-${widget.cloudId}-${twitchChannel ?? youtubeVideoId}'),
             twitchChannel: twitchChannel,
             youtubeVideoId: youtubeVideoId,
+            cloudId: widget.cloudId,
           ),
-          _TournamentTicker(
+          ScrollingTicker(
             text: (tournament['customTicker']?.toString() ?? 
                   tournament['name']?.toString().toUpperCase() ?? 
                   l10n.liveStream).replaceAll('[REV_Q]', '').trim(),
+            // backgroundColor: Colors.orange,
+            height: 20,
           ),
+          const SizedBox(height: 16),
+          _LiveMatchesList(cloudId: widget.cloudId),
           const SizedBox(height: 40),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildSkeletonLoader(BuildContext context) {
     return SingleChildScrollView(
@@ -168,95 +188,12 @@ class _LiveStreamScreenState extends ConsumerState<LiveStreamScreen> {
   }
 }
 
-class _TournamentTicker extends StatefulWidget {
-  final String text;
-  const _TournamentTicker({required this.text});
-
-  @override
-  State<_TournamentTicker> createState() => _TournamentTickerState();
-}
-
-class _TournamentTickerState extends State<_TournamentTicker> {
-  late ScrollController _scrollController;
-  Timer? _timer;
-
-  @override
-  void initState() {
-    super.initState();
-    _scrollController = ScrollController();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _startScrolling());
-  }
-
-  void _startScrolling() {
-    if (!mounted) return;
-    const speed = 0.5;
-    const tickDuration = Duration(milliseconds: 16);
-    
-    _timer = Timer.periodic(tickDuration, (timer) {
-      if (!mounted) {
-        timer.cancel();
-        return;
-      }
-      if (_scrollController.hasClients) {
-        final currentOffset = _scrollController.offset;
-        _scrollController.jumpTo(currentOffset + speed);
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    _scrollController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 32,
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: Colors.black,
-        border: Border.symmetric(
-          horizontal: BorderSide(color: Colors.orange.withOpacity(0.2), width: 0.5),
-        ),
-      ),
-      child: IgnorePointer(
-        child: ListView.builder(
-          controller: _scrollController,
-          scrollDirection: Axis.horizontal,
-          itemBuilder: (context, index) {
-            return Row(
-              children: [
-                const SizedBox(width: 40),
-                Text(
-                  widget.text.toUpperCase(),
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.9),
-                    fontSize: 9,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 1.2,
-                  ),
-                ),
-                const SizedBox(width: 40),
-                Icon(Icons.star, size: 8, color: Colors.orange.withOpacity(0.5)),
-                const SizedBox(width: 40),
-                Container(width: 1, height: 12, color: Colors.white.withOpacity(0.1)),
-              ],
-            );
-          },
-        ),
-      ),
-    );
-  }
-}
-
 class _LivestreamSection extends StatefulWidget {
   final String? twitchChannel;
   final String? youtubeVideoId;
+  final String cloudId;
 
-  const _LivestreamSection({super.key, this.twitchChannel, this.youtubeVideoId});
+  const _LivestreamSection({super.key, this.twitchChannel, this.youtubeVideoId, required this.cloudId});
 
   @override
   State<_LivestreamSection> createState() => _LivestreamSectionState();
@@ -356,16 +293,19 @@ class _LivestreamSectionState extends State<_LivestreamSection> {
                     child: const Icon(Icons.live_tv, color: Colors.red, size: 16),
                   ),
                   const SizedBox(width: 12),
-                  const Text(
-                    'LIVE STREAM',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w900,
-                      fontSize: 12,
-                      letterSpacing: 1.2,
+                  const Expanded(
+                    child: Text(
+                      'LIVE STREAM',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 12,
+                        letterSpacing: 1.2,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  const Spacer(),
                   Container(
                     width: 8,
                     height: 8,
@@ -414,6 +354,86 @@ class _LivestreamSectionState extends State<_LivestreamSection> {
             ),
         ],
       ),
+    );
+  }
+}
+
+class _LiveMatchesList extends ConsumerWidget {
+  final String cloudId;
+  const _LiveMatchesList({required this.cloudId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final liveMatchesAsync = ref.watch(liveMatchesStreamProvider(cloudId));
+    final l10n = AppLocalizations.of(context)!;
+
+    return liveMatchesAsync.when(
+      data: (matches) {
+        // Deduplicate by team names to avoid "ghost" doubles
+        final Map<String, CloudLiveMatch> uniqueMatches = {};
+        for (final m in matches) {
+          final key = '${m.homeTeamName}_${m.awayTeamName}'.toLowerCase();
+          // Keep the one with the most recent update
+          if (!uniqueMatches.containsKey(key) || 
+              m.lastUpdate.isAfter(uniqueMatches[key]!.lastUpdate)) {
+            uniqueMatches[key] = m;
+          }
+        }
+        
+        final displayMatches = uniqueMatches.values.toList()
+          ..sort((a, b) => b.lastUpdate.compareTo(a.lastUpdate)); // Show newest first
+
+        if (displayMatches.isEmpty) {
+          return const SizedBox.shrink();
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+              child: Row(
+                children: [
+                  const Icon(Icons.scoreboard_outlined, color: Colors.greenAccent, size: 16),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: Text(
+                      'PARTITE IN CORSO',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1.2,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemCount: displayMatches.length,
+              itemBuilder: (context, index) {
+                final m = displayMatches[index];
+                return LiveMatchCard(
+                  homeName: m.homeTeamName ?? 'Home',
+                  awayName: m.awayTeamName ?? 'Away',
+                  homeScoreOverride: m.homeScore,
+                  awayScoreOverride: m.awayScore,
+                  timerOverride: m.timer,
+                  cloudId: cloudId,
+                ).animate().fadeIn(delay: (index * 100).ms).slideX(begin: 0.1);
+              },
+            ),
+          ],
+        );
+      },
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
     );
   }
 }

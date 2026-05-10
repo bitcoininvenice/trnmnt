@@ -83,11 +83,11 @@ class _MatchScreenState extends ConsumerState<MatchScreen> {
     if (_isGuest) {
        trackingMatchId = widget.matchId.toString(); // For guests, matchId is usually the cloud string
        trackingCloudId = widget.tournamentId.toString();
-    } else if (widget.matchId != null) {
-      final matchData = await ref.read(matchByIdProvider(widget.matchId!).future);
+    } else if (_localMatchId != null) {
+      final matchData = await ref.read(matchByIdProvider(_localMatchId!).future);
       final tId = matchData?.match.tournamentId;
       if (tId != null) {
-        final t = await ref.read(tournamentByIdProvider(tId)).value;
+        final t = await ref.read(tournamentByIdProvider(tId).future);
         if (t?.cloudId != null) {
           trackingCloudId = t?.cloudId;
           trackingMatchId = '${trackingCloudId}_${widget.matchId}';
@@ -131,16 +131,20 @@ class _MatchScreenState extends ConsumerState<MatchScreen> {
     });
   }
 
+  int? get _localMatchId => int.tryParse(widget.matchId?.toString() ?? '');
+  int? get _localTournamentId => int.tryParse(widget.tournamentId?.toString() ?? '');
+
   bool get _isGuest {
     if (widget.tournamentId == null) return false;
-    return int.tryParse(widget.tournamentId.toString()) == null;
+    return _localTournamentId == null;
   }
 
   Future<void> _saveScore() async {
-    if (widget.matchId == null || _isGuest) return;
+    if (_localMatchId == null || _isGuest) return;
     if (_homeScore == null || _awayScore == null) {
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Inserisci punteggi validi'), backgroundColor: Colors.orange),
+        SnackBar(content: Text(l10n.enterValidScores), backgroundColor: Colors.orange),
       );
       return;
     }
@@ -152,14 +156,14 @@ class _MatchScreenState extends ConsumerState<MatchScreen> {
       final shareRepo = ref.read(shareRepositoryProvider);
       
       await repo.updateMatchScore(
-        widget.matchId!,
+        _localMatchId!,
         _homeScore!,
         _awayScore!,
       );
 
       if (!mounted) return;
 
-      final matchData = await ref.read(matchByIdProvider(widget.matchId!).future);
+      final matchData = await ref.read(matchByIdProvider(_localMatchId!).future);
       if (!mounted) return;
       
       final tournamentId = matchData?.match.tournamentId;
@@ -179,8 +183,9 @@ class _MatchScreenState extends ConsumerState<MatchScreen> {
       }
     } catch (e) {
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Errore: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text('${l10n.error}: $e'), backgroundColor: Colors.red),
         );
       }
     } finally {
@@ -201,19 +206,19 @@ class _MatchScreenState extends ConsumerState<MatchScreen> {
     final l10n = AppLocalizations.of(context)!;
     
     if (_isGuest) {
-      return _buildGuestMatchDetail(context, ref);
+      return _buildGuestMatchScreen(context, l10n);
     }
 
     // Use a stable selector to decide between Live and Static views.
     // This prevents the entire MatchScreen from rebuilding every second due to the timer.
     final bool isLive = ref.watch(activeGameProvider.select((s) {
-      if (widget.matchId == null) return s.matchId == null && s.matchData == null;
-      return s.matchId == widget.matchId;
+      if (_localMatchId == null) return s.matchId == null && s.matchData == null;
+      return s.matchId == _localMatchId;
     }));
 
     if (isLive) {
       return _LiveMatchView(
-        matchId: widget.matchId,
+        matchId: _localMatchId,
         onFinished: () => setState(() => _isFinishing = true),
       );
     }
@@ -224,13 +229,13 @@ class _MatchScreenState extends ConsumerState<MatchScreen> {
 
   Widget _buildStaticMatchScreen(BuildContext context, AppLocalizations l10n) {
     if (widget.matchId == null) {
-      return const Scaffold(body: Center(child: Text('Errore: Partita non inizializzata')));
+      return Scaffold(body: Center(child: Text(l10n.error)));
     }
 
     final activeGameNotifier = ref.read(activeGameProvider.notifier);
-    final mId = widget.matchId;
+    final mId = _localMatchId;
     if (mId == null) {
-      return const Scaffold(body: Center(child: Text('Errore: Partita non inizializzata')));
+      return Scaffold(body: Center(child: Text(l10n.error)));
     }
     final matchAsync = ref.watch(matchByIdProvider(mId));
 
@@ -243,15 +248,14 @@ class _MatchScreenState extends ConsumerState<MatchScreen> {
       data: (matchWithTeams) {
         if (matchWithTeams == null) {
           return Scaffold(
-            appBar: AppBar(title: const Text('Non trovata')),
-            body: const Center(child: Text('Partita non trovata')),
+            appBar: AppBar(title: Text(l10n.notFound)),
+            body: Center(child: Text(l10n.matchNotFound)),
           );
         }
 
         final match = matchWithTeams.match;
         final tournamentAsync = ref.watch(tournamentByIdProvider(match.tournamentId));
         final tournament = tournamentAsync.valueOrNull;
-        final isReadOnly = tournament?.isReadOnly ?? false;
         final timerDuration = tournament?.timerMinutes ?? 10;
 
         if (!_initialized) {
@@ -285,9 +289,9 @@ class _MatchScreenState extends ConsumerState<MatchScreen> {
                         child: Column(
                           children: [
                             VintageScoreColumn(
-                              teamName: matchWithTeams.homeTeam?.name ?? 'Home',
+                              teamName: matchWithTeams.homeTeam?.name ?? l10n.home,
                               score: _homeScore ?? 0,
-                              onScoreChanged: isReadOnly ? null : (val) {
+                              onScoreChanged: (val) {
                                 setState(() => _homeScore = val);
                                 final activeGame = ref.read(activeGameProvider);
                                 if (activeGame.matchId == match.id) {
@@ -296,8 +300,8 @@ class _MatchScreenState extends ConsumerState<MatchScreen> {
                                     matchId: match.id, 
                                     homeScore: val, 
                                     awayScore: _awayScore ?? 0, 
-                                    homeName: matchWithTeams.homeTeam?.name ?? 'Home', 
-                                    awayName: matchWithTeams.awayTeam?.name ?? 'Away'
+                                    homeName: matchWithTeams.homeTeam?.name ?? l10n.home, 
+                                    awayName: matchWithTeams.awayTeam?.name ?? l10n.away
                                   );
                                 }
                               },
@@ -313,9 +317,9 @@ class _MatchScreenState extends ConsumerState<MatchScreen> {
                         child: Column(
                           children: [
                             VintageScoreColumn(
-                              teamName: matchWithTeams.awayTeam?.name ?? 'Away',
+                              teamName: matchWithTeams.awayTeam?.name ?? l10n.away,
                               score: _awayScore ?? 0,
-                              onScoreChanged: isReadOnly ? null : (val) {
+                              onScoreChanged: (val) {
                                 setState(() => _awayScore = val);
                                 final activeGame = ref.read(activeGameProvider);
                                 if (activeGame.matchId == match.id) {
@@ -324,8 +328,8 @@ class _MatchScreenState extends ConsumerState<MatchScreen> {
                                     matchId: match.id, 
                                     homeScore: _homeScore ?? 0, 
                                     awayScore: val, 
-                                    homeName: matchWithTeams.homeTeam?.name ?? 'Home', 
-                                    awayName: matchWithTeams.awayTeam?.name ?? 'Away'
+                                    homeName: matchWithTeams.homeTeam?.name ?? l10n.home, 
+                                    awayName: matchWithTeams.awayTeam?.name ?? l10n.away
                                   );
                                 }
                               },
@@ -337,7 +341,6 @@ class _MatchScreenState extends ConsumerState<MatchScreen> {
                   ),
                 ),
                 const Spacer(),
-                if (!isReadOnly)
                   Padding(
                     padding: const EdgeInsets.all(24),
                     child: Column(
@@ -347,7 +350,7 @@ class _MatchScreenState extends ConsumerState<MatchScreen> {
                           height: 56,
                           child: ElevatedButton.icon(
                             icon: const Icon(Icons.flash_on),
-                            label: const Text('GIOCA PARTITA LIVE', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1.5, fontFamily: 'monospace')),
+                            label: Text(l10n.playLiveMatch.toUpperCase(), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1.5, fontFamily: 'monospace')),
                             style: ElevatedButton.styleFrom(backgroundColor: Colors.orange.shade900, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
                             onPressed: () => activeGameNotifier.startGame(matchWithTeams, timerDuration),
                           ),
@@ -359,7 +362,7 @@ class _MatchScreenState extends ConsumerState<MatchScreen> {
                           child: ElevatedButton(
                             style: ElevatedButton.styleFrom(backgroundColor: Colors.grey.shade900, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: Colors.grey.shade800, width: 2))),
                             onPressed: _isLoading ? null : _saveScore,
-                            child: _isLoading ? const CircularProgressIndicator() : const Text('SALVA SOLO RISULTATO', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, letterSpacing: 1, fontFamily: 'monospace')),
+                            child: _isLoading ? const CircularProgressIndicator() : Text(l10n.saveOnlyResult, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, letterSpacing: 1, fontFamily: 'monospace')),
                           ),
                         ),
                       ],
@@ -373,34 +376,34 @@ class _MatchScreenState extends ConsumerState<MatchScreen> {
     );
   }
 
-  Widget _buildGuestMatchDetail(BuildContext context, WidgetRef ref) {
+  Widget _buildGuestMatchScreen(BuildContext context, AppLocalizations l10n) {
     final tid = widget.tournamentId.toString();
     final cloudDetail = ref.watch(cloudTournamentDetailProvider(tid));
 
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
-        title: const Text('Dettaglio Partita (Ospite)', style: TextStyle(fontFamily: 'monospace')),
+        title: Text(l10n.guestMatchDetail, style: const TextStyle(fontFamily: 'monospace')),
         backgroundColor: Colors.black,
       ),
       body: cloudDetail.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, _) => Center(child: Text('Errore: $err')),
+        error: (err, _) => Center(child: Text('${l10n.error}: $err')),
         data: (data) {
-          if (data == null) return const Center(child: Text('Torneo non trovato'));
+          if (data == null) return Center(child: Text(l10n.cloudDataNotReady));
           final tournamentData = data['data'] as Map<String, dynamic>?;
-          if (tournamentData == null) return const Center(child: Text('Dati non disponibili'));
+          if (tournamentData == null) return Center(child: Text(l10n.dataNotAvailable));
 
           final List<dynamic> matches = tournamentData['matches'] as List? ?? [];
           final matchData = matches.firstWhereOrNull(
             (m) => m['id'] == widget.matchId,
           );
 
-          if (matchData == null) return const Center(child: Text('Partita non trovata nel cloud'));
+          if (matchData == null) return Center(child: Text(l10n.matchNotFound));
 
           final match = TournamentMatch.fromJson(matchData);
-          final homeName = matchData['homeTeamName'] as String? ?? 'Home';
-          final awayName = matchData['awayTeamName'] as String? ?? 'Away';
+          final homeName = matchData['homeTeamName'] as String? ?? l10n.home;
+          final awayName = matchData['awayTeamName'] as String? ?? l10n.away;
 
           // For guest matches, we also check if they are currently LIVE in the cloud
           final liveMatches = ref.watch(cloudLiveMatchesProvider).valueOrNull ?? [];
@@ -408,8 +411,8 @@ class _MatchScreenState extends ConsumerState<MatchScreen> {
             (lm) => lm['id'] == '${tid}_${widget.matchId}' || lm['id'] == widget.matchId.toString(),
           );
 
-          final int homeScore = liveMatch != null ? (liveMatch['home_score'] as int) : (match.homeScore ?? 0);
-          final int awayScore = liveMatch != null ? (liveMatch['away_score'] as int) : (match.awayScore ?? 0);
+          final int homeScore = liveMatch != null ? (liveMatch['home_score'] as num).toInt() : (match.homeScore ?? 0);
+          final int awayScore = liveMatch != null ? (liveMatch['away_score'] as num).toInt() : (match.awayScore ?? 0);
           final bool isLive = liveMatch != null && liveMatch['is_running'] == true;
 
           return SafeArea(
@@ -421,7 +424,7 @@ class _MatchScreenState extends ConsumerState<MatchScreen> {
                     margin: const EdgeInsets.only(bottom: 24),
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     decoration: BoxDecoration(color: Colors.orange.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.orange.withValues(alpha: 0.5))),
-                    child: const Text('🔴 LIVE ORA', style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, letterSpacing: 2)),
+                    child: Text(l10n.liveNow.toUpperCase(), style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, letterSpacing: 2)),
                   ).animate(onPlay: (c) => c.repeat()).shimmer(duration: 2.seconds),
                 
                 Padding(
@@ -459,7 +462,7 @@ class _MatchScreenState extends ConsumerState<MatchScreen> {
                        children: [
                          Text(liveMatch['timer'] ?? '00:00', style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold, fontFamily: 'monospace', color: Colors.green)),
                          const SizedBox(height: 8),
-                         Text('PERIODO ${liveMatch['period'] ?? 1}', style: const TextStyle(color: Colors.white54, letterSpacing: 2)),
+                         Text('${l10n.period.toUpperCase()} ${liveMatch['period'] ?? 1}', style: const TextStyle(color: Colors.white54, letterSpacing: 2)),
                        ],
                      ),
                    ),
@@ -501,181 +504,211 @@ class _LiveMatchView extends ConsumerWidget {
         ? (ref.watch(tournamentByIdProvider(tournamentId)).valueOrNull?.isPublished ?? false)
         : false;
 
-    return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
+    return PopScope(
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) {
+          notifier.quitGame();
+        }
+      },
+      child: Scaffold(
         backgroundColor: Colors.black,
-        title: Text(l10n.matchInProgress, style: const TextStyle(fontFamily: 'monospace')),
-        leading: IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
-        actions: [
-          if (isPublished || isPublic)
-            // We pass a dummy state to _ShareButton or just make it watch what it needs
-            Consumer(
-              builder: (context, ref, _) {
-                final activeGame = ref.watch(activeGameProvider);
-                return _ShareButton(activeGame: activeGame, tournamentId: tournamentId);
-              }
-            ),
-          TextButton(
+        appBar: AppBar(
+          backgroundColor: Colors.black,
+          title: Text(l10n.matchInProgress, style: const TextStyle(fontFamily: 'monospace')),
+          leading: IconButton(
+            icon: const Icon(Icons.close), 
             onPressed: () {
-               notifier.quitGame();
-               Navigator.pop(context);
-            },
-            child: Text(l10n.quit.toUpperCase(), style: const TextStyle(color: Colors.red, fontSize: 12)),
+              notifier.quitGame();
+              Navigator.pop(context);
+            }
           ),
-        ],
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        children: [
-                          VintageScoreColumn(
-                            teamName: homeTeamName, 
-                            score: homeScore, 
-                            onScoreChanged: (val) => notifier.updateHomeScore(val)
-                          ),
-                          if (isPublished)
-                            Padding(
-                              padding: const EdgeInsets.only(top: 12),
-                              child: _SpecialShotsRow(
-                                side: 'A', 
-                                matchId: matchId,
-                                tournamentId: tournamentId,
-                                homeName: homeTeamName,
-                                awayName: awayTeamName,
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                    _PeriodColumn(notifier: notifier),
-                    Expanded(
-                      child: Column(
-                        children: [
-                          VintageScoreColumn(
-                            teamName: awayTeamName, 
-                            score: awayScore, 
-                            onScoreChanged: (val) => notifier.updateAwayScore(val)
-                          ),
-                          if (isPublished)
-                            Padding(
-                              padding: const EdgeInsets.only(top: 12),
-                              child: _SpecialShotsRow(
-                                side: 'B', 
-                                matchId: matchId,
-                                tournamentId: tournamentId,
-                                homeName: homeTeamName,
-                                awayName: awayTeamName,
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const Divider(height: 16, thickness: 1, color: Colors.white10),
+          actions: [
+            if (isPublished || isPublic)
+              // We pass a dummy state to _ShareButton or just make it watch what it needs
               Consumer(
                 builder: (context, ref, _) {
-                  final isRunning = ref.watch(activeGameProvider.select((s) => s.isRunning));
-                  final mid = ref.watch(activeGameProvider.select((s) => s.matchId));
-                  if (!isRunning && mid == null) {
-                    return _DurationSelector(notifier: notifier);
-                  }
-                  return const SizedBox.shrink();
+                  final activeGame = ref.watch(activeGameProvider);
+                  return _ShareButton(activeGame: activeGame, tournamentId: tournamentId);
                 }
               ),
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 24),
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
+            TextButton(
+              onPressed: () {
+                 notifier.quitGame();
+                 Navigator.pop(context);
+              },
+              child: Text(l10n.quit.toUpperCase(), style: const TextStyle(color: Colors.red, fontSize: 12)),
+            ),
+          ],
+        ),
+        body: SafeArea(
+          child: SingleChildScrollView(
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const _LiveMatchTimer(),
-                      const SizedBox(height: 48),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          _ControlButton(icon: Icons.replay, onPressed: notifier.resetTimer, color: Colors.grey, size: 56),
-                          const SizedBox(width: 32),
-                          // Use localized selectors for the FAB to avoid rebuilds of the whole row
-                          Consumer(
-                            builder: (context, ref, _) {
-                              final isRunning = ref.watch(activeGameProvider.select((s) => s.isRunning));
-                              return FloatingActionButton.large(
-                                backgroundColor: isRunning ? Colors.orange : Colors.green,
-                                onPressed: () => notifier.toggleTimer(),
-                                child: Icon(isRunning ? Icons.pause : Icons.play_arrow, size: 48),
-                              );
-                            }
-                          ),
-                          const SizedBox(width: 32),
-                          _ControlButton(
-                            icon: Icons.check, 
-                            onPressed: () async {
-                              onFinished();
-                              Navigator.pop(context);
-                              await notifier.finishGame();
-                              
-                              // Always publish if the tournament is published
-                              if (tournamentId != null && isPublished) {
-                                // Force refresh to get latest results locally before publishing
-                                await ref.refresh(tournamentMatchesProvider(tournamentId).future);
-                                await ref.refresh(standingsProvider(tournamentId).future);
-                                
-                                final tourney = await ref.read(tournamentByIdProvider(tournamentId).future);
-                                List<int>? queueIds;
-
-                                // If it's a madness mode, calculate the queue to include it in the publish
-                                if (tourney?.mode == 'madness' || tourney?.mode == 'league_madness') {
-                                  final teams = await ref.read(tournamentTeamsProvider(tournamentId).future);
-                                  final matches = await ref.read(tournamentMatchesProvider(tournamentId).future);
-                                  final madnessMatches = matches.where((m) => m.match.phase == 'madness' && m.match.isCompleted).toList();
-                                  final standings = (tourney?.mode == 'league_madness') 
-                                      ? await ref.read(standingsProvider(tournamentId).future) 
-                                      : null;
-                                  
-                                  final sortedTeams = MadnessLogic.getSortedTeams(
-                                    teams: teams, 
-                                    tournament: tourney, 
-                                    standings: standings,
-                                  );
-                                  
-                                  final state = MadnessLogic.calculateCurrentState(sortedTeams, madnessMatches);
-                                  
-                                  queueIds = [];
-                                  if (state.king != null) queueIds.add(state.king!.team.id!);
-                                  if (state.challenger != null) queueIds.add(state.challenger!.team.id!);
-                                  for (var t in state.queue) {
-                                    if (t.team.id != null) queueIds.add(t.team.id!);
-                                  }
-                                }
-
-                                // Final publish to cloud
-                                await ref.read(shareRepositoryProvider).publishToSupabase(
-                                  tournamentId,
-                                  madnessQueue: queueIds,
-                                );
-                              }
-                            }, 
-                            color: Colors.blue, 
-                            size: 56
-                          ),
-                        ],
+                      Expanded(
+                        child: Column(
+                          children: [
+                            VintageScoreColumn(
+                              teamName: homeTeamName, 
+                              score: homeScore, 
+                              onScoreChanged: (val) => notifier.updateHomeScore(val)
+                            ),
+                            if (isPublished)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 12),
+                                child: _SpecialShotsRow(
+                                  side: 'A', 
+                                  matchId: matchId,
+                                  tournamentId: tournamentId,
+                                  homeName: homeTeamName,
+                                  awayName: awayTeamName,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                      _PeriodColumn(notifier: notifier),
+                      Expanded(
+                        child: Column(
+                          children: [
+                            VintageScoreColumn(
+                              teamName: awayTeamName, 
+                              score: awayScore, 
+                              onScoreChanged: (val) => notifier.updateAwayScore(val)
+                            ),
+                            if (isPublished)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 12),
+                                child: _SpecialShotsRow(
+                                  side: 'B', 
+                                  matchId: matchId,
+                                  tournamentId: tournamentId,
+                                  homeName: homeTeamName,
+                                  awayName: awayTeamName,
+                                ),
+                              ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
                 ),
-              ),
-            ],
+                const Divider(height: 16, thickness: 1, color: Colors.white10),
+                Consumer(
+                  builder: (context, ref, _) {
+                    final isRunning = ref.watch(activeGameProvider.select((s) => s.isRunning));
+                    final mid = ref.watch(activeGameProvider.select((s) => s.matchId));
+                    if (!isRunning && mid == null) {
+                      return _DurationSelector(notifier: notifier);
+                    }
+                    return const SizedBox.shrink();
+                  }
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 24),
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const _LiveMatchTimer(),
+                        const SizedBox(height: 48),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            _ControlButton(icon: Icons.replay, onPressed: notifier.resetTimer, color: Colors.grey, size: 56),
+                            const SizedBox(width: 32),
+                            // Use localized selectors for the FAB to avoid rebuilds of the whole row
+                            Consumer(
+                              builder: (context, ref, _) {
+                                final isRunning = ref.watch(activeGameProvider.select((s) => s.isRunning));
+                                return FloatingActionButton.large(
+                                  backgroundColor: isRunning ? Colors.orange : Colors.green,
+                                  onPressed: () => notifier.toggleTimer(),
+                                  child: Icon(isRunning ? Icons.pause : Icons.play_arrow, size: 48),
+                                );
+                              }
+                            ),
+                            const SizedBox(width: 32),
+                            _ControlButton(
+                              icon: Icons.check, 
+                              onPressed: () async {
+                                final shouldFinish = await showDialog<bool>(
+                                  context: context,
+                                  builder: (ctx) => AlertDialog(
+                                    title: Text(l10n.finishMatchTitle),
+                                    content: Text(l10n.finishMatchConfirm),
+                                    actions: [
+                                      TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.cancel.toUpperCase())),
+                                      ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: Text(l10n.confirm.toUpperCase())),
+                                    ],
+                                  ),
+                                );
+                                
+                                if (shouldFinish != true) return;
+  
+                                onFinished();
+                                notifier.finishGame();
+                                Navigator.pop(context);
+                                
+                                // Background publishing logic
+                                if (tournamentId != null && isPublished) {
+                                  () async {
+                                    try {
+                                      await ref.refresh(tournamentMatchesProvider(tournamentId).future);
+                                      await ref.refresh(standingsProvider(tournamentId).future);
+                                      
+                                      final tourney = await ref.read(tournamentByIdProvider(tournamentId).future);
+                                      List<int>? queueIds;
+      
+                                      if (tourney?.mode == 'madness' || tourney?.mode == 'league_madness') {
+                                        final teams = await ref.read(tournamentTeamsProvider(tournamentId).future);
+                                        final matches = await ref.read(tournamentMatchesProvider(tournamentId).future);
+                                        final madnessMatches = matches.where((m) => m.match.phase == 'madness' && m.match.isCompleted).toList();
+                                        final standings = (tourney?.mode == 'league_madness') 
+                                            ? await ref.read(standingsProvider(tournamentId).future) 
+                                            : null;
+                                        
+                                        final sortedTeams = MadnessLogic.getSortedTeams(
+                                          teams: teams, 
+                                          tournament: tourney, 
+                                          standings: standings,
+                                        );
+                                        
+                                        final state = MadnessLogic.calculateCurrentState(sortedTeams, madnessMatches);
+                                        
+                                        queueIds = [];
+                                        if (state.king != null) queueIds.add(state.king!.team.id!);
+                                        if (state.challenger != null) queueIds.add(state.challenger!.team.id!);
+                                        for (var t in state.queue) {
+                                          if (t.team.id != null) queueIds.add(t.team.id!);
+                                        }
+                                      }
+      
+                                      await ref.read(shareRepositoryProvider).publishToSupabase(
+                                        tournamentId,
+                                        madnessQueue: queueIds,
+                                      );
+                                    } catch (e) {
+                                      // Silent background fail
+                                    }
+                                  }();
+                                }
+                              }, 
+                              color: Colors.blue, 
+                              size: 56
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -687,6 +720,7 @@ class _LiveMatchTimer extends ConsumerWidget {
   const _LiveMatchTimer();
 
   void _showManualTimerDialog(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final notifier = ref.read(activeGameProvider.notifier);
     final currentState = ref.read(activeGameProvider);
     final currentMins = currentState.remainingSeconds ~/ 60;
@@ -699,7 +733,7 @@ class _LiveMatchTimer extends ConsumerWidget {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF1A1A1A),
-        title: const Text('IMPOSTA TIMER', style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontFamily: 'monospace')),
+        title: Text(l10n.setTimer, style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontFamily: 'monospace')),
         content: Row(
           children: [
             Expanded(
@@ -708,7 +742,7 @@ class _LiveMatchTimer extends ConsumerWidget {
                 keyboardType: TextInputType.number,
                 textAlign: TextAlign.center,
                 style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold, fontFamily: 'monospace'),
-                decoration: const InputDecoration(labelText: 'MIN', labelStyle: TextStyle(color: Colors.white54, fontSize: 10)),
+                decoration: InputDecoration(labelText: l10n.min, labelStyle: const TextStyle(color: Colors.white54, fontSize: 10)),
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(2)],
               ),
             ),
@@ -719,14 +753,14 @@ class _LiveMatchTimer extends ConsumerWidget {
                 keyboardType: TextInputType.number,
                 textAlign: TextAlign.center,
                 style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold, fontFamily: 'monospace'),
-                decoration: const InputDecoration(labelText: 'SEC', labelStyle: TextStyle(color: Colors.white54, fontSize: 10)),
+                decoration: InputDecoration(labelText: l10n.sec, labelStyle: const TextStyle(color: Colors.white54, fontSize: 10)),
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(2)],
               ),
             ),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('ANNULLA', style: TextStyle(color: Colors.white54))),
+          TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.cancel.toUpperCase(), style: const TextStyle(color: Colors.white54))),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
             onPressed: () {
@@ -736,7 +770,7 @@ class _LiveMatchTimer extends ConsumerWidget {
               notifier.updateRemainingSeconds(total);
               Navigator.pop(context);
             },
-            child: const Text('CONFERMA'),
+            child: Text(l10n.confirm.toUpperCase()),
           ),
         ],
       ),
@@ -777,6 +811,7 @@ class _ShareButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     return IconButton(
       icon: const Icon(Icons.share, color: Colors.orange),
       onPressed: () async {
@@ -797,12 +832,12 @@ class _ShareButton extends ConsumerWidget {
           await Clipboard.setData(ClipboardData(text: url));
           if (!context.mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
+              SnackBar(
                 content: Row(
                   children: [
-                    Icon(Icons.check_circle, color: Colors.white, size: 20),
-                    SizedBox(width: 12),
-                    Text('Link copiato! Condividilo sui social 🚀', style: TextStyle(fontWeight: FontWeight.bold)),
+                    const Icon(Icons.check_circle, color: Colors.white, size: 20),
+                    const SizedBox(width: 12),
+                    Text(l10n.linkCopied, style: const TextStyle(fontWeight: FontWeight.bold)),
                   ],
                 ),
                 backgroundColor: Colors.green,
@@ -822,13 +857,14 @@ class _PeriodColumn extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final period = ref.watch(activeGameProvider.select((s) => s.period));
     
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8.0),
       child: Column(
         children: [
-          const Text('PERIODO', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1, color: Colors.white70)),
+          Text(l10n.period.toUpperCase(), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1, color: Colors.white70)),
           const SizedBox(height: 4),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
@@ -854,6 +890,7 @@ class _DurationSelector extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final totalSeconds = ref.watch(activeGameProvider.select((s) => s.totalSeconds));
     final durations = [1, 5, 8, 10, 12, 15, 20];
     final currentMinutes = totalSeconds ~/ 60;
@@ -863,7 +900,7 @@ class _DurationSelector extends ConsumerWidget {
       child: Row(
         children: durations.map((m) => Padding(
           padding: const EdgeInsets.only(right: 8),
-          child: ChoiceChip(label: Text('$m min'), selected: m == currentMinutes, onSelected: (_) => notifier.setDuration(m)),
+          child: ChoiceChip(label: Text('$m ${l10n.min}'), selected: m == currentMinutes, onSelected: (_) => notifier.setDuration(m)),
         )).toList(),
       ),
     );
@@ -910,6 +947,7 @@ class _SpecialShotsRow extends ConsumerStatefulWidget {
 class _SpecialShotsRowState extends ConsumerState<_SpecialShotsRow> {
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final notifier = ref.read(activeGameProvider.notifier);
     return Column(
       children: [
@@ -928,12 +966,12 @@ class _SpecialShotsRowState extends ConsumerState<_SpecialShotsRow> {
               manualMatchId: widget.matchId,
               manualTournamentId: widget.tournamentId,
             ),
-            child: const Row(
+            child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.bolt, size: 16),
-                SizedBox(width: 4),
-                Text('BOMBA +3', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, fontFamily: 'monospace')),
+                const Icon(Icons.bolt, size: 16),
+                const SizedBox(width: 4),
+                Text(l10n.threePointer.toUpperCase(), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, fontFamily: 'monospace')),
               ],
             ),
           ),

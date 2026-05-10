@@ -69,7 +69,7 @@ class CloudTournamentCard extends ConsumerWidget {
   Widget _buildCompactCard(BuildContext context, String? id, Map<String, dynamic> tournament, String locationText, String? venueCourtId) {
     return Container(
       width: 280,
-      margin: const EdgeInsets.symmetric(horizontal: 4),
+      margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
         gradient: LinearGradient(
@@ -89,14 +89,15 @@ class CloudTournamentCard extends ConsumerWidget {
             child: Icon(Icons.sports_basketball, size: 120, color: Colors.orange.withOpacity(0.05)),
           ),
           Padding(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    TournamentStatusBadge(data: data), // Pass full data to check all levels
+                    TournamentStatusBadge(data: data),
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -112,49 +113,47 @@ class CloudTournamentCard extends ConsumerWidget {
                     ),
                   ],
                 ),
-                const Spacer(),
-                if (tournament['startDate'] != null)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 4),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          _formatDate(tournament['startDate']),
-                          style: TextStyle(color: Colors.orange.withOpacity(0.8), fontSize: 10, fontWeight: FontWeight.bold),
-                        ),
-                        Text(
-                          translatedMode ?? TournamentModeBadge.getTranslatedMode(context, tournament['mode']?.toString() ?? 'group_only'),
-                          style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 10, fontWeight: FontWeight.bold),
-                        ),
-                      ],
-                    ),
-                  ),
-                Text(
-                  (tournament['name']?.toString() ?? 'TOURNAMENT').toUpperCase(),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 16, height: 1.1),
-                ),
-                const SizedBox(height: 8),
-                Row(
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.location_on, color: Colors.orange, size: 14),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (kDebugMode && venueCourtId != null && venueCourtId.isNotEmpty && locationText == 'Posizione non specificata') 
-                            Text("ID: $venueCourtId", style: const TextStyle(color: Colors.red, fontSize: 8)),
-                          Text(
+                    if (tournament['startDate'] != null)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 2),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              _formatDate(tournament['startDate']),
+                              style: TextStyle(color: Colors.orange.withOpacity(0.8), fontSize: 10, fontWeight: FontWeight.bold),
+                            ),
+                            Text(
+                              translatedMode ?? TournamentModeBadge.getTranslatedMode(context, tournament['mode']?.toString() ?? 'group_only'),
+                              style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 10, fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                      ),
+                    Text(
+                      (tournament['name']?.toString() ?? 'TOURNAMENT').toUpperCase(),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 15, height: 1.1),
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        const Icon(Icons.location_on, color: Colors.orange, size: 12),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
                             locationText,
-                            style: const TextStyle(color: Colors.white60, fontSize: 12),
+                            style: const TextStyle(color: Colors.white60, fontSize: 11),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ],
                 ),

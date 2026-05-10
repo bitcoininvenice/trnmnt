@@ -10,7 +10,7 @@ final tournamentMatchesProvider = StreamProvider.family<List<MatchWithTeams>, in
   
   final query = db.select(db.matches)
     ..where((m) => m.tournamentId.equals(tournamentId))
-    ..orderBy([(m) => OrderingTerm.asc(m.round), (m) => OrderingTerm.asc(m.id)]);
+    ..orderBy([(m) => OrderingTerm.asc(m.round), (m) => OrderingTerm.asc(m.scheduledAt), (m) => OrderingTerm.asc(m.id)]);
 
   return query.watch().asyncMap((matches) async {
     final result = <MatchWithTeams>[];
@@ -167,6 +167,20 @@ class MatchesRepository {
         homeTeamId: homeTeamId != null ? Value(homeTeamId) : const Value.absent(),
         awayTeamId: awayTeamId != null ? Value(awayTeamId) : const Value.absent(),
       ),
+    ) > 0;
+  }
+
+  /// Update match round (useful for reordering)
+  Future<bool> updateMatchRound(int matchId, int round) async {
+    return await (_db.update(_db.matches)..where((m) => m.id.equals(matchId))).write(
+      MatchesCompanion(round: Value(round)),
+    ) > 0;
+  }
+
+  /// Update match schedule (useful for reordering within round or assigning times)
+  Future<bool> updateMatchSchedule(int matchId, DateTime? scheduledAt) async {
+    return await (_db.update(_db.matches)..where((m) => m.id.equals(matchId))).write(
+      MatchesCompanion(scheduledAt: Value(scheduledAt)),
     ) > 0;
   }
 

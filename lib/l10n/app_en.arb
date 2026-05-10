@@ -491,5 +491,120 @@
   "winnerTitle": "WINNER",
   "playoffsTitle": "PLAYOFFS",
   "playAction": "PLAY",
-  "madnessMinTeamsError": "Need at least 2 teams for Madness!"
+  "madnessMinTeamsError": "Need at least 2 teams for Madness!",
+  "matchesSelected": "{count} selected",
+  "@matchesSelected": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "addMatch": "Add match",
+  "generateAutomatic": "Generate automatic",
+  "generateCalendar": "Generate Calendar",
+  "generateCalendarPrompt": "Do you want to generate only the first round or both home and away?",
+  "onlyOneWay": "First Round Only",
+  "roundTrip": "Home and Away",
+  "deleteSelected": "Delete selected",
+  "deleteCalendar": "Delete calendar",
+  "deleteMatches": "Delete matches",
+  "deleteAllMatchesConfirm": "This will delete EVERYTHING in the current calendar. Continue?",
+  "deleteSelectedMatchesConfirm": "Do you want to delete the {count} selected matches?",
+  "@deleteSelectedMatchesConfirm": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "deleteAll": "Delete all",
+  "finalizeTournamentTitle": "Finalize Tournament",
+  "finalizeTournamentConfirm": "Are you sure you want to close the tournament?",
+  "currentWinnerLabel": "CURRENT WINNER:",
+  "readOnlyWarning": "The tournament will become read-only.",
+  "confirmAndFinalize": "CONFIRM AND FINALIZE",
+  "matchDayX": "Round {round}",
+  "@matchDayX": {
+    "placeholders": {
+      "round": {"type": "int"}
+    }
+  },
+  "guestCalendar": "Calendar (Guest)",
+  "noMatchesFound": "No matches",
+  "generateCalendarToStart": "Generate the calendar to start",
+  "deleteMatch": "Delete match",
+  "deleteMatchConfirm": "Do you want to delete this match from the calendar?",
+  "noStandingsToFinalize": "No teams in standings. Impossible to finalize.",
+  "noWinnerFound": "No winner found.",
+  "matchRoundLabel": "Round",
+  "enterValidNumber": "Enter a valid number",
+  "differentTeamsRequired": "The two teams must be different",
+  "enterValidScores": "Enter valid scores",
+  "matchNotFound": "Match not found",
+  "matchNotAvailable": "Match not available",
+  "cloudDataNotReady": "Cloud data not ready",
+  "period": "Period",
+  "guestMatchDetail": "Match Details (Guest)",
+  "tournamentLabel": "TOURNAMENT",
+  "liveStreamLabel": "LIVE STREAM",
+  "spectators": "SPECTATORS",
+  "finalScore": "FINAL",
+  "updateScores": "UPDATE SCORES",
+  "editScore": "Edit Score",
+  "finishMatchTitle": "Close Match",
+  "finishMatchConfirm": "Are you sure you want to permanently close this match and update the standings?",
+  "closeAndSave": "CLOSE AND SAVE",
+  "syncWithCloud": "SYNC WITH CLOUD",
+  "scoreSynced": "SCORE SYNCED",
+  "scoreSyncError": "SYNC ERROR",
+  "syncFromScoutLabel": "SYNC FROM SCOUT",
+  "syncCompleted": "SYNC COMPLETED",
+  "home": "Home",
+  "away": "Away",
+  "playLiveMatch": "PLAY LIVE MATCH",
+  "saveOnlyResult": "SAVE ONLY RESULT",
+  "liveNow": "🔴 LIVE NOW",
+  "dataNotAvailable": "Data not available",
+  "threePointer": "3-Pointer",
+  "confirm": "Confirm",
+  "setTimer": "SET TIMER",
+  "min": "MIN",
+  "sec": "SEC",
+  "madnessMode": "Madness Mode",
+  "syncWeb": "Sync Web",
+  "tbd": "TBD",
+  "syncSuccessMadness": "Data and Queue synced on Web! 🚀",
+  "syncErrorMsg": "Sync error: {error}",
+  "@syncErrorMsg": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "liveStandingsBaskets": "LIVE STANDINGS (Baskets count as points)",
+  "pts": "pts",
+  "finalizeSeason": "Finalize Season",
+  "playbackMatchNeeded": "Playback match needed between {team1} and {team2} for the final spot!",
+  "@playbackMatchNeeded": {
+    "placeholders": {
+      "team1": {"type": "String"},
+      "team2": {"type": "String"}
+    }
+  },
+  "finalMatchWillBe": "Final Match will be: {team1} vs {team2}",
+  "@finalMatchWillBe": {
+    "placeholders": {
+      "team1": {"type": "String"},
+      "team2": {"type": "String"}
+    }
+  },
+  "proceed": "PROCEED",
+  "matchesGenerated": "Matches generated!",
+  "madnessModeGuest": "Madness Mode (Guest)",
+  "team": "Team",
+  "king": "KING",
+  "challenger": "CHALLENGER",
+  "unknown": "???",
+  "winsShort": "W",
+  "pointsForShort": "PF",
+  "pointsAgainstShort": "PA",
+  "matchManagedByOther": "This match is already being managed by another device.",
+  "ok": "OK",
+  "liveOther": "LIVE (OTHERS)"
 }

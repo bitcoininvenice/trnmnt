@@ -1217,4 +1217,272 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get madnessMinTeamsError => 'Need at least 2 teams for Madness!';
+
+  @override
+  String matchesSelected(int count) {
+    return '$count selected';
+  }
+
+  @override
+  String get addMatch => 'Add match';
+
+  @override
+  String get generateAutomatic => 'Generate automatic';
+
+  @override
+  String get generateCalendar => 'Generate Calendar';
+
+  @override
+  String get generateCalendarPrompt =>
+      'Do you want to generate only the first round or both home and away?';
+
+  @override
+  String get onlyOneWay => 'First Round Only';
+
+  @override
+  String get roundTrip => 'Home and Away';
+
+  @override
+  String get deleteSelected => 'Delete selected';
+
+  @override
+  String get deleteCalendar => 'Delete calendar';
+
+  @override
+  String get deleteMatches => 'Delete matches';
+
+  @override
+  String get deleteAllMatchesConfirm =>
+      'This will delete EVERYTHING in the current calendar. Continue?';
+
+  @override
+  String deleteSelectedMatchesConfirm(int count) {
+    return 'Do you want to delete the $count selected matches?';
+  }
+
+  @override
+  String get deleteAll => 'Delete all';
+
+  @override
+  String get finalizeTournamentTitle => 'Finalize Tournament';
+
+  @override
+  String get finalizeTournamentConfirm =>
+      'Are you sure you want to close the tournament?';
+
+  @override
+  String get currentWinnerLabel => 'CURRENT WINNER:';
+
+  @override
+  String get readOnlyWarning => 'The tournament will become read-only.';
+
+  @override
+  String get confirmAndFinalize => 'CONFIRM AND FINALIZE';
+
+  @override
+  String matchDayX(int round) {
+    return 'Round $round';
+  }
+
+  @override
+  String get guestCalendar => 'Calendar (Guest)';
+
+  @override
+  String get noMatchesFound => 'No matches';
+
+  @override
+  String get generateCalendarToStart => 'Generate the calendar to start';
+
+  @override
+  String get deleteMatch => 'Delete match';
+
+  @override
+  String get deleteMatchConfirm =>
+      'Do you want to delete this match from the calendar?';
+
+  @override
+  String get noStandingsToFinalize =>
+      'No teams in standings. Impossible to finalize.';
+
+  @override
+  String get noWinnerFound => 'No winner found.';
+
+  @override
+  String get matchRoundLabel => 'Round';
+
+  @override
+  String get enterValidNumber => 'Enter a valid number';
+
+  @override
+  String get differentTeamsRequired => 'The two teams must be different';
+
+  @override
+  String get enterValidScores => 'Enter valid scores';
+
+  @override
+  String get matchNotFound => 'Match not found';
+
+  @override
+  String get matchNotAvailable => 'Match not available';
+
+  @override
+  String get cloudDataNotReady => 'Cloud data not ready';
+
+  @override
+  String get period => 'Period';
+
+  @override
+  String get guestMatchDetail => 'Match Details (Guest)';
+
+  @override
+  String get tournamentLabel => 'TOURNAMENT';
+
+  @override
+  String get liveStreamLabel => 'LIVE STREAM';
+
+  @override
+  String get spectators => 'SPECTATORS';
+
+  @override
+  String get finalScore => 'FINAL';
+
+  @override
+  String get updateScores => 'UPDATE SCORES';
+
+  @override
+  String get editScore => 'Edit Score';
+
+  @override
+  String get finishMatchTitle => 'Close Match';
+
+  @override
+  String get finishMatchConfirm =>
+      'Are you sure you want to permanently close this match and update the standings?';
+
+  @override
+  String get closeAndSave => 'CLOSE AND SAVE';
+
+  @override
+  String get syncWithCloud => 'SYNC WITH CLOUD';
+
+  @override
+  String get scoreSynced => 'SCORE SYNCED';
+
+  @override
+  String get scoreSyncError => 'SYNC ERROR';
+
+  @override
+  String get syncFromScoutLabel => 'SYNC FROM SCOUT';
+
+  @override
+  String get syncCompleted => 'SYNC COMPLETED';
+
+  @override
+  String get home => 'Home';
+
+  @override
+  String get away => 'Away';
+
+  @override
+  String get playLiveMatch => 'PLAY LIVE MATCH';
+
+  @override
+  String get saveOnlyResult => 'SAVE ONLY RESULT';
+
+  @override
+  String get liveNow => '🔴 LIVE NOW';
+
+  @override
+  String get dataNotAvailable => 'Data not available';
+
+  @override
+  String get threePointer => '3-Pointer';
+
+  @override
+  String get confirm => 'Confirm';
+
+  @override
+  String get setTimer => 'SET TIMER';
+
+  @override
+  String get min => 'MIN';
+
+  @override
+  String get sec => 'SEC';
+
+  @override
+  String get madnessMode => 'Madness Mode';
+
+  @override
+  String get syncWeb => 'Sync Web';
+
+  @override
+  String get tbd => 'TBD';
+
+  @override
+  String get syncSuccessMadness => 'Data and Queue synced on Web! 🚀';
+
+  @override
+  String syncErrorMsg(String error) {
+    return 'Sync error: $error';
+  }
+
+  @override
+  String get liveStandingsBaskets => 'LIVE STANDINGS (Baskets count as points)';
+
+  @override
+  String get pts => 'pts';
+
+  @override
+  String get finalizeSeason => 'Finalize Season';
+
+  @override
+  String playbackMatchNeeded(String team1, String team2) {
+    return 'Playback match needed between $team1 and $team2 for the final spot!';
+  }
+
+  @override
+  String finalMatchWillBe(String team1, String team2) {
+    return 'Final Match will be: $team1 vs $team2';
+  }
+
+  @override
+  String get proceed => 'PROCEED';
+
+  @override
+  String get matchesGenerated => 'Matches generated!';
+
+  @override
+  String get madnessModeGuest => 'Madness Mode (Guest)';
+
+  @override
+  String get team => 'Team';
+
+  @override
+  String get king => 'KING';
+
+  @override
+  String get challenger => 'CHALLENGER';
+
+  @override
+  String get unknown => '???';
+
+  @override
+  String get winsShort => 'W';
+
+  @override
+  String get pointsForShort => 'PF';
+
+  @override
+  String get pointsAgainstShort => 'PA';
+
+  @override
+  String get matchManagedByOther =>
+      'This match is already being managed by another device.';
+
+  @override
+  String get ok => 'OK';
+
+  @override
+  String get liveOther => 'LIVE (OTHERS)';
 }

@@ -27,6 +27,7 @@ class _MadnessScreenState extends ConsumerState<MadnessScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     if (_isGuest) {
       return _buildGuestMadness(context, ref);
     }
@@ -39,11 +40,11 @@ class _MadnessScreenState extends ConsumerState<MadnessScreen> {
 
     return teamsAsync.when(
       loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
-      error: (err, stack) => Scaffold(body: Center(child: Text('Error: $err'))),
+      error: (err, stack) => Scaffold(body: Center(child: Text('${l10n.error}: $err'))),
       data: (teams) {
         return matchesAsync.when(
           loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
-          error: (err, stack) => Scaffold(body: Center(child: Text('Error: $err'))),
+          error: (err, stack) => Scaffold(body: Center(child: Text('${l10n.error}: $err'))),
           data: (matches) {
             final madnessMatches = matches.where((m) => m.match.phase == 'madness' && m.match.isCompleted).toList();
             final playoffMatches = matches.where((m) => 
@@ -71,16 +72,17 @@ class _MadnessScreenState extends ConsumerState<MadnessScreen> {
 
             return Scaffold(
               appBar: AppBar(
-                title: const Text('Madness Mode'),
+                title: Text(l10n.madnessMode),
                 actions: [
                   if (tournamentAsync.value?.isPublished == true)
                     IconButton(
                       icon: const Icon(Icons.cloud_upload),
-                      tooltip: 'Sync Web',
+                      tooltip: l10n.syncWeb,
                       onPressed: () => _syncToWeb(actualState),
                     ),
                   IconButton(
                     icon: const Icon(Icons.timer),
+                    tooltip: l10n.timer,
                     onPressed: () => context.push('/timer'),
                   ),
                 ],
@@ -140,7 +142,7 @@ class _MadnessScreenState extends ConsumerState<MadnessScreen> {
                             style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.amber),
                           ),
                           subtitle: Text(
-                            '${m.homeTeam?.name ?? 'TBD'} vs ${m.awayTeam?.name ?? 'TBD'}',
+                            '${m.homeTeam?.name ?? l10n.tbd} vs ${m.awayTeam?.name ?? l10n.tbd}',
                             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                           ),
                           trailing: m.match.isCompleted 
@@ -160,7 +162,13 @@ class _MadnessScreenState extends ConsumerState<MadnessScreen> {
                     if (actualState.king != null && actualState.challenger != null) ... [
                       Padding(
                         padding: const EdgeInsets.all(16.0),
-                        child: _buildMatchCard(actualState.king!, actualState.challenger!, sortedTeams, madnessMatches),
+                        child: _buildMatchCard(
+                          actualState.king!, 
+                          actualState.challenger!, 
+                          sortedTeams, 
+                          madnessMatches,
+                          tournamentAsync.value,
+                        ),
                       ),
                     ] else
                       Padding(
@@ -236,7 +244,7 @@ class _MadnessScreenState extends ConsumerState<MadnessScreen> {
                   const Divider(),
 
                   // Live Standings Section
-                  _buildSectionHeader(context, Icons.leaderboard, AppLocalizations.of(context)!.standings, Colors.purple),
+                  _buildSectionHeader(context, Icons.leaderboard, l10n.standings, Colors.purple),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Card(
@@ -250,7 +258,7 @@ class _MadnessScreenState extends ConsumerState<MadnessScreen> {
                               visualDensity: VisualDensity.compact,
                               leading: Text('${i + 1}', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
                               title: Text(s.team.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                              subtitle: Text('W: ${s.wins} | PF: ${s.points} | PA: ${s.pointsAgainst}'),
+                              subtitle: Text('${l10n.winsShort}: ${s.wins} | ${l10n.pointsForShort}: ${s.points} | ${l10n.pointsAgainstShort}: ${s.pointsAgainst}'),
                               trailing: Text('${s.points}', style: const TextStyle(color: Colors.purpleAccent, fontWeight: FontWeight.w900, fontSize: 16)),
                             );
                           }),
@@ -262,10 +270,10 @@ class _MadnessScreenState extends ConsumerState<MadnessScreen> {
                   const Divider(),
 
                   // Matches history section
-                  _buildSectionHeader(context, Icons.history, AppLocalizations.of(context)!.recentMatches, Colors.orange),
+                  _buildSectionHeader(context, Icons.history, l10n.recentMatches, Colors.orange),
                   ...madnessMatches.reversed.map((m) {
-                    final home = m.homeTeam?.name ?? '???';
-                    final away = m.awayTeam?.name ?? '???';
+                    final home = m.homeTeam?.name ?? l10n.unknown;
+                    final away = m.awayTeam?.name ?? l10n.unknown;
                     final hScore = m.match.homeScore ?? 0;
                     final aScore = m.match.awayScore ?? 0;
                     
@@ -312,7 +320,14 @@ class _MadnessScreenState extends ConsumerState<MadnessScreen> {
 
 
 
-  Widget _buildMatchCard(TournamentTeamWithTeam king, TournamentTeamWithTeam challenger, List<TournamentTeamWithTeam> teams, List<MatchWithTeams> matches) {
+  Widget _buildMatchCard(
+    TournamentTeamWithTeam king, 
+    TournamentTeamWithTeam challenger, 
+    List<TournamentTeamWithTeam> teams, 
+    List<MatchWithTeams> matches,
+    Tournament? tournament,
+  ) {
+    final l10n = AppLocalizations.of(context)!;
     return Card(
       elevation: 8,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
@@ -336,9 +351,9 @@ class _MadnessScreenState extends ConsumerState<MadnessScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildTeamSlot(king, 'KING', Colors.amber),
+                _buildTeamSlot(king, l10n.king, Colors.amber),
                 const Text('VS', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white54)),
-                _buildTeamSlot(challenger, 'CHALLENGER', Colors.white70),
+                _buildTeamSlot(challenger, l10n.challenger, Colors.white70),
               ],
             ),
             const SizedBox(height: 28),
@@ -358,6 +373,7 @@ class _MadnessScreenState extends ConsumerState<MadnessScreen> {
                   onPressed: () => _navigateToScoreEntry(king, challenger),
                   child: Text(AppLocalizations.of(context)!.enterResult, style: const TextStyle(fontWeight: FontWeight.bold)),
                 ),
+                if(tournament != null && !tournament.isReadOnly && !_isGuest)
                 TextButton.icon(
                   style: TextButton.styleFrom(
                     foregroundColor: Colors.white70,
@@ -492,48 +508,56 @@ class _MadnessScreenState extends ConsumerState<MadnessScreen> {
       );
 
       if (mounted && showSnackBar) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Dati e Coda sincronizzati sul Web! 🚀')),
+          SnackBar(content: Text(l10n.syncSuccessMadness)),
         );
       }
     } catch (e) {
       if (mounted && showSnackBar) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Errore sync: $e')),
+          SnackBar(content: Text(l10n.syncErrorMsg(e.toString()))),
         );
       }
     }
   }
 
   void _showStandings(List<TournamentTeamWithTeam> teams, List<MatchWithTeams> matches) {
-     showModalBottomSheet(
+    showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.7,
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            const Text('LIVE STANDINGS (Baskets count as points)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-            const Divider(),
-             Expanded(
-               child: ListView.builder(
-                 itemCount: teams.length,
-                 itemBuilder: (context, i) {
-                   final standings = _calculateStandings(teams, matches);
-                   final s = standings[i];
-                   return ListTile(
-                     leading: CircleAvatar(child: Text('${i+1}')),
-                     title: Text(s.team.name),
-                     subtitle: Text('Score: ${s.points} PF | W: ${s.wins} | PA: ${s.pointsAgainst}'),
-                     trailing: Text('${s.points} pts', style: const TextStyle(fontWeight: FontWeight.bold)),
-                   );
-                 },
-               ),
-             ),
-          ],
-        ),
-      ),
+      builder: (context) {
+        final l10n = AppLocalizations.of(context)!;
+        return Container(
+          height: MediaQuery.of(context).size.height * 0.7,
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              Text(l10n.liveStandingsBaskets,
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+              const Divider(),
+              Expanded(
+                child: ListView.builder(
+                  itemCount: teams.length,
+                  itemBuilder: (context, i) {
+                    final standings = _calculateStandings(teams, matches);
+                    final s = standings[i];
+                    return ListTile(
+                      leading: CircleAvatar(child: Text('${i + 1}')),
+                      title: Text(s.team.name),
+                      subtitle: Text(
+                          '${l10n.pointsForShort}: ${s.points} | ${l10n.winsShort}: ${s.wins} | ${l10n.pointsAgainstShort}: ${s.pointsAgainst}'),
+                      trailing: Text('${s.points} ${l10n.pts}',
+                          style: const TextStyle(fontWeight: FontWeight.bold)),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -589,24 +613,27 @@ class _MadnessScreenState extends ConsumerState<MadnessScreen> {
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Finalize Season'),
-        content: Text(
-          needsPlaybackMatch 
-            ? 'Playback match needed between ${standings[1].team.name} and ${standings[2].team.name} for the final spot!'
-            : 'Final Match will be: ${standings[0].team.name} vs ${standings[1].team.name}'
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCEL')),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _generateFinalMatch(standings[0], standings[1], needsPlaybackMatch ? standings[2] : null);
-            }, 
-            child: const Text('PROCEED'),
+      builder: (context) {
+        final l10n = AppLocalizations.of(context)!;
+        return AlertDialog(
+          title: Text(l10n.finalizeSeason),
+          content: Text(
+            needsPlaybackMatch 
+              ? l10n.playbackMatchNeeded(standings[1].team.name, standings[2].team.name)
+              : l10n.finalMatchWillBe(standings[0].team.name, standings[1].team.name)
           ),
-        ],
-      ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.cancel.toUpperCase())),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context);
+                _generateFinalMatch(standings[0], standings[1], needsPlaybackMatch ? standings[2] : null);
+              }, 
+              child: Text(l10n.proceed),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -637,27 +664,30 @@ class _MadnessScreenState extends ConsumerState<MadnessScreen> {
        if (tournament?.isPublished == true) {
          ref.read(shareRepositoryProvider).publishToSupabase(tId).catchError((_) => null);
        }
-       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Matches generated!')));
+               final l10n = AppLocalizations.of(context)!;
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.matchesGenerated)));
+
        context.pop();
     }
   }
 
   Widget _buildGuestMadness(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final cloudId = widget.tournamentId.toString();
     final cloudDetail = ref.watch(cloudTournamentDetailProvider(cloudId));
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Madness Mode (Guest)'),
+        title: Text(l10n.madnessModeGuest),
         backgroundColor: Colors.blueGrey.withValues(alpha: 0.1),
       ),
       body: cloudDetail.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, _) => Center(child: Text('Errore: $err')),
+        error: (err, _) => Center(child: Text('${l10n.error}: $err')),
         data: (data) {
-          if (data == null) return const Center(child: Text('Torneo non trovato'));
+          if (data == null) return Center(child: Text(l10n.tournamentNotFound));
           final tournamentData = data['data'] as Map<String, dynamic>?;
-          if (tournamentData == null) return const Center(child: Text('Dati non disponibili'));
+          if (tournamentData == null) return Center(child: Text(l10n.dataNotAvailable));
 
           // 1. Extract teams and matches
           final teamsList = tournamentData['teams'] as List? ?? [];
@@ -667,7 +697,7 @@ class _MadnessScreenState extends ConsumerState<MadnessScreen> {
           final List<TournamentTeamWithTeam> teams = teamsList.map((t) {
              final team = Team(
                id: t['id'], 
-               name: t['name'] ?? 'Team',
+               name: t['name'] ?? l10n.team,
                createdAt: DateTime.now(),
              );
              return TournamentTeamWithTeam(
@@ -771,7 +801,7 @@ class _MadnessScreenState extends ConsumerState<MadnessScreen> {
               ],
 
               if (playoffMatches.isNotEmpty) ...[
-                _buildSectionHeader(context, Icons.emoji_events, 'PLAYOFFS', Colors.amber),
+                _buildSectionHeader(context, Icons.emoji_events, l10n.playoffsTitle, Colors.amber),
                 ...playoffMatches.map((m) => Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                   child: Card(
@@ -794,7 +824,7 @@ class _MadnessScreenState extends ConsumerState<MadnessScreen> {
                   _buildSectionHeader(
                     context, 
                     Icons.people_outline, 
-                    madnessMatches.isEmpty ? 'Teams' : 'Next Challengers', 
+                    madnessMatches.isEmpty ? l10n.teams : l10n.nextChallengers, 
                     Colors.blue
                   ),
                   SizedBox(
@@ -837,7 +867,7 @@ class _MadnessScreenState extends ConsumerState<MadnessScreen> {
                           visualDensity: VisualDensity.compact,
                           leading: Text('${i + 1}', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
                           title: Text(s.team.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                          subtitle: Text('W: ${s.wins} | PF: ${s.points} | PA: ${s.pointsAgainst}'),
+                          subtitle: Text('${l10n.winsShort}: ${s.wins} | ${l10n.pointsForShort}: ${s.points} | ${l10n.pointsAgainstShort}: ${s.pointsAgainst}'),
                           trailing: Text('${s.points}', style: const TextStyle(color: Colors.purpleAccent, fontWeight: FontWeight.w900, fontSize: 16)),
                         );
                       }),

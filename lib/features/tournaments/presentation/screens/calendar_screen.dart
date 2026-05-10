@@ -1,3 +1,5 @@
+import '../../../sharing/providers/live_sync_providers.dart';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -11,6 +13,8 @@ import '../../../sharing/data/share_repository.dart';
 import '../../../game/providers/game_provider.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'bracket_screen.dart';
+import 'package:trnmnt/generated/l10n/app_localizations.dart';
+import '../widgets/live_match_widgets.dart';
 
 class CalendarScreen extends ConsumerStatefulWidget {
   final dynamic tournamentId;
@@ -56,31 +60,27 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     // If we are already disposed, stop building
     if (!mounted) return const SizedBox.shrink();
 
+    final l10n = AppLocalizations.of(context)!;
+
     if (_isProcessing) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Calendario')),
+        appBar: AppBar(title: Text(l10n.calendar)),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
 
     // Determine data source
     if (_isGuest) {
-      return _buildGuestCalendar(context, ref);
+      return _buildGuestCalendar(context, ref, l10n);
     }
 
     final localId = _localId!;
-    final tournamentsAsync = ref.watch(tournamentsProvider);
     final matchesAsync = ref.watch(groupMatchesProvider(localId));
-    
-    // Safety check for tournament data
-    final tournament = tournamentsAsync.value?.firstWhere(
-      (t) => t.id == localId,
-      orElse: () => null as dynamic,
-    );
+    final tournament = ref.watch(tournamentByIdProvider(localId)).value;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(_isSelectionMode ? '${_selectedMatchIds.length} selezionate' : 'Calendario'),
+        title: Text(_isSelectionMode ? l10n.matchesSelected(_selectedMatchIds.length) : l10n.calendar),
         leading: _isSelectionMode 
           ? IconButton(icon: const Icon(Icons.close), onPressed: _resetSelection)
           : null,
@@ -88,7 +88,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
           if (!_isSelectionMode && tournament != null && tournament.isActive) ...[
             IconButton(
               icon: const Icon(Icons.add_circle_outline),
-              tooltip: 'Aggiungi partita',
+              tooltip: l10n.addMatch,
               onPressed: () async {
                 if (_isProcessing) return;
                 final result = await showDialog<bool>(
@@ -100,48 +100,49 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                 }
               },
             ),
-            IconButton(
-              icon: const Icon(Icons.shuffle),
-              tooltip: 'Genera automatico',
-              onPressed: () async {
-                if (_isProcessing) return;
-                final doubleRound = await showDialog<bool>(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                    title: const Text('Genera Calendario'),
-                    content: const Text('Vuoi generare solo l\'andata o anche il ritorno?'),
-                    actions: [
-                      TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Solo Andata')),
-                      ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Andata e Ritorno')),
-                    ],
-                  ),
-                );
-                
-                if (doubleRound == null) return;
+            if(tournament != null && !tournament.isReadOnly)
+              IconButton(
+                icon: const Icon(Icons.shuffle),
+                tooltip: l10n.generateAutomatic,
+                onPressed: () async {
+                  if (_isProcessing) return;
+                  final doubleRound = await showDialog<bool>(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: Text(l10n.generateCalendar),
+                      content: Text(l10n.generateCalendarPrompt),
+                      actions: [
+                        TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l10n.onlyOneWay)),
+                        ElevatedButton(onPressed: () => Navigator.pop(context, true), child: Text(l10n.roundTrip)),
+                      ],
+                    ),
+                  );
+                  
+                  if (doubleRound == null) return;
 
-                setState(() => _isProcessing = true);
-                try {
-                  await ref.read(matchesRepositoryProvider).generateGroupCalendar(_localId!, doubleRound: doubleRound);
-                  if (tournament?.isPublished == true) {
-                    await ref.read(shareRepositoryProvider).publishToSupabase(_localId!);
+                  setState(() => _isProcessing = true);
+                  try {
+                    await ref.read(matchesRepositoryProvider).generateGroupCalendar(_localId!, doubleRound: doubleRound);
+                    if (tournament?.isPublished == true) {
+                      await ref.read(shareRepositoryProvider).publishToSupabase(_localId!);
+                    }
+                  } catch (e) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${l10n.error}: $e')));
+                    }
+                  } finally {
+                    if (mounted) {
+                      setState(() => _isProcessing = false);
+                      ref.invalidate(groupMatchesProvider(_localId!));
+                    }
                   }
-                } catch (e) {
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Errore: $e')));
-                  }
-                } finally {
-                  if (mounted) {
-                    setState(() => _isProcessing = false);
-                    ref.invalidate(groupMatchesProvider(_localId!));
-                  }
-                }
-              },
-            ),
+                },
+              ),
           ],
-          if (tournament != null && tournament.isActive)
+          if (tournament != null && !tournament.isReadOnly && tournament.isActive)
             IconButton(
               icon: Icon(_isSelectionMode ? Icons.delete : Icons.delete_outline, color: _isSelectionMode ? Colors.redAccent : null),
-              tooltip: _isSelectionMode ? 'Elimina selezionate' : 'Elimina calendario',
+              tooltip: _isSelectionMode ? l10n.deleteSelected : l10n.deleteCalendar,
               onPressed: () async {
                 if (_isProcessing) return;
                 
@@ -149,19 +150,19 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                 final confirm = await showDialog<bool>(
                   context: context,
                   builder: (context) => AlertDialog(
-                    title: Text(isBulk ? 'Elimina calendario' : 'Elimina partite'),
+                    title: Text(isBulk ? l10n.deleteCalendar : l10n.deleteMatches),
                     content: Text(isBulk 
-                      ? 'Questo cancellerà TUTTO il calendario esistente. Continuare?'
-                      : 'Vuoi eliminare le ${_selectedMatchIds.length} partite selezionate?'),
+                      ? l10n.deleteAllMatchesConfirm
+                      : l10n.deleteSelectedMatchesConfirm(_selectedMatchIds.length)),
                     actions: [
                       TextButton(
                         onPressed: () => Navigator.pop(context, false),
-                        child: const Text('Annulla'),
+                        child: Text(l10n.cancel),
                       ),
                       ElevatedButton(
                         style: isBulk ? null : ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
                         onPressed: () => Navigator.pop(context, true),
-                        child: Text(isBulk ? 'Elimina tutto' : 'Elimina'),
+                        child: Text(isBulk ? l10n.deleteAll : l10n.delete),
                       ),
                     ],
                   ),
@@ -192,22 +193,22 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
               },
             ),
           
-          if (!_isSelectionMode && tournament != null && tournament.isActive)
+          if (tournament != null && !tournament.isReadOnly && !_isSelectionMode && tournament.isActive)
             if (!((tournament.groupCount ?? 1) > 1 && tournament.mode != 'league_madness'))
               if (tournament.mode == 'group_only' || tournament.mode == 'madness' || tournament.mode == 'league_madness')
                 IconButton(
                   icon: const Icon(FontAwesomeIcons.trophy, color: Colors.orange, size: 20),
-                  tooltip: 'Finalizza torneo',
-                  onPressed: () => _finalizeTournament(context, ref, tournament),
+                  tooltip: l10n.finalizeTournamentTitle,
+                  onPressed: () => _finalizeTournament(context, ref, tournament, l10n),
                 ),
         ],
       ),
       body: matchesAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stack) => Center(child: Text('Errore: $error')),
+        error: (error, stack) => Center(child: Text('${l10n.error}: $error')),
         data: (matches) {
           if (matches.isEmpty) {
-            return _buildEmptyState(context, ref, tournament);
+            return _buildEmptyState(context, ref, tournament, l10n);
           }
 
           // Group by round
@@ -217,30 +218,91 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
             matchesByRound.putIfAbsent(round, () => []).add(match);
           }
 
-          return ListView.builder(
+          // Create flattened list for reordering
+          final List<dynamic> items = [];
+          final sortedRounds = matchesByRound.keys.toList()..sort();
+          for (final round in sortedRounds) {
+            items.add(round); // Header
+            items.addAll(matchesByRound[round]!); // Matches
+          }
+
+          return ReorderableListView.builder(
             padding: const EdgeInsets.all(16),
-            itemCount: matchesByRound.length,
-            itemBuilder: (context, index) {
-              final round = matchesByRound.keys.elementAt(index);
-              final roundMatches = matchesByRound[round]!;
+            proxyDecorator: (child, index, animation) {
+              return AnimatedBuilder(
+                animation: animation,
+                builder: (context, _) {
+                  final double animValue = Curves.easeInOut.transform(animation.value);
+                  final double scale = lerpDouble(1, 1.05, animValue)!;
+                  final double elevation = lerpDouble(0, 8, animValue)!;
+                  return Transform.scale(
+                    scale: scale,
+                    child: Card(
+                      elevation: elevation,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      child: child,
+                    ),
+                  );
+                },
+              );
+            },
+            buildDefaultDragHandles: false,
+            itemCount: items.length,
+            onReorder: (oldIndex, newIndex) async {
+              if (newIndex > oldIndex) newIndex--;
               
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: Text(
-                      'Giornata $round',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+              final localItems = List.from(items);
+              final movedItem = localItems.removeAt(oldIndex);
+              localItems.insert(newIndex, movedItem);
+
+              if (movedItem is int) return; // Prevent moving headers for now to avoid complexity
+
+              final repo = ref.read(matchesRepositoryProvider);
+              final baseDate = DateTime(2026, 1, 1); // Arbitrary base date for sequencing
+
+              // Update all matches to reflect new order and rounds
+              int currentRound = 1;
+              for (int i = 0; i < localItems.length; i++) {
+                final item = localItems[i];
+                if (item is int) {
+                  currentRound = item;
+                } else if (item is MatchWithTeams) {
+                  final matchId = item.match.id;
+                  // Only update if something actually changed to be efficient, 
+                  // but for sequence we usually update all to be safe.
+                  // We use index i to ensure absolute order within the database query.
+                  await repo.updateMatchRound(matchId, currentRound);
+                  await repo.updateMatchSchedule(matchId, baseDate.add(Duration(minutes: i)));
+                }
+              }
+              
+              // If tournament is published, sync
+              if (tournament?.isPublished == true) {
+                ref.read(shareRepositoryProvider).publishToSupabase(_localId!).catchError((_) => null);
+              }
+
+              // Refresh list
+              ref.refresh(groupMatchesProvider(_localId!));
+            },
+            itemBuilder: (context, index) {
+              final item = items[index];
+              if (item is int) {
+                return Padding(
+                  key: ValueKey('round_$item'),
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Text(
+                    'Giornata $item',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                  ...roundMatches.asMap().entries.map((entry) => 
-                    _buildMatchCard(context, entry.value, entry.key)
-                  ),
-                  const SizedBox(height: 16),
-                ],
+                );
+              }
+              
+              final MatchWithTeams m = item;
+              return Container(
+                key: ValueKey('match_${m.match.id}'),
+                child: _buildMatchCard(context, m, index, l10n, tournament),
               );
             },
           );
@@ -249,20 +311,20 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     );
   }
 
-  Widget _buildGuestCalendar(BuildContext context, WidgetRef ref) {
+  Widget _buildGuestCalendar(BuildContext context, WidgetRef ref, AppLocalizations l10n) {
     final cloudId = widget.tournamentId.toString();
     final cloudDetail = ref.watch(cloudTournamentDetailProvider(cloudId));
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Calendario (Ospite)'),
+        title: Text(l10n.guestCalendar),
         backgroundColor: Colors.blueGrey.withValues(alpha: 0.1),
       ),
       body: cloudDetail.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, _) => Center(child: Text('Errore: $err')),
+        error: (err, _) => Center(child: Text('${l10n.error}: $err')),
         data: (rawData) {
-          if (rawData == null) return const Center(child: Text('Torneo non trovato'));
+          if (rawData == null) return Center(child: Text(l10n.tournamentNotFound));
           
           // Logica resiliente per estrarre i dati (coerente con CloudTournamentDetailScreen)
           final Map<String, dynamic> data = (rawData['data'] is Map 
@@ -278,7 +340,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
             );
           }).toList();
 
-          if (matches.isEmpty) return _buildEmptyState(context, ref, null);
+          if (matches.isEmpty) return _buildEmptyState(context, ref, null, l10n);
 
           // Group by round
           final matchesByRound = <int, List<dynamic>>{};
@@ -321,34 +383,18 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
      final match = m.match as TournamentMatch;
      final homeName = m.homeName as String;
      final awayName = m.awayName as String;
+     final cloudId = widget.tournamentId.toString();
 
-     return Card(
-       margin: const EdgeInsets.only(bottom: 8),
-       child: ListTile(
-         onTap: null, // Disabilitato in modalità ospite
-         title: Row(
-           children: [
-             Expanded(child: Text(homeName, textAlign: TextAlign.right, style: const TextStyle(fontSize: 14))),
-             Container(
-               margin: const EdgeInsets.symmetric(horizontal: 16),
-               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-               decoration: BoxDecoration(
-                 color: match.isCompleted ? Colors.blue.withValues(alpha: 0.2) : Colors.grey.withValues(alpha: 0.1),
-                 borderRadius: BorderRadius.circular(4),
-               ),
-               child: Text(
-                 match.isCompleted ? '${match.homeScore} - ${match.awayScore}' : 'vs',
-                 style: const TextStyle(fontWeight: FontWeight.bold),
-               ),
-             ),
-             Expanded(child: Text(awayName, textAlign: TextAlign.left, style: const TextStyle(fontSize: 14))),
-           ],
-         ),
-       ),
+     return LiveMatchCard(
+       homeName: homeName,
+       awayName: awayName,
+       match: match,
+       cloudId: cloudId,
+       isCompleted: match.isCompleted,
      );
   }
 
-  Widget _buildEmptyState(BuildContext context, WidgetRef ref, dynamic tournament) {
+  Widget _buildEmptyState(BuildContext context, WidgetRef ref, dynamic tournament, AppLocalizations l10n) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -360,12 +406,12 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
           ),
           const SizedBox(height: 32),
           Text(
-            'Nessuna partita',
+            l10n.noMatchesFound,
             style: Theme.of(context).textTheme.headlineSmall,
           ),
           const SizedBox(height: 8),
           Text(
-            'Genera il calendario per iniziare',
+            l10n.generateCalendarToStart,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               color: Colors.white.withValues(alpha: 0.6),
             ),
@@ -388,7 +434,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                     }
                   },
                   icon: const Icon(Icons.add),
-                  label: const Text('Aggiungi'),
+                  label: Text(l10n.addAction),
                 ),
                 const SizedBox(width: 16),
                 ElevatedButton.icon(
@@ -396,11 +442,11 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                     final doubleRound = await showDialog<bool>(
                       context: context,
                       builder: (context) => AlertDialog(
-                        title: const Text('Genera Calendario'),
-                        content: const Text('Vuoi generare solo l\'andata o anche il ritorno?'),
+                        title: Text(l10n.generateCalendar),
+                        content: Text(l10n.generateCalendarPrompt),
                         actions: [
-                          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Solo Andata')),
-                          ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Andata e Ritorno')),
+                          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l10n.onlyOneWay)),
+                          ElevatedButton(onPressed: () => Navigator.pop(context, true), child: Text(l10n.roundTrip)),
                         ],
                       ),
                     );
@@ -415,7 +461,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                       }
                     } catch (e) {
                       if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Errore: $e')));
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${l10n.error}: $e')));
                       }
                     } finally {
                       if (mounted) {
@@ -426,7 +472,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                     }
                   },
                   icon: const Icon(Icons.shuffle),
-                  label: const Text('Genera automatico'),
+                  label: Text(l10n.generateAutomatic),
                 ),
               ],
             ),
@@ -435,7 +481,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     );
   }
 
-  Widget _buildMatchCard(BuildContext context, MatchWithTeams matchWithTeams, int index) {
+  Widget _buildMatchCard(BuildContext context, MatchWithTeams matchWithTeams, int index, AppLocalizations l10n, Tournament? tournament) {
     final match = matchWithTeams.match;
     final homeTeam = matchWithTeams.homeTeam;
     final awayTeam = matchWithTeams.awayTeam;
@@ -446,7 +492,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     final isSelected = _selectedMatchIds.contains(match.id);
 
     final card = Card(
-      margin: const EdgeInsets.only(bottom: 8),
+      margin: const EdgeInsets.only(bottom: 4),
       color: isSelected 
           ? Colors.orange.withValues(alpha: 0.1) 
           : null,
@@ -460,13 +506,48 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
       child: InkWell(
         onTap: _isSelectionMode 
           ? () => _toggleSelection(match.id)
-          : (isBye ? null : () => context.pushNamed('match-detail', pathParameters: {
-              'tournamentId': widget.tournamentId.toString(),
-              'matchId': match.id.toString(),
-            })),
+          : (isBye ? null : () async {
+              // Lock check
+              final cloudId = tournament?.cloudId;
+              final isLocked = ref.read(isMatchLockedProvider((
+                cloudId: cloudId, 
+                match: match,
+                homeName: homeTeam?.name,
+                awayName: awayTeam?.name,
+              )));
+              
+              if (isLocked) {
+                final l10n = AppLocalizations.of(context)!;
+                showDialog(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: Row(
+                      children: [
+                        const Icon(Icons.lock, color: Colors.orange),
+                        const SizedBox(width: 8),
+                        Text(l10n.matchInProgress),
+                      ],
+                    ),
+                    content: Text(l10n.matchManagedByOther),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: Text(l10n.ok),
+                      ),
+                    ],
+                  ),
+                );
+                return;
+              }
+
+              context.pushNamed('match-detail', pathParameters: {
+                'tournamentId': widget.tournamentId.toString(),
+                'matchId': match.id.toString(),
+              });
+            }),
         onLongPress: () => _toggleSelection(match.id),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           child: Row(
             children: [
               if (_isSelectionMode)
@@ -475,6 +556,14 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                   child: Icon(
                     isSelected ? Icons.check_circle : Icons.radio_button_unchecked,
                     color: isSelected ? Colors.orange : Colors.grey,
+                  ),
+                )
+              else
+                ReorderableDragStartListener(
+                  index: index,
+                  child: const Padding(
+                    padding: EdgeInsets.only(right: 8),
+                    child: Icon(Icons.drag_indicator, color: Colors.grey, size: 20),
                   ),
                 ),
                 
@@ -497,8 +586,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
               
               // Score
               Container(
-                margin: const EdgeInsets.symmetric(horizontal: 16),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                margin: const EdgeInsets.symmetric(horizontal: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
                   color: isCompleted 
                           ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.2)
@@ -547,7 +636,12 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                               ),
                             ],
                           )
-                        : _LiveMatchBadge(matchId: match.id),
+                        : LiveMatchBadge(
+                            match: match, 
+                            cloudId: tournament?.cloudId,
+                            homeName: homeTeam?.name,
+                            awayName: awayTeam?.name,
+                          ),
               ),
               
               // Away team
@@ -581,7 +675,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
 
     return Dismissible(
       key: ValueKey('match_${match.id}'),
-      direction: DismissDirection.endToStart,
+      direction: (tournament?.isReadOnly == true) ? DismissDirection.none : DismissDirection.endToStart,
       background: Container(
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 20),
@@ -595,14 +689,14 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
         return await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
-            title: const Text('Elimina partita'),
-            content: const Text('Vuoi eliminare questa partita dal calendario?'),
+            title: Text(l10n.deleteMatch),
+            content: Text(l10n.deleteMatchConfirm),
             actions: [
-              TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Annulla')),
+              TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l10n.cancel)),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
                 onPressed: () => Navigator.pop(context, true),
-                child: const Text('Elimina'),
+                child: Text(l10n.delete),
               ),
             ],
           ),
@@ -618,7 +712,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
           }
         } catch (e) {
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Errore: $e')));
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${l10n.error}: $e')));
           }
         } finally {
           if (mounted) {
@@ -630,48 +724,56 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     ).animate().fadeIn(delay: Duration(milliseconds: 50 * index)).slideX(begin: 0.1);
   }
 
-  void _finalizeTournament(BuildContext context, WidgetRef ref, Tournament tournament) async {
+  void _finalizeTournament(BuildContext context, WidgetRef ref, Tournament tournament, AppLocalizations l10n) async {
     // 1. Fetch current standings to find the winner
     final standings = await ref.read(standingsProvider(_localId!).future);
     
     if (standings.isEmpty || standings.values.every((list) => list.isEmpty)) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Nessuna squadra in classifica. Impossibile finalizzare.')),
+          SnackBar(content: Text(l10n.noStandingsToFinalize)),
         );
       }
       return;
     }
 
-    final winner = standings.values.first.first;
+    final winner = standings.values.expand((list) => list).firstOrNull;
+    if (winner == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.noWinnerFound)),
+        );
+      }
+      return;
+    }
 
     if (!mounted) return;
 
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Finalizza Torneo'),
+        title: Text(l10n.finalizeTournamentTitle),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Sei sicuro di voler chiudere il torneo?'),
+            Text(l10n.finalizeTournamentConfirm),
             const SizedBox(height: 12),
-            const Text('VINCITORE ATTUALE:', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.orange, letterSpacing: 1)),
+            Text(l10n.currentWinnerLabel, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.orange, letterSpacing: 1)),
             Text(winner.teamName.toUpperCase(), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
             const SizedBox(height: 8),
-            const Text('Il torneo diventerà di sola lettura.', style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic, color: Colors.grey)),
+            Text(l10n.readOnlyWarning, style: const TextStyle(fontSize: 12, fontStyle: FontStyle.italic, color: Colors.grey)),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('ANNULLA'),
+            child: Text(l10n.cancel.toUpperCase()),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, foregroundColor: Colors.black),
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('CONFERMA E FINALIZZA'),
+            child: Text(l10n.confirmAndFinalize),
           ),
         ],
       ),
@@ -714,13 +816,14 @@ class _AddMatchDialogState extends ConsumerState<AddMatchDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final teamsAsync = ref.watch(tournamentTeamsProvider(widget.tournamentId));
 
     return AlertDialog(
-      title: const Text('Aggiungi Partita'),
+      title: Text(l10n.addMatch),
       content: teamsAsync.when(
         loading: () => const SizedBox(height: 100, child: Center(child: CircularProgressIndicator())),
-        error: (err, stack) => Text('Errore: $err'),
+        error: (err, stack) => Text('${l10n.error}: $err'),
         data: (teamsWithTournamentTeams) {
           final teams = teamsWithTournamentTeams.map((tt) => tt.team).toList();
           return Form(
@@ -730,11 +833,11 @@ class _AddMatchDialogState extends ConsumerState<AddMatchDialog> {
               children: [
                 TextFormField(
                   initialValue: '1',
-                  decoration: const InputDecoration(labelText: 'Giornata (Round)'),
+                  decoration: InputDecoration(labelText: l10n.matchRoundLabel),
                   keyboardType: TextInputType.number,
                   validator: (value) {
                     if (value == null || int.tryParse(value) == null) {
-                      return 'Inserisci un numero valido';
+                      return l10n.enterValidNumber;
                     }
                     return null;
                   },
@@ -742,21 +845,21 @@ class _AddMatchDialogState extends ConsumerState<AddMatchDialog> {
                 ),
                 const SizedBox(height: 16),
                 DropdownButtonFormField<int>(
-                  decoration: const InputDecoration(labelText: 'Squadra di casa'),
+                  decoration: InputDecoration(labelText: l10n.homeTeam),
                   value: _homeTeamId,
                   items: teams.map((t) => DropdownMenuItem(value: t.id, child: Text(t.name))).toList(),
                   onChanged: (val) => setState(() => _homeTeamId = val),
-                  validator: (value) => value == null ? 'Seleziona una squadra' : null,
+                  validator: (value) => value == null ? l10n.selectATeam : null,
                 ),
                 const SizedBox(height: 16),
                 DropdownButtonFormField<int>(
-                  decoration: const InputDecoration(labelText: 'Squadra in trasferta'),
+                  decoration: InputDecoration(labelText: l10n.awayTeam),
                   value: _awayTeamId,
                   items: teams.map((t) => DropdownMenuItem(value: t.id, child: Text(t.name))).toList(),
                   onChanged: (val) => setState(() => _awayTeamId = val),
                   validator: (value) {
-                    if (value == null) return 'Seleziona una squadra';
-                    if (value == _homeTeamId) return 'Le due squadre devono essere diverse';
+                    if (value == null) return l10n.selectATeam;
+                    if (value == _homeTeamId) return l10n.differentTeamsRequired;
                     return null;
                   },
                 ),
@@ -768,7 +871,7 @@ class _AddMatchDialogState extends ConsumerState<AddMatchDialog> {
       actions: [
         TextButton(
           onPressed: _isSaving ? null : () => Navigator.pop(context), 
-          child: const Text('Annulla')
+          child: Text(l10n.cancel)
         ),
         ElevatedButton(
           onPressed: (teamsAsync.hasValue && !_isSaving) ? () async {
@@ -796,44 +899,17 @@ class _AddMatchDialogState extends ConsumerState<AddMatchDialog> {
                 if (mounted) {
                   setState(() => _isSaving = false);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Errore: $e')),
+                    SnackBar(content: Text('${l10n.error}: $e')),
                   );
                 }
               }
             }
           } : null,
-          child: _isSaving ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Salva'),
+          child: _isSaving 
+            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) 
+            : Text(l10n.saveAction),
         ),
       ],
     );
-  }
-}
-
-class _LiveMatchBadge extends ConsumerWidget {
-  final int matchId;
-  const _LiveMatchBadge({required this.matchId});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final activeGame = ref.watch(activeGameProvider);
-    final isLive = activeGame.matchId == matchId;
-
-    if (!isLive) {
-      return const Text(
-        'vs',
-        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-      );
-    }
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        const Text('LIVE', style: TextStyle(color: Colors.orange, fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 1.2)),
-        Text(
-          activeGame.formattedTime,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, fontFamily: 'monospace'),
-        ),
-      ],
-    ).animate(onPlay: (c) => c.repeat()).shimmer(duration: 2.seconds);
   }
 }

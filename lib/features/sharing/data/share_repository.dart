@@ -370,17 +370,21 @@ class ShareRepository {
     String? matchTitle,
     String? standaloneCustomId,
     String? venueCourtId,
+    String? phase,
+    int? round,
   }) async {
+    String compositeId = 'unknown';
     try {
       final supabase = Supabase.instance.client;
+      final cid = cloudId?.trim();
+      
       // For standalone matches, prioritized custom ID (UUID string)
-      final String compositeId;
       if (standaloneCustomId != null) {
-        compositeId = standaloneCustomId;
-      } else if (cloudId == 'standalone') {
+         compositeId = standaloneCustomId;
+      } else if (cid == 'standalone' || cid == null) {
          compositeId = 'standalone_$matchId';
       } else {
-         compositeId = '${cloudId}_$matchId';
+         compositeId = '${cid}_$matchId';
       }
       
       await supabase.from('live_matches').upsert({
@@ -395,10 +399,11 @@ class ShareRepository {
         'match_title': matchTitle,
         'twitch_username': twitchUsername,
         'last_update': DateTime.now().toUtc().toIso8601String(),
-        'tournament_id': cloudId == 'standalone' ? null : cloudId,
+        'tournament_id': (cid == 'standalone' || cid == null) ? null : cid,
         'venue_court_id': venueCourtId,
       });
     } catch (e) {
+      // Silent error for production
     }
   }
 
@@ -435,7 +440,8 @@ class ShareRepository {
   Future<void> clearLiveMatch(String cloudId, int matchId, {String? customId}) async {
     try {
       final supabase = Supabase.instance.client;
-      final compositeId = customId ?? '${cloudId}_$matchId';
+      final cid = cloudId.trim();
+      final compositeId = customId ?? '${cid}_$matchId';
       await supabase.from('live_matches').delete().eq('id', compositeId);
     } catch (e) {
       // Silent error

@@ -486,5 +486,120 @@
   "winnerTitle": "GANADOR",
   "playoffsTitle": "PLAYOFFS",
   "playAction": "JUGAR",
-  "madnessMinTeamsError": "¡Se necesitan al menos 2 equipos para la Madness!"
+  "madnessMinTeamsError": "¡Se necesitan al menos 2 equipos para la Madness!",
+  "matchesSelected": "{count} seleccionados",
+  "@matchesSelected": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "addMatch": "Añadir partido",
+  "generateAutomatic": "Generar automático",
+  "generateCalendar": "Generar Calendario",
+  "generateCalendarPrompt": "¿Quieres generar solo la ida o también la vuelta?",
+  "onlyOneWay": "Solo Ida",
+  "roundTrip": "Ida y Vuelta",
+  "deleteSelected": "Eliminar seleccionados",
+  "deleteCalendar": "Eliminar calendario",
+  "deleteMatches": "Eliminar partidos",
+  "deleteAllMatchesConfirm": "Esto eliminará TODO el calendario actual. ¿Continuar?",
+  "deleteSelectedMatchesConfirm": "¿Quieres eliminar los {count} partidos seleccionados?",
+  "@deleteSelectedMatchesConfirm": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "deleteAll": "Eliminar todo",
+  "finalizeTournamentTitle": "Finalizar Torneo",
+  "finalizeTournamentConfirm": "¿Estás seguro de que quieres cerrar el torneo?",
+  "currentWinnerLabel": "GANADOR ACTUAL:",
+  "readOnlyWarning": "El torneo pasará a ser de solo lectura.",
+  "confirmAndFinalize": "CONFIRMAR Y FINALIZAR",
+  "matchDayX": "Jornada {round}",
+  "@matchDayX": {
+    "placeholders": {
+      "round": {"type": "int"}
+    }
+  },
+  "guestCalendar": "Calendario (Visitante)",
+  "noMatchesFound": "No hay partidos",
+  "generateCalendarToStart": "Genera el calendario para comenzar",
+  "deleteMatch": "Eliminar partido",
+  "deleteMatchConfirm": "¿Quieres eliminar este partido del calendario?",
+  "noStandingsToFinalize": "No hay equipos en la clasificación. Imposible finalizar.",
+  "noWinnerFound": "No se encontró ningún ganador.",
+  "matchRoundLabel": "Jornada (Round)",
+  "enterValidNumber": "Introduce un número válido",
+  "differentTeamsRequired": "Los dos equipos deben ser diferentes",
+  "enterValidScores": "Introduce puntuaciones válidas",
+  "matchNotFound": "Partido no encontrado",
+  "matchNotAvailable": "Partido no disponible",
+  "cloudDataNotReady": "Datos en la nube no listos",
+  "period": "Periodo",
+  "guestMatchDetail": "Detalle del Partido (Visitante)",
+  "tournamentLabel": "TORNEO",
+  "liveStreamLabel": "DIRECTO EN VIVO",
+  "spectators": "ESPECTADORES",
+  "finalScore": "FINAL",
+  "updateScores": "ACTUALIZAR MARCADOR",
+  "editScore": "Editar Marcador",
+  "finishMatchTitle": "Cerrar Partido",
+  "finishMatchConfirm": "¿Estás seguro de que quieres cerrar definitivamente este partido y actualizar la clasificación?",
+  "closeAndSave": "CERRAR Y GUARDAR",
+  "syncWithCloud": "SINCRONIZAR CON LA NUBE",
+  "scoreSynced": "MARCADOR SINCRONIZADO",
+  "scoreSyncError": "ERROR DE SINCRONIZACIÓN",
+  "syncFromScoutLabel": "SINCRONIZAR DESDE SCOUT",
+  "syncCompleted": "SINCRONIZACIÓN COMPLETADA",
+  "home": "Local",
+  "away": "Visitante",
+  "playLiveMatch": "JUGAR PARTIDO EN VIVO",
+  "saveOnlyResult": "GUARDAR SOLO RESULTADO",
+  "liveNow": "🔴 EN VIVO AHORA",
+  "dataNotAvailable": "Datos no disponibles",
+  "threePointer": "Triple +3",
+  "confirm": "Confirmar",
+  "setTimer": "AJUSTAR TIMER",
+  "min": "MIN",
+  "sec": "SEG",
+  "madnessMode": "Modalidad Madness",
+  "syncWeb": "Sincronizar Web",
+  "tbd": "TBD",
+  "syncSuccessMadness": "¡Datos y Cola sincronizados en la Web! 🚀",
+  "syncErrorMsg": "Error de sincronización: {error}",
+  "@syncErrorMsg": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "liveStandingsBaskets": "CLASIFICACIÓN LIVE (Las canastas valen como puntos)",
+  "pts": "pt",
+  "finalizeSeason": "Finalizar Temporada",
+  "playbackMatchNeeded": "¡Desempate necesario entre {team1} y {team2} por el último puesto!",
+  "@playbackMatchNeeded": {
+    "placeholders": {
+      "team1": {"type": "String"},
+      "team2": {"type": "String"}
+    }
+  },
+  "finalMatchWillBe": "La Final será: {team1} vs {team2}",
+  "@finalMatchWillBe": {
+    "placeholders": {
+      "team1": {"type": "String"},
+      "team2": {"type": "String"}
+    }
+  },
+  "proceed": "PROCEDER",
+  "matchesGenerated": "¡Partidos generados!",
+  "madnessModeGuest": "Modalidad Madness (Visitante)",
+  "team": "Equipo",
+  "king": "REY",
+  "challenger": "SFIDANTE",
+  "unknown": "???",
+  "winsShort": "V",
+  "pointsForShort": "PF",
+  "pointsAgainstShort": "PS",
+  "matchManagedByOther": "Este partido ya está siendo gestionado por otro dispositivo.",
+  "ok": "OK",
+  "liveOther": "LIVE (OTROS)"
 }

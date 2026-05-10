@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:trnmnt/generated/l10n/app_localizations.dart';
 import 'package:trnmnt/core/providers/icon_provider.dart';
+import 'package:trnmnt/core/widgets/scrolling_ticker.dart';
 import 'package:trnmnt/features/stats/presentation/widgets/stats_overview.dart';
 import 'package:trnmnt/features/stats/data/stats_repository.dart';
 import 'package:trnmnt/features/tournaments/data/tournaments_repository.dart';
@@ -48,7 +49,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final activeGame = ref.watch(activeGameProvider);
+    final GameState activeGame = ref.watch(activeGameProvider);
     final customIconPath = ref.watch(customIconProvider);
     final l10n = AppLocalizations.of(context)!;
     final currentCommunity = ref.watch(currentCommunityProvider).valueOrNull;
@@ -200,7 +201,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
 
 class _LocalDashboard extends ConsumerWidget {
-  final dynamic activeGame;
+  final GameState activeGame;
   const _LocalDashboard({required this.activeGame});
 
   @override
@@ -402,7 +403,13 @@ class _HubDashboardState extends ConsumerState<_HubDashboard> with SingleTickerP
     return Column(
       children: [
         _CloudTournamentsSlider(),
-        const _SponsorTicker(),
+        Consumer(
+          builder: (context, ref, child) {
+            final tickerText = ref.watch(sponsorTickerProvider).value ?? 
+              "TRNMNT • SPAZIO PARTNERSHIP DISPONIBILE • CONTATTACI PER MAGGIORI INFO";
+            return ScrollingTicker(text: tickerText,  height: 20,);
+          },
+        ),
         Expanded(
           child: const HubScreen(embedded: true),
         ),
@@ -412,101 +419,7 @@ class _HubDashboardState extends ConsumerState<_HubDashboard> with SingleTickerP
 }
 
 
-class _SponsorTicker extends StatefulWidget {
-  const _SponsorTicker();
 
-  @override
-  State<_SponsorTicker> createState() => _SponsorTickerState();
-}
-
-class _SponsorTickerState extends State<_SponsorTicker> {
-  late ScrollController _scrollController;
-  Timer? _timer;
-
-  @override
-  void initState() {
-    super.initState();
-    _scrollController = ScrollController();
-    // Start scrolling after the first frame
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _startScrolling();
-    });
-  }
-
-  void _startScrolling() {
-    if (!mounted) return;
-    
-    // We use a periodic timer to jump the scroll offset slightly
-    // This creates a much smoother continuous loop than animateTo
-    const speed = 0.5; // pixels per tick
-    const tickDuration = Duration(milliseconds: 16); // ~60fps
-    
-    _timer = Timer.periodic(tickDuration, (timer) {
-      if (!mounted) {
-        timer.cancel();
-        return;
-      }
-      if (_scrollController.hasClients) {
-        final currentOffset = _scrollController.offset;
-        _scrollController.jumpTo(currentOffset + speed);
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    _scrollController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Consumer(
-      builder: (context, ref, child) {
-        final tickerText = ref.watch(sponsorTickerProvider).value ?? "TRNMNT • SPAZIO PARTNERSHIP DISPONIBILE • CONTATTACI PER MAGGIORI INFO";
-        
-        return Container(
-          height: 32,
-          width: double.infinity,
-          decoration: BoxDecoration(
-            color: Colors.black,
-            border: Border.symmetric(
-              horizontal: BorderSide(color: Colors.orange.withOpacity(0.1), width: 0.5),
-            ),
-          ),
-          child: IgnorePointer(
-            child: ListView.builder(
-              controller: _scrollController,
-              scrollDirection: Axis.horizontal,
-              // Use a very large number for infinite effect
-              itemBuilder: (context, index) {
-                return Row(
-                  children: [
-                    const SizedBox(width: 40),
-                    Text(
-                      tickerText.toUpperCase(),
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.9),
-                        fontSize: 9,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 1.2,
-                      ),
-                    ),
-                    const SizedBox(width: 40),
-                    Icon(Icons.star, size: 8, color: Colors.orange.withOpacity(0.5)),
-                    const SizedBox(width: 40),
-                    Container(width: 1, height: 12, color: Colors.white.withOpacity(0.1)),
-                  ],
-                );
-              },
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
 
 class _CloudTournamentsList extends ConsumerWidget {
   const _CloudTournamentsList();

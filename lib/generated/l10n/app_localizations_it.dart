@@ -1221,4 +1221,273 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get madnessMinTeamsError => 'Servono almeno 2 squadre per la Madness!';
+
+  @override
+  String matchesSelected(int count) {
+    return '$count selezionate';
+  }
+
+  @override
+  String get addMatch => 'Aggiungi partita';
+
+  @override
+  String get generateAutomatic => 'Genera automatico';
+
+  @override
+  String get generateCalendar => 'Genera Calendario';
+
+  @override
+  String get generateCalendarPrompt =>
+      'Vuoi generare solo l\'andata o anche il ritorno?';
+
+  @override
+  String get onlyOneWay => 'Solo Andata';
+
+  @override
+  String get roundTrip => 'Andata e Ritorno';
+
+  @override
+  String get deleteSelected => 'Elimina selezionate';
+
+  @override
+  String get deleteCalendar => 'Elimina calendario';
+
+  @override
+  String get deleteMatches => 'Elimina partite';
+
+  @override
+  String get deleteAllMatchesConfirm =>
+      'Questo cancellerà TUTTO il calendario esistente. Continuare?';
+
+  @override
+  String deleteSelectedMatchesConfirm(int count) {
+    return 'Vuoi eliminare le $count partite selezionate?';
+  }
+
+  @override
+  String get deleteAll => 'Elimina tutto';
+
+  @override
+  String get finalizeTournamentTitle => 'Finalizza Torneo';
+
+  @override
+  String get finalizeTournamentConfirm =>
+      'Sei sicuro di voler chiudere il torneo?';
+
+  @override
+  String get currentWinnerLabel => 'VINCITORE ATTUALE:';
+
+  @override
+  String get readOnlyWarning => 'Il torneo diventerà di sola lettura.';
+
+  @override
+  String get confirmAndFinalize => 'CONFERMA E FINALIZZA';
+
+  @override
+  String matchDayX(int round) {
+    return 'Giornata $round';
+  }
+
+  @override
+  String get guestCalendar => 'Calendario (Ospite)';
+
+  @override
+  String get noMatchesFound => 'Nessuna partita';
+
+  @override
+  String get generateCalendarToStart => 'Genera il calendario per iniziare';
+
+  @override
+  String get deleteMatch => 'Elimina partita';
+
+  @override
+  String get deleteMatchConfirm =>
+      'Vuoi eliminare questa partita dal calendario?';
+
+  @override
+  String get noStandingsToFinalize =>
+      'Nessuna squadra in classifica. Impossibile finalizzare.';
+
+  @override
+  String get noWinnerFound => 'Nessun vincitore trovato.';
+
+  @override
+  String get matchRoundLabel => 'Giornata (Round)';
+
+  @override
+  String get enterValidNumber => 'Inserisci un numero valido';
+
+  @override
+  String get differentTeamsRequired => 'Le due squadre devono essere diverse';
+
+  @override
+  String get enterValidScores => 'Inserisci punteggi validi';
+
+  @override
+  String get matchNotFound => 'Partita non trovata';
+
+  @override
+  String get matchNotAvailable => 'Partita non disponibile';
+
+  @override
+  String get cloudDataNotReady => 'Dati Cloud non pronti';
+
+  @override
+  String get period => 'Periodo';
+
+  @override
+  String get guestMatchDetail => 'Dettaglio Partita (Ospite)';
+
+  @override
+  String get tournamentLabel => 'TORNEO';
+
+  @override
+  String get liveStreamLabel => 'DIRETTA LIVE';
+
+  @override
+  String get spectators => 'SPETTATORI';
+
+  @override
+  String get finalScore => 'FINALE';
+
+  @override
+  String get updateScores => 'AGGIORNA PUNTEGGI';
+
+  @override
+  String get editScore => 'Modifica Punteggio';
+
+  @override
+  String get finishMatchTitle => 'Chiudi Partita';
+
+  @override
+  String get finishMatchConfirm =>
+      'Vuoi chiudere definitivamente questa partita e aggiornare la classifica?';
+
+  @override
+  String get closeAndSave => 'CHIUDI E SALVA';
+
+  @override
+  String get syncWithCloud => 'SINCRONIZZA CON CLOUD';
+
+  @override
+  String get scoreSynced => 'SCORE SINCRONIZZATO';
+
+  @override
+  String get scoreSyncError => 'ERRORE SINCRONIZZAZIONE';
+
+  @override
+  String get syncFromScoutLabel => 'SINCRONIZZA DA SCOUT';
+
+  @override
+  String get syncCompleted => 'SINCRONIZZAZIONE COMPLETATA';
+
+  @override
+  String get home => 'Casa';
+
+  @override
+  String get away => 'Trasferta';
+
+  @override
+  String get playLiveMatch => 'GIOCA PARTITA LIVE';
+
+  @override
+  String get saveOnlyResult => 'SALVA SOLO RISULTATO';
+
+  @override
+  String get liveNow => '🔴 LIVE ORA';
+
+  @override
+  String get dataNotAvailable => 'Dati non disponibili';
+
+  @override
+  String get threePointer => 'Bomba +3';
+
+  @override
+  String get confirm => 'Conferma';
+
+  @override
+  String get setTimer => 'IMPOSTA TIMER';
+
+  @override
+  String get min => 'MIN';
+
+  @override
+  String get sec => 'SEC';
+
+  @override
+  String get madnessMode => 'Modalità Madness';
+
+  @override
+  String get syncWeb => 'Sincronizza Web';
+
+  @override
+  String get tbd => 'TBD';
+
+  @override
+  String get syncSuccessMadness => 'Dati e Coda sincronizzati sul Web! 🚀';
+
+  @override
+  String syncErrorMsg(String error) {
+    return 'Errore sync: $error';
+  }
+
+  @override
+  String get liveStandingsBaskets =>
+      'CLASSIFICA LIVE (I canestri valgono come punti)';
+
+  @override
+  String get pts => 'pt';
+
+  @override
+  String get finalizeSeason => 'Finalizza Stagione';
+
+  @override
+  String playbackMatchNeeded(String team1, String team2) {
+    return 'Spareggio necessario tra $team1 e $team2 per l\'ultimo posto!';
+  }
+
+  @override
+  String finalMatchWillBe(String team1, String team2) {
+    return 'La Finale sarà: $team1 vs $team2';
+  }
+
+  @override
+  String get proceed => 'PROCEDI';
+
+  @override
+  String get matchesGenerated => 'Partite generate!';
+
+  @override
+  String get madnessModeGuest => 'Modalità Madness (Ospite)';
+
+  @override
+  String get team => 'Squadra';
+
+  @override
+  String get king => 'RE';
+
+  @override
+  String get challenger => 'SFIDANTE';
+
+  @override
+  String get unknown => '???';
+
+  @override
+  String get winsShort => 'V';
+
+  @override
+  String get pointsForShort => 'PF';
+
+  @override
+  String get pointsAgainstShort => 'PS';
+
+  @override
+  String get matchManagedByOther =>
+      'Questa partita è già gestita da un altro dispositivo.';
+
+  @override
+  String get ok => 'OK';
+
+  @override
+  String get liveOther => 'LIVE (ALTRI)';
 }
