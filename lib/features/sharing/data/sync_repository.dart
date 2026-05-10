@@ -81,25 +81,37 @@ class SyncRepository {
 
 
     // 1. Update general tournament info
+    // Resolve venue court if present (Cloud stores UUID, Local stores Int ID)
+    int? localVenueCourtId;
+    final remoteVenueId = tournamentData['venue_court_id'] ?? tournamentData['venueCourtId'];
+    if (remoteVenueId != null) {
+      if (remoteVenueId is int) {
+        localVenueCourtId = remoteVenueId;
+      } else if (remoteVenueId is String) {
+        final court = await (_db.select(_db.courts)..where((c) => c.cloudId.equals(remoteVenueId))).getSingleOrNull();
+        localVenueCourtId = court?.id;
+      }
+    }
+
     await (_db.update(_db.tournaments)..where((t) => t.id.equals(tournamentId))).write(
       TournamentsCompanion(
-        name: Value(tournamentData['name']),
-        location: Value(tournamentData['location']),
-        mode: Value(tournamentData['mode']),
-        startDate: Value(tournamentData['startDate'] != null ? DateTime.tryParse(tournamentData['startDate']) : null),
-        endDate: Value(tournamentData['endDate'] != null ? DateTime.tryParse(tournamentData['endDate']) : null),
-        description: Value(description ?? tournamentData['description']),
-        venueCourtId: Value(tournamentData['venue_court_id'] ?? tournamentData['venueCourtId']),
-        scoringSystem: Value(tournamentData['scoringSystem']),
-        winPoints: Value(tournamentData['winPoints'] ?? 2),
-        drawPoints: Value(tournamentData['drawPoints'] ?? 0),
-        lossPoints: Value(tournamentData['lossPoints'] ?? 1),
-        timerMinutes: Value(tournamentData['timerMinutes'] ?? 10),
-        isActive: Value(tournamentData['isActive'] ?? true),
-        twitchChannel: Value(tournamentData['twitchChannel']),
-        youtubeVideoId: Value(tournamentData['youtubeVideoId']),
-        customTicker: Value(tournamentData['customTicker']),
-        groupCount: Value(tournamentData['groupCount'] ?? 1),
+        name: Value((tournamentData['name'] ?? tournamentData['name'])?.toString() ?? ''),
+        location: Value((tournamentData['location'] ?? tournamentData['location'])?.toString() ?? ''),
+        mode: Value((tournamentData['mode'] ?? tournamentData['mode'])?.toString() ?? 'group_only'),
+        startDate: Value(_parseDateTime(tournamentData['startDate'] ?? tournamentData['start_date'])),
+        endDate: Value(_parseDateTime(tournamentData['endDate'] ?? tournamentData['end_date'])),
+        description: Value((description ?? tournamentData['description'] ?? tournamentData['description'])?.toString()),
+        venueCourtId: Value(localVenueCourtId),
+        scoringSystem: Value((tournamentData['scoringSystem'] ?? tournamentData['scoring_system'])?.toString() ?? 'standard'),
+        winPoints: Value(int.tryParse((tournamentData['winPoints'] ?? tournamentData['win_points'])?.toString() ?? '') ?? 3),
+        drawPoints: Value(int.tryParse((tournamentData['drawPoints'] ?? tournamentData['draw_points'])?.toString() ?? '') ?? 1),
+        lossPoints: Value(int.tryParse((tournamentData['lossPoints'] ?? tournamentData['loss_points'])?.toString() ?? '') ?? 0),
+        timerMinutes: Value(int.tryParse((tournamentData['timerMinutes'] ?? tournamentData['timer_minutes'])?.toString() ?? '') ?? 10),
+        isActive: Value(tournamentData['isActive'] != false && tournamentData['is_active'] != false),
+        twitchChannel: Value((tournamentData['twitchChannel'] ?? tournamentData['twitch_channel'])?.toString()),
+        youtubeVideoId: Value((tournamentData['youtubeVideoId'] ?? tournamentData['youtube_video_id'])?.toString()),
+        customTicker: Value((tournamentData['customTicker'] ?? tournamentData['custom_ticker'])?.toString()),
+        groupCount: Value(int.tryParse((tournamentData['groupCount'] ?? tournamentData['group_count'])?.toString() ?? '') ?? 1),
       ),
     );
 
@@ -107,8 +119,8 @@ class SyncRepository {
     final Map<int, int> teamMapping = {}; // { RemoteId : LocalId }
     
     for (final teamJson in teamsData) {
-      final remoteId = teamJson['id'] as int;
-      final teamName = teamJson['name'] as String;
+      final remoteId = int.tryParse(teamJson['id']?.toString() ?? '') ?? 0;
+      final teamName = (teamJson['name'] ?? teamJson['name'])?.toString() ?? 'Squadra';
       
       // Check if team exists globally by name (use limit(1) to avoid Bad State if duplicates exist)
       final existingTeams = await (_db.select(_db.teams)
@@ -124,7 +136,7 @@ class SyncRepository {
         localTeamId = await _db.into(_db.teams).insert(
           TeamsCompanion.insert(
             name: teamName,
-            logoPath: Value(teamJson['logoPath']),
+            logoPath: Value((teamJson['logoPath'] ?? teamJson['logo_path'])?.toString()),
           )
         );
       }
@@ -134,7 +146,7 @@ class SyncRepository {
         TournamentTeamsCompanion.insert(
           tournamentId: tournamentId,
           teamId: localTeamId,
-          groupNumber: Value(teamJson['groupNumber'] ?? 1),
+          groupNumber: Value(int.tryParse((teamJson['groupNumber'] ?? teamJson['group_number'])?.toString() ?? '') ?? 1),
         )
       );
 
@@ -157,8 +169,8 @@ class SyncRepository {
 
     await _db.batch((batch) {
       for (final m in matchesData) {
-        final homeRemoteId = m['homeTeamId'] as int?;
-        final awayRemoteId = m['awayTeamId'] as int?;
+        final homeRemoteId = int.tryParse((m['homeTeamId'] ?? m['home_team_id'])?.toString() ?? '');
+        final awayRemoteId = int.tryParse((m['awayTeamId'] ?? m['away_team_id'])?.toString() ?? '');
         
         final localHomeId = homeRemoteId != null ? teamMapping[homeRemoteId] : null;
         final localAwayId = awayRemoteId != null ? teamMapping[awayRemoteId] : null;
@@ -166,14 +178,14 @@ class SyncRepository {
         // 3.1 Try to find match by TEAMS first (stable across devices)
         int? existingId;
         if (localHomeId != null && localAwayId != null) {
-          final String teamsKey = '${m['phase'] ?? 'group'}_${m['round'] ?? 1}_${localHomeId}_${localAwayId}';
+          final String teamsKey = '${(m['phase'] ?? m['phase'])?.toString() ?? 'group'}_${int.tryParse((m['round'] ?? m['round'])?.toString() ?? '') ?? 1}_${localHomeId}_${localAwayId}';
           existingId = localMatchesMapByTeams[teamsKey];
         }
 
         // 3.2 If not found by teams and we are in bracket/knockout, 
         // fallback to Index-based matching if the local list size matches
         if (existingId == null) {
-          final int? rIndex = m['remoteIndex'] as int?;
+          final int? rIndex = int.tryParse((m['remoteIndex'] ?? m['remote_index'])?.toString() ?? '');
           if (rIndex != null && rIndex < localMatches.length) {
             existingId = localMatches[rIndex].id;
           }
@@ -183,9 +195,9 @@ class SyncRepository {
           processedLocalIds.add(existingId);
           
           final localMatch = localMatches.firstWhere((lm) => lm.id == existingId);
-          final bool remoteCompleted = m['isCompleted'] ?? false;
-          final int remoteHomeScore = m['homeScore'] ?? 0;
-          final int remoteAwayScore = m['awayScore'] ?? 0;
+          final bool remoteCompleted = m['isCompleted'] == true || m['is_completed'] == true;
+          final int remoteHomeScore = int.tryParse((m['homeScore'] ?? m['home_score'])?.toString() ?? '') ?? 0;
+          final int remoteAwayScore = int.tryParse((m['awayScore'] ?? m['away_score'])?.toString() ?? '') ?? 0;
 
           // SMART SCORE UPDATE LOGIC:
           // 1. If remote is completed, cloud result is final and should win if different
@@ -211,10 +223,8 @@ class SyncRepository {
               homeScore: shouldUpdateScores ? Value(remoteHomeScore) : const Value.absent(),
               awayScore: shouldUpdateScores ? Value(remoteAwayScore) : const Value.absent(),
               isCompleted: Value(remoteCompleted),
-              isBye: Value(m['isBye'] ?? false),
-              scheduledAt: Value(m['scheduledAt'] != null 
-                  ? DateTime.tryParse(m['scheduledAt'].toString()) 
-                  : null),
+              isBye: Value(m['isBye'] == true || m['is_bye'] == true),
+              scheduledAt: Value(_parseDateTime(m['scheduledAt'] ?? m['scheduled_at'])),
             ),
             where: (row) => row.id.equals(existingId!),
           );
@@ -226,23 +236,20 @@ class SyncRepository {
               tournamentId: tournamentId,
               homeTeamId: Value(localHomeId),
               awayTeamId: Value(localAwayId),
-              homeScore: Value(m['homeScore']),
-              awayScore: Value(m['awayScore']),
-              round: Value(m['round'] ?? 1),
-              phase: Value(m['phase'] ?? 'group'),
-              groupNumber: Value(m['groupNumber'] ?? 1),
-              isCompleted: Value(m['isCompleted'] ?? false),
-              isBye: Value(m['isBye'] ?? false),
-              scheduledAt: Value(m['scheduledAt'] != null 
-                  ? DateTime.tryParse(m['scheduledAt'].toString()) 
-                  : null),
+              homeScore: Value(int.tryParse((m['homeScore'] ?? m['home_score'])?.toString() ?? '')),
+              awayScore: Value(int.tryParse((m['awayScore'] ?? m['away_score'])?.toString() ?? '')),
+              round: Value(int.tryParse((m['round'] ?? m['round'])?.toString() ?? '') ?? 1),
+              phase: Value((m['phase'] ?? m['phase'])?.toString() ?? 'group'),
+              groupNumber: Value(int.tryParse((m['groupNumber'] ?? m['group_number'])?.toString() ?? '') ?? 1),
+              isCompleted: Value(m['isCompleted'] == true || m['is_completed'] == true),
+              isBye: Value(m['isBye'] == true || m['is_bye'] == true),
+              scheduledAt: Value(_parseDateTime(m['scheduledAt'] ?? m['scheduled_at'])),
             ),
           );
         }
       }
 
       // 4. Pruning: Delete matches that are no longer in the cloud
-      // We only delete IDs that WERE here locally but were not found in the cloud bundle
       final originalLocalIds = localMatches.map((lm) => lm.id).toList();
       final idsToRemove = originalLocalIds.where((id) => !processedLocalIds.contains(id)).toList();
       
@@ -250,6 +257,13 @@ class SyncRepository {
         batch.deleteWhere(_db.matches, (t) => t.id.isIn(idsToRemove));
       }
     });
+  }
+
+  DateTime? _parseDateTime(dynamic value) {
+    if (value == null) return null;
+    if (value is DateTime) return value;
+    if (value is int) return DateTime.fromMillisecondsSinceEpoch(value);
+    return DateTime.tryParse(value.toString());
   }
 }
 

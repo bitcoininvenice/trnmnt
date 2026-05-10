@@ -23,23 +23,36 @@ class _ScanTournamentScreenState extends ConsumerState<ScanTournamentScreen> {
   bool _isProcessing = false;
   String? _status;
 
-  Future<void> _handleScan(String? code) async {
-    if (code == null || _isProcessing) return;
+  Future<void> _handleScan(String? rawCode) async {
+    if (rawCode == null || _isProcessing) return;
+    
+    final code = rawCode.trim();
     
     final isManageLink = code.startsWith('trnmnt://manage') || code.startsWith('trnmnt://share');
     final isWebLink = code.startsWith('http') && code.contains('/tournaments/');
     
-    if (!isManageLink && !isWebLink) return;
-
-    String? cloudId;
-    if (isWebLink) {
-        cloudId = Uri.parse(code).pathSegments.last;
-    } else {
-        final uri = Uri.parse(code.replaceFirst('trnmnt://manage', 'http://trnmnt').replaceFirst('trnmnt://share', 'http://trnmnt'));
-        cloudId = uri.queryParameters['id'];
+    if (!isManageLink && !isWebLink) {
+      return;
     }
 
-    if (cloudId == null || cloudId.isEmpty) return;
+    String? cloudId;
+    try {
+      if (isWebLink) {
+          cloudId = Uri.parse(code).pathSegments.last;
+      } else {
+          final normalized = code
+              .replaceFirst('trnmnt://manage', 'http://trnmnt')
+              .replaceFirst('trnmnt://share', 'http://trnmnt');
+          final uri = Uri.parse(normalized);
+          cloudId = uri.queryParameters['id'];
+      }
+    } catch (e) {
+      return;
+    }
+
+    if (cloudId == null || cloudId.isEmpty) {
+      return;
+    }
     
     await _controller.stop();
 
@@ -85,57 +98,69 @@ class _ScanTournamentScreenState extends ConsumerState<ScanTournamentScreen> {
     required String cloudId,
   }) async {
     final db = ref.read(dbProvider);
-    final tournamentData = data['tournament'] as Map<String, dynamic>;
-    final teamsData = data['teams'] as List<dynamic>;
-    final matchesData = data['matches'] as List<dynamic>;
+    final tournamentData = data['tournament'] as Map<String, dynamic>?;
+    final teamsData = data['teams'] as List<dynamic>?;
+    final matchesData = data['matches'] as List<dynamic>?;
 
-    // Check for duplicates
-    final existing = await (db.select(db.tournaments)
-      ..where((t) => t.cloudId.equals(cloudId)))
-      .getSingleOrNull();
+    if (tournamentData == null || teamsData == null || matchesData == null) {
+      return null;
+    }
 
+    final existing = await (db.select(db.tournaments)..where((t) => t.cloudId.equals(cloudId))).getSingleOrNull();
     if (existing != null) {
       return existing.id;
     }
 
-    final importName = tournamentData['name'];
+    final importName = (tournamentData['name'] ?? tournamentData['name'])?.toString() ?? 'Senza nome';
     
+    // Resolve venue court if present (Cloud stores UUID, Local stores Int ID)
+    int? localVenueCourtId;
+    final remoteVenueId = tournamentData['venue_court_id'] ?? tournamentData['venueCourtId'];
+    if (remoteVenueId != null) {
+      if (remoteVenueId is int) {
+        localVenueCourtId = remoteVenueId;
+      } else if (remoteVenueId is String) {
+        final court = await (db.select(db.courts)..where((c) => c.cloudId.equals(remoteVenueId))).getSingleOrNull();
+        localVenueCourtId = court?.id;
+      }
+    }
+
     // 1. Create NEW Tournament record
     final tournamentId = await db.into(db.tournaments).insert(
       TournamentsCompanion.insert(
         name: importName,
-        location: tournamentData['location'],
-        mode: drift.Value(tournamentData['mode']),
-        startDate: drift.Value(tournamentData['startDate'] != null ? DateTime.tryParse(tournamentData['startDate']) : null),
-        endDate: drift.Value(tournamentData['endDate'] != null ? DateTime.tryParse(tournamentData['endDate']) : null),
-        description: drift.Value(data['description'] ?? tournamentData['description']), // Check both levels
-        venueCourtId: drift.Value(tournamentData['venue_court_id'] ?? tournamentData['venueCourtId']),
-        scoringSystem: drift.Value(tournamentData['scoringSystem']),
-        winPoints: drift.Value(tournamentData['winPoints']),
-        drawPoints: drift.Value(tournamentData['drawPoints']),
-        lossPoints: drift.Value(tournamentData['lossPoints']),
-        includeConsolationFinals: drift.Value(tournamentData['includeConsolationFinals']),
-        timerMinutes: drift.Value(tournamentData['timerMinutes']),
-        isActive: drift.Value(tournamentData['isActive']),
-        twitchChannel: drift.Value(tournamentData['twitchChannel']),
-        youtubeVideoId: drift.Value(tournamentData['youtubeVideoId']),
-        customTicker: drift.Value(tournamentData['customTicker']),
-        isReadOnly: const drift.Value(true), // READ ONLY for co-management (viewer mode)
+        location: (tournamentData['location'] ?? tournamentData['location'] ?? 'Sconosciuta').toString(),
+        mode: drift.Value((tournamentData['mode'] ?? tournamentData['mode'])?.toString() ?? 'group_only'),
+        startDate: drift.Value(_parseDateTime(tournamentData['startDate'] ?? tournamentData['start_date'])),
+        endDate: drift.Value(_parseDateTime(tournamentData['endDate'] ?? tournamentData['end_date'])),
+        description: drift.Value((data['description'] ?? tournamentData['description'] ?? tournamentData['description'])?.toString()), 
+        venueCourtId: drift.Value(localVenueCourtId),
+        scoringSystem: drift.Value((tournamentData['scoringSystem'] ?? tournamentData['scoring_system'])?.toString() ?? 'standard'),
+        winPoints: drift.Value(int.tryParse((tournamentData['winPoints'] ?? tournamentData['win_points'])?.toString() ?? '') ?? 3),
+        drawPoints: drift.Value(int.tryParse((tournamentData['drawPoints'] ?? tournamentData['draw_points'])?.toString() ?? '') ?? 1),
+        lossPoints: drift.Value(int.tryParse((tournamentData['lossPoints'] ?? tournamentData['loss_points'])?.toString() ?? '') ?? 0),
+        includeConsolationFinals: drift.Value(tournamentData['includeConsolationFinals'] == true || tournamentData['include_consolation_finals'] == true),
+        timerMinutes: drift.Value(int.tryParse((tournamentData['timerMinutes'] ?? tournamentData['timer_minutes'])?.toString() ?? '') ?? 10),
+        isActive: drift.Value(tournamentData['isActive'] != false && tournamentData['is_active'] != false),
+        twitchChannel: drift.Value((tournamentData['twitchChannel'] ?? tournamentData['twitch_channel'])?.toString()),
+        youtubeVideoId: drift.Value((tournamentData['youtubeVideoId'] ?? tournamentData['youtube_video_id'])?.toString()),
+        customTicker: drift.Value((tournamentData['customTicker'] ?? tournamentData['custom_ticker'])?.toString()),
+        isReadOnly: const drift.Value(true), 
         cloudId: drift.Value(cloudId),
         isPublished: const drift.Value(true),
-        webUrl: drift.Value(tournamentData['webUrl']),
-        communityId: drift.Value(tournamentData['communityId'] ?? tournamentData['community_id']),
-        communityName: drift.Value(tournamentData['communityName'] ?? tournamentData['community_name']),
+        webUrl: drift.Value((tournamentData['webUrl'] ?? tournamentData['web_url'])?.toString()),
+        communityId: drift.Value((tournamentData['communityId'] ?? tournamentData['community_id'])?.toString()),
+        communityName: drift.Value((tournamentData['communityName'] ?? tournamentData['community_name'])?.toString()),
       )
     );
 
     // 2. Map Teams { SenderId: ReceiverId }
     final Map<int, int> teamMapping = {};
     for (final teamJson in teamsData) {
-      final oldId = teamJson['id'] as int;
+      final oldId = int.tryParse(teamJson['id']?.toString() ?? '') ?? 0;
+      final teamName = (teamJson['name'] ?? teamJson['name'])?.toString() ?? 'Squadra';
       
-      // Check if team with same name already exists locally
-      final existingTeam = await (db.select(db.teams)..where((t) => t.name.equals(teamJson['name']))).getSingleOrNull();
+      final existingTeam = await (db.select(db.teams)..where((t) => t.name.equals(teamName))).getSingleOrNull();
       
       int receiverTeamId;
       if (existingTeam != null) {
@@ -143,45 +168,53 @@ class _ScanTournamentScreenState extends ConsumerState<ScanTournamentScreen> {
       } else {
         receiverTeamId = await db.into(db.teams).insert(
           TeamsCompanion.insert(
-            name: teamJson['name'],
-            logoPath: drift.Value(teamJson['logoPath']),
+            name: teamName,
+            logoPath: drift.Value(teamJson['logoPath']?.toString() ?? teamJson['logo_path']?.toString()),
           )
         );
       }
       teamMapping[oldId] = receiverTeamId;
       
       // Link to tournament
-      await db.into(db.tournamentTeams).insert(
+      await db.into(db.tournamentTeams).insertOnConflictUpdate(
         TournamentTeamsCompanion.insert(
           tournamentId: tournamentId,
           teamId: receiverTeamId,
+          groupNumber: drift.Value(int.tryParse((teamJson['groupNumber'] ?? teamJson['group_number'])?.toString() ?? '') ?? 1),
         )
       );
     }
 
     // 3. Map Matches
     for (final matchJson in matchesData) {
-      final homeId = matchJson['homeTeamId'] as int?;
-      final awayId = matchJson['awayTeamId'] as int?;
+      final homeId = int.tryParse((matchJson['homeTeamId'] ?? matchJson['home_team_id'])?.toString() ?? '');
+      final awayId = int.tryParse((matchJson['awayTeamId'] ?? matchJson['away_team_id'])?.toString() ?? '');
       
       await db.into(db.matches).insert(
         MatchesCompanion.insert(
           tournamentId: tournamentId,
           homeTeamId: drift.Value(homeId != null ? teamMapping[homeId] : null),
           awayTeamId: drift.Value(awayId != null ? teamMapping[awayId] : null),
-          homeScore: drift.Value(matchJson['homeScore'] as int?),
-          awayScore: drift.Value(matchJson['awayScore'] as int?),
-          round: drift.Value(matchJson['round'] as int? ?? 1),
-          groupNumber: drift.Value(matchJson['groupNumber'] as int? ?? 1),
-          phase: drift.Value(matchJson['phase'] as String? ?? 'group'),
-          isBye: drift.Value(matchJson['isBye'] as bool? ?? false),
-          isCompleted: drift.Value(matchJson['isCompleted'] as bool? ?? false),
-          scheduledAt: drift.Value(matchJson['scheduledAt'] != null ? DateTime.tryParse(matchJson['scheduledAt'].toString()) : null),
+          homeScore: drift.Value(int.tryParse((matchJson['homeScore'] ?? matchJson['home_score'])?.toString() ?? '')),
+          awayScore: drift.Value(int.tryParse((matchJson['awayScore'] ?? matchJson['away_score'])?.toString() ?? '')),
+          round: drift.Value(int.tryParse((matchJson['round'] ?? matchJson['round'])?.toString() ?? '') ?? 1),
+          groupNumber: drift.Value(int.tryParse((matchJson['groupNumber'] ?? matchJson['group_number'])?.toString() ?? '') ?? 1),
+          phase: drift.Value((matchJson['phase'] ?? matchJson['phase'])?.toString() ?? 'group'),
+          isBye: drift.Value(matchJson['isBye'] == true || matchJson['is_bye'] == true),
+          isCompleted: drift.Value(matchJson['isCompleted'] == true || matchJson['is_completed'] == true),
+          scheduledAt: drift.Value(_parseDateTime(matchJson['scheduledAt'] ?? matchJson['scheduled_at'])),
         )
       );
     }
 
     return tournamentId;
+  }
+
+  DateTime? _parseDateTime(dynamic value) {
+    if (value == null) return null;
+    if (value is DateTime) return value;
+    if (value is int) return DateTime.fromMillisecondsSinceEpoch(value);
+    return DateTime.tryParse(value.toString());
   }
 
   @override

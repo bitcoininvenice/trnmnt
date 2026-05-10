@@ -23,12 +23,15 @@ class ShareRepository {
       // 1. Fetch tournament data
       final response = await supabase
           .from('published_tournaments')
-          .select('data')
+          .select('data, description')
           .eq('id', cloudId)
           .single();
       
-      return response['data'] as Map<String, dynamic>?;
+      final Map<String, dynamic> data = Map<String, dynamic>.from(response['data'] as Map);
+      data['description'] = response['description'];
+      return data;
     } catch (e) {
+      debugPrint('Error fetching tournament by cloud ID: $e');
       return null;
     }
   }
